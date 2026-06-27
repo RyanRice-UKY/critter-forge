@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tower Logic — Prologue</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+    <style>
+      :root { --bg:#080b11; --panel:#0d121b; --line:#1a2433; --ink:#d7e2ee; --muted:#7b8aa0; --green:#51cf66; --red:#ff6b6b; --amber:#ffd43b; }
+      * { box-sizing:border-box; } html,body{margin:0;}
+      body { background:var(--bg); color:var(--ink); font-family:"IBM Plex Mono",monospace; min-height:100vh;
+        background-image:linear-gradient(rgba(70,110,160,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(70,110,160,.05) 1px,transparent 1px); background-size:30px 30px; }
+      header { padding:26px 30px 4px; }
+      .k { font-size:12px; letter-spacing:4px; color:var(--muted); text-transform:uppercase; }
+      h1 { font-family:"Chakra Petch",sans-serif; font-size:clamp(24px,4vw,40px); margin:6px 0 2px; }
+      h1 b { color:#51cf66; }
+      .prog { color:var(--muted); font-size:13px; }
+      main { display:grid; grid-template-columns:1fr 520px; gap:22px; padding:10px 30px 50px; align-items:start; max-width:1280px; margin:0 auto;}
+      @media (max-width:1040px){ main{grid-template-columns:1fr;} }
+      .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
+      .narr { color:var(--muted); font-size:14px; line-height:1.6; font-style:italic; }
+      .npc { color:var(--ink); font-size:15px; line-height:1.6; margin-top:10px; border-left:3px solid #51cf66; padding-left:12px; }
+      .task { margin-top:12px; font-size:13.5px; color:#cfe3ff; background:#0e1620; border:1px solid var(--line); border-radius:8px; padding:10px 12px; white-space:pre-wrap; }
+      .editor { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+      .CodeMirror { height:150px; font-size:15px; }
+      .controls { display:flex; gap:10px; margin:12px 0; }
+      button.primary { background:#51cf66; color:#04130a; border:0; font-weight:700; padding:11px 22px; border-radius:9px; cursor:pointer; font-size:14px; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; }
+      button.primary:disabled { opacity:.5; cursor:wait; }
+      button.ghost { background:transparent; color:var(--muted); border:1px solid var(--line); padding:11px 16px; border-radius:9px; cursor:pointer; }
+      button.next { background:#ffd43b; color:#1a1300; border:0; font-weight:700; padding:11px 20px; border-radius:9px; cursor:pointer; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; display:none; }
+      .status { font-size:14px; padding:10px 12px; border-radius:9px; border:1px solid var(--line); }
+      .status.muted{color:var(--muted);} .status.ok{color:var(--green);border-color:#1f3a26;background:#0e1c13;} .status.err{color:var(--red);border-color:#3a1f1f;background:#1c0e0e;}
+      canvas { width:100%; max-width:520px; border:1px solid var(--line); border-radius:14px; display:block; background:#0a1410; }
+      .hint { margin-top:10px; color:var(--muted); font-size:12.5px; }
+      .hint code { color:#cfe3ff; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="k">Tower Logic · prologue</div>
+      <h1>The first <b>word</b></h1>
+      <div class="prog" id="prog">Loading…</div>
+    </header>
+    <main>
+      <section>
+        <div class="panel">
+          <div class="narr" id="narr"></div>
+          <div class="npc" id="npc"></div>
+          <div class="task" id="task"></div>
+        </div>
+        <div id="editor" class="editor"></div>
+        <div class="controls">
+          <button id="run" class="primary" disabled>▸ Speak</button>
+          <button id="reset" class="ghost">↺ Reset</button>
+          <button id="next" class="next">Continue ▸</button>
+        </div>
+        <div id="status" class="status muted">Booting…</div>
+        <div class="hint">In Python, <code>print("hello")</code> makes your survivor say <em>hello</em>. The words go inside the quotes.</div>
+      </section>
+      <section>
+        <canvas id="scene" width="520" height="380"></canvas>
+      </section>
+    </main>
+    <script type="module" src="./prologue.js"></script>
+  </body>
+</html>

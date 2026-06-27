@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tower Logic — The Campaign</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet" />
+    <style>
+      :root { --bg:#080b11; --panel:#0d121b; --line:#1a2433; --ink:#d7e2ee; --muted:#6b7c90; }
+      * { box-sizing:border-box; } html,body{margin:0;}
+      body { background:var(--bg); color:var(--ink); font-family:"IBM Plex Mono",monospace;
+        background-image:linear-gradient(rgba(70,110,160,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(70,110,160,.05) 1px,transparent 1px);
+        background-size:30px 30px; min-height:100vh; }
+      header { padding:34px 30px 6px; max-width:1180px; margin:0 auto; }
+      .k { font-size:12px; letter-spacing:4px; color:var(--muted); text-transform:uppercase; }
+      h1 { font-family:"Chakra Petch",sans-serif; font-size:clamp(28px,4.5vw,50px); margin:6px 0 2px; }
+      h1 b { color:#ffa94d; }
+      .sub { color:var(--muted); max-width:720px; line-height:1.6; font-size:14px; }
+      .arena { max-width:1180px; margin:18px auto; padding:0 30px; }
+      .card { background:linear-gradient(180deg,var(--panel),#0a0e15); border:1px solid var(--line);
+        border-left:3px solid var(--ac); border-radius:13px; overflow:hidden; }
+      .head { display:flex; align-items:baseline; gap:12px; padding:14px 18px 8px; flex-wrap:wrap; }
+      .head .num { font-family:"Chakra Petch",sans-serif; font-size:13px; color:var(--ac); letter-spacing:2px; }
+      .head h2 { font-family:"Chakra Petch",sans-serif; font-size:23px; margin:0; }
+      .head .concept { margin-left:auto; font-size:11.5px; color:var(--ac); border:1px solid var(--line); padding:4px 10px; border-radius:999px; }
+      .story { padding:0 18px 8px; color:var(--muted); font-size:13px; line-height:1.5; }
+      canvas { display:block; width:100%; height:300px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="k">Tower Logic · campaign concept</div>
+      <h1>From the <b>Wildwood</b> to the <b>Lab</b></h1>
+      <p class="sub">Five arenas. You begin with a bow in the grass and fight through waves of the infected, unlocking a new <em>kind</em> of tech at each stage — weapons, then people, then structures, then the future — until you reach the lab where the outbreak began. Each card shows the battlefield, the hero you play, a marching enemy, and the gear you unlock there.</p>
+    </header>
+    <div id="arenas"></div>
+    <div class="arena"><p class="story" style="color:#6b7c90">Concepts shown are the rough teaching hook per arena — we'll lock the full curriculum once the game's shape is set. Tell me what to adjust and I'll refine the art + wire the first arena into the game.</p></div>
+    <script type="module" src="./campaign.js"></script>
+  </body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Critter Forge — Battle Arena</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .arena-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 22px; padding: 6px 26px 40px; align-items: start; }
+      @media (max-width: 1040px) { .arena-wrap { grid-template-columns: 1fr; } }
+      #arena { width: 100%; max-width: 600px; border: 1px solid var(--line); border-radius: 14px; background: #0d1117; display: block; }
+      .slots { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+      .slot { display: flex; align-items: center; gap: 8px; }
+      .slot .swatch { width: 14px; height: 14px; border-radius: 50%; }
+      .slot select { flex: 1; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+      .board { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
+      .board h3 { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+      .scorerow { display: grid; grid-template-columns: 14px 1fr auto auto; gap: 8px; align-items: center; font-size: 13px; padding: 5px 2px; border-bottom: 1px solid #131a22; }
+      .scorerow .sw { width: 11px; height: 11px; border-radius: 50%; }
+      .scorerow.dead { opacity: 0.4; text-decoration: line-through; }
+      .scorerow .sz { font-variant-numeric: tabular-nums; color: var(--ink); }
+      .scorerow .kl { font-size: 11px; color: var(--muted); }
+      .feed { font-size: 12px; color: var(--muted); max-height: 130px; overflow-y: auto; }
+      .feed div { padding: 2px 0; }
+      .feed b { color: var(--ink); }
+      .winner { font-size: 15px; font-weight: 700; color: var(--green); margin-top: 8px; min-height: 20px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🦎 Critter Forge <span class="act">Battle Arena</span></h1>
+      <p class="tag">Forage to grow · the <strong>bigger critter eats the smaller</strong> · last one standing (or biggest at the bell) wins. Dev stage: JS bots fight; your Python brain plugs in later.</p>
+    </header>
+    <div class="arena-wrap">
+      <section>
+        <canvas id="arena" width="600" height="600"></canvas>
+      </section>
+      <section>
+        <div class="board">
+          <h3>Fighters</h3>
+          <div class="slots" id="slots"></div>
+          <div class="controls">
+            <button id="fight" class="primary">▶ Fight</button>
+            <button id="sim" class="ghost">⚔ Run 200 sims</button>
+          </div>
+        </div>
+        <div class="board">
+          <h3>Scoreboard</h3>
+          <div id="scores"></div>
+          <div id="winner" class="winner"></div>
+        </div>
+        <div class="board">
+          <h3>Kill feed</h3>
+          <div id="feed" class="feed"></div>
+        </div>
+        <div class="board">
+          <h3>Balance (sims)</h3>
+          <div id="simout" class="feed">Press “Run 200 sims”.</div>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="./battle.js"></script>
+  </body>
+</html>

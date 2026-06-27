@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tower Logic — code your turrets</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+    <style>
+      #arena { width: 100%; max-width: 640px; border: 1px solid var(--line); border-radius: 14px; background: #0d1117; display: block; }
+      .hud { display: flex; gap: 16px; margin: 10px 0; font-size: 14px; }
+      .hud .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
+      .hud b { color: var(--ink); }
+      .e { color: #ffd43b; } .l { color: #ff6b6b; } .w { color: #4dabf7; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🗼 Tower Logic <span class="act">code your turrets</span></h1>
+      <p class="tag">Write <strong>decide(t)</strong> for your turrets. Enemies march on the house — <strong>fire only what's in range</strong>, energy is scarce. sense → decide → act.</p>
+    </header>
+    <div id="tabs" class="tabs"></div>
+    <main>
+      <section class="left">
+        <div class="panel">
+          <div class="panel-head">
+            <h2 id="levelName">Loading…</h2>
+            <span class="conceptchip">New: <b id="concept"></b></span>
+          </div>
+          <p id="blurb" class="blurb"></p>
+        </div>
+        <div id="editor" class="editor"></div>
+        <div class="controls">
+          <button id="run" class="primary" disabled>▶ Defend</button>
+          <button id="reset" class="ghost">↺ Reset code</button>
+        </div>
+        <div id="status" class="status muted">Booting…</div>
+        <div id="grade" class="grade"></div>
+      </section>
+      <section class="right">
+        <canvas id="arena" width="640" height="380"></canvas>
+        <div class="hud">
+          <span class="stat">⚡ Energy <b class="e" id="energy">0</b></span>
+          <span class="stat">❤ Lives <b class="l" id="lives">0</b></span>
+          <span class="stat">🌊 Wave <b class="w" id="wave">0/0</b></span>
+        </div>
+        <div class="panel">
+          <p class="blurb" style="margin:0">
+            <b>Turret sensor</b> <code>t</code>: <code>t["enemies"]</code> (list of
+            <code>{dist,col,hp,type,...}</code> in this lane), <code>t["range"]</code>,
+            <code>t["energy"]</code>, <code>t["row"]/["col"]</code>. Helpers:
+            <code>nearest(t)</code>, <code>fire(target)</code>, <code>hold()</code>.
+          </p>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./tower-game.js"></script>
+  </body>
+</html>

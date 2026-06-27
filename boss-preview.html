@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixel Marchers — roster + boss</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet" />
+    <style>
+      :root { --bg:#0a0e15; --ink:#e6edf3; --muted:#7b8aa0; --ac:#ffa94d; }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--bg); color:var(--ink); font-family:"IBM Plex Mono",monospace;
+        background-image: linear-gradient(rgba(90,120,160,.06) 1px,transparent 1px), linear-gradient(90deg,rgba(90,120,160,.06) 1px,transparent 1px);
+        background-size:28px 28px; min-height:100vh; }
+      header { padding:32px 28px 6px; }
+      .k { font-size:12px; letter-spacing:3px; color:var(--muted); text-transform:uppercase; }
+      h1 { font-family:"Chakra Petch",sans-serif; font-size:clamp(26px,4vw,42px); margin:6px 0; }
+      h1 b { color:var(--ac); }
+      p.sub { color:var(--muted); max-width:680px; line-height:1.6; font-size:14px; }
+      .stage { margin:14px 28px; border:1px solid #1b2433; border-radius:14px; overflow:hidden;
+        background: radial-gradient(120% 120% at 30% 30%, #111825, #080b11); }
+      canvas { display:block; width:100%; height:420px; }
+      footer { color:var(--muted); padding:8px 28px 40px; font-size:13px; line-height:1.6; }
+      footer b { color:var(--ink); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="k">Tower Logic · render style 02</div>
+      <h1><b>Pixel Marchers</b> — your roster + first boss</h1>
+      <p class="sub">The chosen style at game scale: walker, brute and sprinter, plus the first "harder beast" — a one-eyed <b style="color:#ff8787">Cyclops</b> boss. Bosses get bigger, more detailed pixel sprites in this same family (think Realm of the Mad God's armored lords).</p>
+    </header>
+    <div class="stage"><canvas id="c" width="1100" height="420"></canvas></div>
+    <footer>All procedural pixels — no image files. Boss roadmap: <b>Cyclops</b> → armored <b>Lost Knight</b> → <b>Lord of the Lost Lands</b>, each a larger sprite + tougher behavior you'll eventually code yourself.</footer>
+    <script type="module" src="./boss-preview.js"></script>
+  </body>
+</html>
