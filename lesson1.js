@@ -220,23 +220,23 @@ async function playWildwood() {
   await say("???", "A figure watches you from the treeline.");
   await autoWalk("stranger");
   await say("Stranger", "Easy — you're awake. I thought you were one of them.");
-  await ask({ prompt: "Speak — write a print statement:", placeholder: 'print("Where am I?")', validate: nonEmptyOut }, (r) => speech(r.stdout));
+  await ask({ prompt: "Speak to the stranger", placeholder: 'print("Where am I?")', lesson: "Your character talks by printing words to the screen. A print statement shows whatever you place inside its parentheses, and text goes inside quotation marks. Ask the stranger where you are.", validate: nonEmptyOut }, (r) => speech(r.stdout));
   await say("Stranger", "There's been an outbreak. The world ended while you slept. What's your name?");
   let name = "survivor";
-  await ask({ prompt: "Tell them your name — print it:", placeholder: 'print("...")', validate: nonEmptyOut }, (r) => { name = firstLine(r.stdout); prog(name); return speech(name); });
+  await ask({ prompt: "Tell them your name", placeholder: 'print("...")', lesson: "Use another print statement to say your name aloud. Put any name you like inside the quotation marks. Whatever you print is how the world will know you.", validate: nonEmptyOut }, (r) => { name = firstLine(r.stdout); prog(name); return speech(name); });
   await say("Stranger", `Hello ${name}. You'll need gear. The smith is at the hut.`);
   await autoWalk("smith");
   await say("Smith", "Hold it. You're not one of the infected, are you?");
-  await ask({ prompt: "Answer the smith — print your reply:", placeholder: 'print("No")', validate: (r) => (r.stdout.toLowerCase().includes("no") ? null : 'Tell them: print("No").') }, (r) => speech(r.stdout));
+  await ask({ prompt: "Answer the smith", placeholder: 'print("No")', lesson: "The smith needs to hear that you are not infected. Print a short reply that clearly says no, with your words inside quotation marks.", validate: (r) => (r.stdout.toLowerCase().includes("no") ? null : 'Tell them: print("No").') }, (r) => speech(r.stdout));
   await say("Smith", "Good. Gather 10 sticks and 3 string from that tree and I'll craft you a bow.");
   await autoWalk("tree");
   logCmd("sticks = 0", false); logCmd("string = 0", false);
   await say("", "Sticks and string lie at the tree's foot — and you start with 0 of each.");
-  await ask({ prompt: "Pick them up — ADD to what you have:", placeholder: "sticks = sticks + 10\nstring = string + 3", rows: 2, seed: "sticks=0\nstring=0", requireOp: "+", lesson: "You already have sticks (0) and string (0). To gather more, ADD to the variable: sticks = sticks + 10 takes the old value and grows it.", validate: (r) => (r.vars.sticks === 10 && r.vars.string === 3 ? null : "You need  sticks = 10  and  string = 3.") }, () => pickup());
+  await ask({ prompt: "Gather the sticks and string", placeholder: "sticks = sticks + 10\nstring = string + 3", rows: 2, seed: "sticks=0\nstring=0", requireOp: "+", lesson: "A variable remembers a value for you. You already carry sticks and string, both starting at zero. To gather more you add to a variable: take its current value, add what you found, and store the result back in the same variable. Pick up ten sticks and three string this way.", validate: (r) => (r.vars.sticks === 10 && r.vars.string === 3 ? null : "You need  sticks = 10  and  string = 3.") }, () => pickup());
   await autoWalk("smith");
   await say("Smith", "Good haul. Speak, and hand them over.");
-  await ask({ prompt: "Speak to the smith — print anything:", placeholder: 'print("Here you go.")', validate: nonEmptyOut }, (r) => speech(r.stdout));
-  await ask({ prompt: "Hand them over — SUBTRACT 10 sticks and 3 string:", placeholder: "sticks = sticks - 10\nstring = string - 3", rows: 2, seed: "sticks=10\nstring=3", requireOp: "-", validate: (r) => (r.vars.sticks === 0 && r.vars.string === 0 ? null : "Subtract so  sticks = 0  and  string = 0.") }, () => craft());
+  await ask({ prompt: "Speak to the smith", placeholder: 'print("Here you go.")', lesson: "Say something to the smith before you hand the materials over. Any printed line of dialogue works, with your words inside quotation marks.", validate: nonEmptyOut }, (r) => speech(r.stdout));
+  await ask({ prompt: "Hand the materials over", placeholder: "sticks = sticks - 10\nstring = string - 3", rows: 2, seed: "sticks=10\nstring=3", requireOp: "-", lesson: "Giving things away means taking them out of your variables. Subtraction is addition in reverse: take the current value, remove the amount, and store it back. Hand over all of the sticks and string so each count drops to zero.", validate: (r) => (r.vars.sticks === 0 && r.vars.string === 0 ? null : "Subtract so  sticks = 0  and  string = 0.") }, () => craft());
   await bestow();
   await say("Smith", `A bow, and a quiver to match. Now you've a fighting chance, ${name}.`);
   await say("", 'Lesson 1.1 done. You can wander — walk by typing, e.g. you.walk("tree"). When ready, head out: you.walk("lesson1.2").');
@@ -251,7 +251,7 @@ async function playClearing(name) {
   zoms = [mkZom(0.66), mkZom(0.72), mkZom(0.78)];
   await say("Survivor", "HELP! They've got me cornered up here — please!");
   await say("", "A survivor clings to a high branch; three infected lurk beneath the tree. Get to the marked spot.");
-  await ask({ prompt: 'Walk to the marked spot — call you.walk("center"):', placeholder: 'you.walk("center")', validate: (r) => (r.walk === "center" ? null : 'Use you.walk("center").') }, null);
+  await ask({ prompt: 'Get to the marked spot', placeholder: 'you.walk("center")', lesson: "Your character moves by calling the walk command and naming a place inside quotation marks. The marked spot here is called center. Walk there to face the danger.", validate: (r) => (r.walk === "center" ? null : 'Use you.walk("center").') }, null);
   await autoWalk("center");
   await say("", "They rouse and turn on you. Loose an arrow — bow.fire() — and keep firing!");
   await clearingCombat();
@@ -260,7 +260,7 @@ async function playClearing(name) {
   await say("Survivor", "You saved my life. It's not much, but I owe you — take these.");
   char.gold = 2.55; logCmd("gold = 2.55", false);
   await say("Survivor", "Two coins and fifty-five — 2.55 gold. Will you escort me to safety?");
-  const ans = await ask({ prompt: 'Answer them — print "yes" or "no":', placeholder: 'print("yes")', validate: (r) => { const s = r.stdout.toLowerCase(); return s.includes("yes") || s.includes("no") ? null : 'Print "yes" or "no".'; } }, (r) => speech(r.stdout));
+  const ans = await ask({ prompt: 'Answer the survivor', placeholder: 'print("yes")', lesson: "The survivor asks whether you will escort them. Print your answer as a single word, yes or no, inside quotation marks. Your choice changes what happens next.", validate: (r) => { const s = r.stdout.toLowerCase(); return s.includes("yes") || s.includes("no") ? null : 'Print "yes" or "no".'; } }, (r) => speech(r.stdout));
   if (ans.stdout.toLowerCase().includes("yes")) { survivorFollow = true; await say("Survivor", "Bless you. This way — there's a bridge east. I'll keep close."); }
   else { await say("Survivor", "…I understand. I'll hide. Be careful out there."); survivor.hideAfter = true; survivor.target = els.W * 0.72; survivor.state = "walking"; await new Promise((res) => (survivor.onArrive = res)); await say("", "Night falls fast. You'll need shelter and supplies — a bridge lies to the east."); }
   await freeRoam(["center"], "bridge", 'Cross east when ready: you.walk("bridge")');
@@ -274,27 +274,27 @@ async function playCastle(name) {
   await say("", "Over the bridge, a great keep rises — and FOUR infected lock onto you at once.");
   await say("", "No time to fire them one by one. Repeat your shot with a loop.");
   await ask({
-    prompt: "Fire 4 arrows with a for loop:", placeholder: "for i in range(4):\n    bow.fire()", rows: 2,
-    lesson: "A for loop repeats code. `for i in range(4):` runs the indented line 4 times — so bow.fire() looses 4 arrows. range(4) means 0,1,2,3: four times. Change the number to fire more or fewer.",
+    prompt: "Fire four arrows at once", placeholder: "for i in range(4):\n    bow.fire()", rows: 2,
+    lesson: "Four enemies, and repeating one line four times is tedious. A for loop repeats a block of code for you. Write a loop that counts four times and calls the fire command on each pass, so a single short piece of code looses four arrows. Use a range of four so it runs exactly four times.",
     validate: (r) => { if (!/for\b/.test(lastSrc) || !/range/.test(lastSrc)) return "Use a for loop with range(...)."; return r.fires === 4 ? null : `That fired ${r.fires} arrow(s) — you need exactly 4. Use range(4).`; },
   }, () => volley(4));
   await say("", "Four arrows, four bodies. The gatekeeper watches from the wall.");
-  await ask({ prompt: 'Approach the keep — you.walk("castle"):', placeholder: 'you.walk("castle")', validate: (r) => (r.walk === "castle" ? null : 'Use you.walk("castle").') }, null);
+  await ask({ prompt: 'Approach the keep', placeholder: 'you.walk("castle")', lesson: "Walk up to the keep gate. Call the walk command and name your destination, castle, inside quotation marks.", validate: (r) => (r.walk === "castle" ? null : 'Use you.walk("castle").') }, null);
   await autoWalk("castle");
   const heads = survivorFollow ? 2 : 1;
   const owe = +(0.25 * heads).toFixed(2), left = +(2.55 - owe).toFixed(2);
   await say("Gatekeeper", `Toll's a quarter a head${heads > 1 ? " — and I count two of you" : ""}. How much coin do you carry?`);
   await ask({
-    prompt: "Tell them — print your gold using the variable:", placeholder: "print(gold)", seed: "gold=2.55",
-    lesson: "print() can show a variable, not just text: print(gold) prints whatever gold holds (2.55).",
+    prompt: "Tell the gatekeeper your coin", placeholder: "print(gold)", seed: "gold=2.55",
+    lesson: "A print statement can show the value held in a variable, not just plain text. When you print a variable you leave the quotation marks off, so the screen shows the number it holds instead of its name. Print your gold so the gatekeeper sees the amount.",
     validate: (r) => { if (!/gold/.test(lastSrc)) return "Use the gold variable inside print()."; return r.stdout.includes("2.55") ? null : "Print your gold — it should show 2.55."; },
   }, (r) => speech(r.stdout));
   await say("Gatekeeper", `A quarter a head — ${heads} head${heads > 1 ? "s" : ""}, ${owe.toFixed(2)} coin. Name the price, then pay it.`);
   await ask({
-    prompt: `Set the quarter as a constant, then pay for ${heads} head${heads > 1 ? "s" : ""}:`,
+    prompt: "Name the toll, then pay it",
     placeholder: heads > 1 ? "CONST_QUARTER = 0.25\ngold = gold - CONST_QUARTER * 2" : "CONST_QUARTER = 0.25\ngold = gold - CONST_QUARTER",
     rows: 2, seed: "gold=2.55", requireOp: "-",
-    lesson: "A constant is a value you name once and reuse. CONST_QUARTER = 0.25 names the price; then subtract it from your gold." + (heads > 1 ? " Two heads, so multiply: CONST_QUARTER * 2." : ""),
+    lesson: "A constant is a value you name once and reuse so your code reads clearly. Name the quarter coin toll as a constant, then subtract it from your gold to pay. If the gate counts two of you, multiply the toll before you subtract.",
     validate: (r) => { if (!/CONST_QUARTER/.test(lastSrc)) return "Define CONST_QUARTER = 0.25 and use it."; if (Number(r.vars.CONST_QUARTER) !== 0.25) return "CONST_QUARTER should be 0.25."; return Math.abs(Number(r.vars.gold) - left) < 0.001 ? null : `Pay ${owe.toFixed(2)} so that gold = ${left.toFixed(2)}.`; },
   }, () => { char.gold = left; logCmd(`gold = ${left.toFixed(2)}`, true); });
   await say("Gatekeeper", "Paid in full. Welcome to the keep — mind the curfew.");
@@ -500,8 +500,7 @@ async function dropOff() {
 
 const KEEP_MANIFEST_RUN = "weight = armor*10 + food*4 + water*3\nchecklist = 0\nif weight <= 30:\n    checklist = checklist + 1\nif armor == 1:\n    checklist = checklist + 1\nif food == 2:\n    checklist = checklist + 1\nif water == 1:\n    checklist = checklist + 1";
 const KEEP_MANIFEST_LESSON =
-  "Read the captain's checklist below, then fill the three amounts above. An `if` runs its indented line ONLY when the condition is true. A counter, `checklist = checklist + 1`, adds one and stores it back — Python lets you write that as `checklist += 1` (the same thing).\n\n" +
-  "weight = armor*10 + food*4 + water*3\nchecklist = 0\nif weight <= 30:\n    checklist = checklist + 1\nif armor == 1:\n    checklist = checklist + 1\nif food == 2:\n    checklist = checklist + 1\nif water == 1:\n    checklist = checklist + 1\n# the guard lets you pass when checklist == 4";
+  "Read the captain's checklist on the wall, then record how many of each item you load: armour, food, and water. An if statement runs a line only when its condition is true, so the checklist can count itself and confirm the load is correct. Match the exact amounts and keep the total weight within the limit.";
 
 async function startQuest(name) {
   await say("Knight-Captain", `So you want the keep's trust, ${name}? Earn it.`);
@@ -516,7 +515,7 @@ async function playBeat1(name) {
   await fadeTo("storage"); char.x = els.W * 0.06; char.facing = 1; prog(name + " · 1.3"); raftCargo = { armor: 0, food: 0, water: 0 };
   await say("", "The storage room. Piles of armour, food and water on the left; a raft waits at the dock on the right. The captain's checklist hangs on the wall — read it.");
   const r = await ask({
-    prompt: "Pack the cart — write how many of each you grab:",
+    prompt: "Pack the supply cart",
     placeholder: "armor = 1\nfood = 2\nwater = 1", rows: 3,
     lesson: KEEP_MANIFEST_LESSON, append: KEEP_MANIFEST_RUN,
     validate: (r) => (Number(r.vars.checklist) === 4 ? null : "The cart's not right — read the captain's checklist again (exact amounts, and weight ≤ 30)."),
@@ -533,11 +532,11 @@ async function playBeat2(name) {
   await say("Captain", "HALT! Don't take another step without the secret code! Speak it now, stranger.");
   await say("", "📜 Forgot it? Open your Sealed Orders in the inventory (top-right) and read the watchword.");
   await ask({
-    prompt: "This code is already written — press ▸ Run, then type the secret code when the box appears:",
+    prompt: "This code is already written for you. Press Run, then type the secret code when the box appears.",
     prefill: 'secret_string = input()\nif secret_string == WATCHWORD:\n    print("Pass, friend.")\nelse:\n    print("Halt!")',
     readonly: true, rows: 4,
     seed: 'WATCHWORD="ironwatch"', inputPrompt: "The captain waits — speak the secret code:",
-    lesson: "Read the code, then Run it — you don't write this one. `input()` is the program asking YOU a question: a box pops up and whatever you type becomes `secret_string`. `if/else` makes a two-way choice — the `if` line runs when the condition is true, the `else` line when it's false. `==` checks if two values are equal (it works on words too). So if what you type equals the watchword (`WATCHWORD`), you pass. The watchword is in your journal if you forgot it.",
+    lesson: "Read the code, then run it. You do not write this one. The input() call is the program asking you a question: a box pops up and whatever you type becomes secret_string. An if and else make a two way choice, where the if line runs when the condition is true and the else line runs when it is false. The == test checks whether two values are equal, and it works on words too. So if what you type equals the watchword, you pass. The watchword is in your sealed orders if you forgot it.",
     validate: (r) => (r.vars.secret_string === "ironwatch" ? null : "That's not the watchword. Check your journal and Run again."),
   }, null);
   await say("Captain", "The watchword. Good — pass, friend.");
@@ -555,10 +554,10 @@ async function playBeat3(name) {
   await say("Knight-Captain", "Here's a scout's pay. One gold and seventy-five — 1.75. A coin with a decimal point is a float; add it to your purse.");
   const before = char.gold;
   await ask({
-    prompt: "Take your reward — ADD the float 1.75 to your gold:",
+    prompt: "Take your scout's pay",
     placeholder: "gold = gold + 1.75", rows: 1,
     seed: `gold=${before}`, requireOp: "+",
-    lesson: "A float is a number with a decimal point, like 1.75 — perfect for coins. You add floats exactly like whole numbers: gold = gold + 1.75 takes your current gold and grows it by the reward. (gold += 1.75 means the very same thing.)",
+    lesson: "A float is a number with a decimal point, the kind a coin worth less than a whole gold needs. You add a float to a variable exactly like a whole number: take the current value, add the reward, and store it back. Add your pay to your gold.",
     validate: (r) => (Math.abs(Number(r.vars.gold) - (before + 1.75)) < 0.001 ? null : `Add 1.75 so that gold = ${(before + 1.75).toFixed(2)}.`),
   }, null);
   char.gold = before + 1.75; logCmd(`gold = ${char.gold.toFixed(2)}`, true);
@@ -569,10 +568,10 @@ async function playBeat4(name) {
   await say("Armorsmith", "Scout armour — light plates, easy to run in. Half a gold each: 0.50 a piece.");
   await say("Armorsmith", "Spend that 1.75 stipend the captain paid you. Work out how many plates it buys — and your change.");
   await ask({
-    prompt: "Buy plates — set pieces with // and change with %:",
+    prompt: "Work out the plates and your change",
     placeholder: "pieces = reward // price\nchange = reward % price", rows: 2,
     seed: "reward=1.75\nprice=0.5", requireOp: "%",
-    lesson: "Two operators for splitting things into whole shares:\n  //  is floor division — how many whole times one number fits in another. 1.75 // 0.5 = 3 (three plates fit).\n  %  is modulo — the LEFTOVER after that division. 1.75 % 0.5 = 0.25 (your change).\nSet  pieces = reward // price  and  change = reward % price.",
+    lesson: "Two operators split things into whole shares. Floor division, written with two slashes, finds how many whole times one number fits inside another, so it tells you how many plates your coin buys. Modulo, written with a percent sign, gives the leftover after that division, which is your change. Set one variable for the pieces and one for the change.",
     validate: (r) => { if (Number(r.vars.pieces) !== 3) return "pieces should be  reward // price  = 3."; if (Math.abs(Number(r.vars.change) - 0.25) > 0.001) return "change should be  reward % price  = 0.25."; return null; },
   }, null);
   char.gold = char.gold - 1.5; char.hasArmor = true; logCmd(`gold = ${char.gold.toFixed(2)}  # bought 3 plates`, true);
