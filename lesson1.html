@@ -104,6 +104,46 @@
 .editor-foot { display:flex; align-items:center; justify-content:space-between; padding:7px 10px; border-top:1px solid var(--line); }
 .run-hint { font-size:11px; color:var(--muted); }
 .cm-disabled { opacity:.5; }
+/* ===================== WARM FANTASY THEME (Phase 1 re-skin) ===================== */
+:root {
+  --bg:#15100a; --panel:#241a10; --line:#6b4f25; --ink:#e8dcc4;
+  --muted:#a08a5e; --green:#e7c878; --red:#c2552e; --amber:#e7c878;
+}
+body { background:#15100a; }
+.top .k { color:#a08a5e; }
+.top h1 b { color:#e7c878; }
+.stagewrap { border:2px solid #6b4f25; border-radius:12px; }
+/* Command Log rail: wood frame, dark log pane for code readability */
+.journal { background:#1b130b; border:2px solid #6b4f25; }
+.journal h3 { color:#e7c878; }
+#log .auto { color:#9a8a6a; }
+#log .mine { color:#d9c07a; }
+/* Input bar + prose */
+.inputbar { background:#241a10; border:2px solid #6b4f25; }
+.prompt { color:#f0e2c2; }
+.lesson { color:#cbb892; border-left-color:#e7c878; }
+.status.ok { color:#9ec07a; } .status.muted { color:#a08a5e; } .status.err { color:#e0814f; }
+/* Editor: wood frame + parchment file tab over a dark code pane */
+.editor { border:2px solid #6b4f25; background:#0d1017; }
+.filetab { background:linear-gradient(#3a2a16,#2a1d10); color:#f0d8a0; border-bottom:2px solid #6b4f25; }
+.editor-foot { background:#1b130b; border-top:1px solid #3a2a16; }
+.run-hint { color:#8a7c52; }
+button#run { background:#7a5a1e; color:#f7eccf; }
+button#run:hover { filter:brightness(1.08); }
+/* CodeMirror warm theme (default theme class is cm-s-default) */
+.editor .CodeMirror { background:#0d1017; color:#dcd8c8; }
+.editor .CodeMirror-gutters { background:#0a0d13; border-right:1px solid #1b2230; }
+.editor .CodeMirror-linenumber { color:#46506a; }
+.editor .CodeMirror-cursor { border-left:2px solid #f0d8a0; }
+.editor .CodeMirror-selected { background:#2a3a1e; }
+.cm-s-default .cm-keyword { color:#c98a3a; }
+.cm-s-default .cm-def { color:#e0b15a; }
+.cm-s-default .cm-builtin { color:#d9a441; }
+.cm-s-default .cm-string, .cm-s-default .cm-string-2 { color:#8fbf6f; }
+.cm-s-default .cm-comment { color:#5a6273; }
+.cm-s-default .cm-number { color:#cf8a6a; }
+.cm-s-default .cm-operator { color:#c9b89a; }
+.cm-s-default .cm-variable, .cm-s-default .cm-variable-2, .cm-s-default .cm-property { color:#dcd8c8; }
     </style>
   </head>
   <body>
