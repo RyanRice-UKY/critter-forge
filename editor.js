@@ -28,7 +28,7 @@ export const Editor = {
       viewportMargin: Infinity, // grow to fit content
       extraKeys: {
         Enter: () => { if (singleLine) { onSubmit(); return; } return CodeMirror.Pass; },
-        "Shift-Enter": (editor) => editor.replaceSelection("\n"),
+        "Shift-Enter": (cm2) => cm2.execCommand("newlineAndIndent"),
       },
     });
     cm.setSize("100%", "auto");
