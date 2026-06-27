@@ -45,6 +45,12 @@ eqSet(findUnlocks("for i in range(4):"), ["for"], "for loop");
 eqSet(findUnlocks('if secret == "x":'), ["ifelse", "equals"], "if + equals");
 eqSet(findUnlocks("secret_string == watchword"), ["equals"], "equals only");
 eqSet(findUnlocks("secret = input()"), ["variables", "input"], "input + assignment");
+eqSet(findUnlocks("gold -= 5"), [], "minus-assign unlocks nothing");
+eqSet(findUnlocks("count %= 2"), [], "mod-assign unlocks nothing");
+eqSet(findUnlocks("reward *= 2"), [], "times-assign unlocks nothing");
+eqSet(findUnlocks("flags |= mask"), [], "bitwise-or-assign unlocks nothing");
+ok(JSON.stringify(findUnlocks("sticks = sticks + 10")) === JSON.stringify(["variables", "plus"]),
+   "findUnlocks preserves allEntries order");
 
 console.log(fails === 0 ? "\nALL JOURNAL CHECKS OK" : `\n${fails} FAILURES`);
 process.exit(fails ? 1 : 0);

@@ -61,7 +61,7 @@ export const JOURNAL_SECTIONS = [
     entries: [
       {
         id: "variables", label: "variables  ( = )", section: "Math & variables",
-        match: /(^|[^=!<>+\-*/%])=(?!=)/,
+        match: /(^|[^=!<>+\-*/%|&^])=(?!=)/,
         summary: "A variable is a labelled box that remembers a value for later.",
         syntax: "name = value",
         parts: [
