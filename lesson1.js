@@ -56,13 +56,14 @@ let dialogue = null, awaitAdvance = null, currentInput = null;
 let survivor = null, survivorFollow = false, survivorHide = false;
 
 async function boot() {
-  for (const id of ["stage", "loading", "prompt", "lesson", "code", "run", "status", "prog", "log", "inventory", "invItems", "noteModal", "noteText", "noteClose"]) els[id] = document.getElementById(id);
+  for (const id of ["stage", "loading", "prompt", "lesson", "code", "run", "status", "prog", "log", "inventory", "invItems", "noteModal", "noteText", "noteClose", "hint"]) els[id] = document.getElementById(id);
   els.ctx = els.stage.getContext("2d");
   els.noteClose.onclick = () => (els.noteModal.hidden = true);
   els.noteModal.onclick = (e) => { if (e.target === els.noteModal) els.noteModal.hidden = true; };
   fit(); window.addEventListener("resize", fit);
   els.stage.onclick = advance;
   els.run.onclick = submit;
+  els.hint.onclick = () => { if (currentInput) Editor.toggleHint(currentInput.opts.placeholder || ""); };
   Editor.init({ onSubmit: submit });
   wireDevBar();
   if (window.Journal) window.Journal.init({ pyodide: null });
@@ -109,7 +110,8 @@ function ask(opts, onCode) {
     currentInput = { opts, onCode, res };
     els.prompt.textContent = opts.prompt;
     if (opts.lesson) { els.lesson.textContent = opts.lesson; els.lesson.style.display = "block"; } else els.lesson.style.display = "none";
-    Editor.setSingleLine((opts.rows || 1) < 2); Editor.setValue(opts.prefill || ""); Editor.setPlaceholder(opts.placeholder || ""); Editor.setEnabled(true); Editor.setReadOnly(!!opts.readonly);
+    Editor.setSingleLine((opts.rows || 1) < 2); Editor.setValue(opts.prefill || ""); Editor.clearHint(); Editor.setEnabled(true); Editor.setReadOnly(!!opts.readonly);
+    els.hint.hidden = !(opts.placeholder && !opts.readonly && !opts.prefill);
     els.run.disabled = !pyReady; setStatus(pyReady ? "" : "loading Python…", "muted"); Editor.focus();
     if (!pyReady) { const iv = setInterval(() => { if (pyReady) { els.run.disabled = false; setStatus("", "muted"); clearInterval(iv); } }, 120); }
   });

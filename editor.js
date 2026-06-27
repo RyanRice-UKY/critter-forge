@@ -6,6 +6,7 @@ let cm = null;
 let singleLine = false;
 let onSubmit = () => {};
 let _enabled = true, _readonly = false;
+let _hintShown = false;
 
 function applyReadonly() {
   // disabled (between steps) wins over the watchword read-only state
@@ -38,6 +39,9 @@ export const Editor = {
   focus() { if (cm) cm.focus(); },
   setSingleLine(b) { singleLine = !!b; },
   setPlaceholder(str) { if (cm) cm.setOption("placeholder", str || ""); },
+  setHint(str) { if (cm) { cm.setOption("placeholder", str || ""); _hintShown = true; } },
+  clearHint() { if (cm) { cm.setOption("placeholder", ""); _hintShown = false; } },
+  toggleHint(str) { if (_hintShown) this.clearHint(); else this.setHint(str); },
   setEnabled(b) { if (cm) { _enabled = !!b; applyReadonly(); } },
   setReadOnly(b) { if (cm) { _readonly = !!b; applyReadonly(); } },
 };

@@ -141,6 +141,11 @@ button#run:hover { filter:brightness(1.08); }
 .cm-s-default .cm-number { color:#cf8a6a; }
 .cm-s-default .cm-operator { color:#c9b89a; }
 .cm-s-default .cm-variable, .cm-s-default .cm-variable-2, .cm-s-default .cm-property { color:#dcd8c8; }
+/* Hint button + greyed ghost text */
+.hintbtn { background:#2a2113; color:#e7c878; border:1px solid #6b4f25; border-radius:6px; padding:5px 11px; cursor:pointer; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; font-size:12px; }
+.hintbtn:hover { filter:brightness(1.12); }
+.hintbtn[hidden] { display:none; }
+.editor .CodeMirror-placeholder { color:#6a6552; font-style:italic; }
     </style>
   </head>
   <body>
@@ -180,7 +185,7 @@ button#run:hover { filter:brightness(1.08); }
         <div class="editor">
           <div class="filetab">📜 lesson_1.py</div>
           <textarea id="code" spellcheck="false" autocomplete="off" disabled></textarea>
-          <div class="editor-foot"><span class="run-hint">Enter to run · Shift+Enter for a new line</span><button id="run" disabled>▸ Run</button></div>
+          <div class="editor-foot"><button id="hint" class="hintbtn" type="button">💡 Hint</button><span class="run-hint">Enter to run · Shift+Enter for a new line</span><button id="run" disabled>▸ Run</button></div>
         </div>
         <div class="status muted" id="status"></div>
       </div>
