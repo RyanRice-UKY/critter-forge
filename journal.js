@@ -81,4 +81,51 @@ window.Journal = {
       }
     }
   },
+  async runSandbox(src) {
+    const py = pyodide;
+    if (!py) return { out: "", err: "Python is still loading — try again in a moment." };
+    // Truly isolated: a fresh globals dict (`ns`) so nothing leaks to/from the lesson.
+    // Harmless stubs make movement commands "work" educationally; sample vars keep
+    // example snippets from NameError. A Python try/finally ALWAYS restores stdout,
+    // so the lesson's own stdout capture can never be left broken.
+    const preamble =
+      "import sys, io\n" +
+      "_buf = io.StringIO(); _old = sys.stdout; sys.stdout = _buf\n" +
+      "class _You:\n" +
+      "    def walk(self, place='somewhere'): print(f'You walk to the {place}.')\n" +
+      "    def wake_up(self): print('You wake up.')\n" +
+      "class _Bow:\n" +
+      "    def fire(self, *a, **k): print('You loose an arrow.')\n" +
+      "you = _You(); bow = _Bow()\n" +
+      "gold = 2.55; hp = 5; sticks = 10; string = 3; arrows = 12; coins = 3\n";
+    // JSON.stringify yields a valid Python string literal (\n, \", \\, \uXXXX all match).
+    const code =
+      preamble +
+      "_SRC = " + JSON.stringify(src) + "\n" +
+      "try:\n    exec(_SRC, globals())\nfinally:\n    sys.stdout = _old\n" +
+      "__cf_out = _buf.getvalue()\n";
+    let ns;
+    try {
+      ns = py.toPy({});
+      await py.runPythonAsync(code, { globals: ns });
+      const out = ns.get("__cf_out");
+      return { out: out || "(no output)", err: "" };
+    } catch (e) {
+      return { out: "", err: String(e.message || e).split("\n").slice(-3).join("\n") };
+    } finally {
+      if (ns) ns.destroy();
+    }
+  },
+  _wireTryRun() {
+    const btn = document.getElementById("jTryRun");
+    const ta = document.querySelector("#journalBook textarea.try");
+    const out = document.getElementById("jTryOut");
+    if (!btn || !ta || !out) return;
+    btn.addEventListener("click", async () => {
+      out.className = "out"; out.textContent = "running…";
+      const r = await this.runSandbox(ta.value);
+      if (r.err) { out.className = "out err"; out.textContent = r.err; }
+      else { out.className = "out"; out.textContent = r.out; }
+    });
+  },
 };
