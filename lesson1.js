@@ -4,6 +4,7 @@
 // commands in the journal; once a lesson ends the player walks freely by typing.
 
 import "./journal.js"; // defines window.Journal
+import { Editor } from "./editor.js";
 
 const HARNESS = `
 import json, sys, io
@@ -62,7 +63,7 @@ async function boot() {
   fit(); window.addEventListener("resize", fit);
   els.stage.onclick = advance;
   els.run.onclick = submit;
-  els.code.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && els.code.rows < 2) { e.preventDefault(); submit(); } });
+  Editor.init({ onSubmit: submit });
   wireDevBar();
   if (window.Journal) window.Journal.init({ pyodide: null });
   loop(); play();
@@ -90,7 +91,7 @@ function advance() { if (awaitAdvance) { const r = awaitAdvance; awaitAdvance = 
 // ===== DEV ONLY (remove this + the #devbar block in lesson1.html before shipping) =====
 // Skip the current step by auto-running its placeholder (a valid answer for every step),
 // or advance dialogue. Section buttons reload to a scene via the URL hash.
-function skipStep() { if (currentInput) { els.code.value = currentInput.opts.prefill || currentInput.opts.placeholder || ""; submit(); } else if (awaitAdvance) advance(); }
+function skipStep() { if (currentInput) { Editor.setValue(currentInput.opts.prefill || currentInput.opts.placeholder || ""); submit(); } else if (awaitAdvance) advance(); }
 function wireDevBar() {
   const ds = document.getElementById("devSkip"); if (!ds) return;
   ds.onclick = skipStep;
@@ -108,15 +109,15 @@ function ask(opts, onCode) {
     currentInput = { opts, onCode, res };
     els.prompt.textContent = opts.prompt;
     if (opts.lesson) { els.lesson.textContent = opts.lesson; els.lesson.style.display = "block"; } else els.lesson.style.display = "none";
-    els.code.rows = opts.rows || 1; els.code.value = opts.prefill || ""; els.code.placeholder = opts.placeholder || ""; els.code.disabled = false; els.code.readOnly = !!opts.readonly;
-    els.run.disabled = !pyReady; setStatus(pyReady ? "" : "loading Python…", "muted"); els.code.focus();
+    Editor.setSingleLine((opts.rows || 1) < 2); Editor.setValue(opts.prefill || ""); Editor.setPlaceholder(opts.placeholder || ""); Editor.setEnabled(true); Editor.setReadOnly(!!opts.readonly);
+    els.run.disabled = !pyReady; setStatus(pyReady ? "" : "loading Python…", "muted"); Editor.focus();
     if (!pyReady) { const iv = setInterval(() => { if (pyReady) { els.run.disabled = false; setStatus("", "muted"); clearInterval(iv); } }, 120); }
   });
 }
 async function submit() {
   if (!currentInput || !pyReady) return;
   const { opts, onCode, res } = currentInput;
-  const src = els.code.value; lastSrc = src;
+  const src = Editor.getValue(); lastSrc = src;
   if (!src.trim()) { setStatus("Type something first.", "err"); return; }
   if (opts.requireOp && !src.includes(opts.requireOp)) { setStatus(`Use the “${opts.requireOp}” operator.`, "err"); return; }
   const runSrc = src + (opts.append ? "\n" + opts.append : "");      // append a read-only check to run (not shown/logged)
@@ -129,7 +130,7 @@ async function submit() {
   const msg = opts.validate ? opts.validate(r) : null;
   if (msg) { setStatus(msg, "err"); return; }
   logCmd(src, true);
-  els.code.disabled = true; els.run.disabled = true; els.code.value = ""; els.lesson.style.display = "none";
+  Editor.setEnabled(false); els.run.disabled = true; Editor.setValue(""); els.lesson.style.display = "none";
   els.prompt.textContent = "Watch…"; setStatus("✓", "ok");
   currentInput = null;
   if (onCode) await onCode(r);

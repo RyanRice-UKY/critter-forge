@@ -7,6 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/placeholder.min.js"></script>
     <style>
       :root { --bg:#070a0f; --panel:#0d121b; --line:#1b2533; --ink:#dbe6f2; --muted:#7b8aa0; --green:#62d27a; --red:#ff6b6b; --amber:#ffd43b; }
       * { box-sizing:border-box; } html,body{margin:0;}
@@ -93,6 +97,13 @@
   border:1px solid #7a5e2a; border-radius:8px; padding:7px 11px; font-size:12px; box-shadow:0 6px 18px #0009;
   opacity:0; transform:translateY(-6px); transition:opacity .25s, transform .25s; pointer-events:none; }
 #journalToast.show { opacity:1; transform:none; }
+/* IDE editor container (structural; warm theme applied in re-skin) */
+.editor { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#0a0e15; }
+.filetab { font-size:12px; padding:6px 12px; color:#cfe3ff; background:#0e1117; border-bottom:1px solid var(--line); }
+.editor .CodeMirror { height:auto; min-height:64px; font-family:"IBM Plex Mono",monospace; font-size:15px; background:#0a0e15; color:#e9f0f8; }
+.editor-foot { display:flex; align-items:center; justify-content:space-between; padding:7px 10px; border-top:1px solid var(--line); }
+.run-hint { font-size:11px; color:var(--muted); }
+.cm-disabled { opacity:.5; }
     </style>
   </head>
   <body>
@@ -129,9 +140,10 @@
       <div class="inputbar">
         <div class="prompt" id="prompt">Watch…</div>
         <div class="lesson" id="lesson"></div>
-        <div class="row">
-          <textarea id="code" rows="2" spellcheck="false" autocomplete="off" placeholder="" disabled></textarea>
-          <button id="run" disabled>▸ Run</button>
+        <div class="editor">
+          <div class="filetab">📜 lesson_1.py</div>
+          <textarea id="code" spellcheck="false" autocomplete="off" disabled></textarea>
+          <div class="editor-foot"><span class="run-hint">Enter to run · Shift+Enter for a new line</span><button id="run" disabled>▸ Run</button></div>
         </div>
         <div class="status muted" id="status"></div>
       </div>
