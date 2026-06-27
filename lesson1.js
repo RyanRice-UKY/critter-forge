@@ -3,6 +3,8 @@
 // and the for loop. The engine auto-walks during scripted beats and SHOWS the
 // commands in the journal; once a lesson ends the player walks freely by typing.
 
+import "./journal.js"; // defines window.Journal
+
 const HARNESS = `
 import json, sys, io
 _PRE = ("_walk=None\\n_fires=0\\n"
@@ -53,7 +55,7 @@ let dialogue = null, awaitAdvance = null, currentInput = null;
 let survivor = null, survivorFollow = false, survivorHide = false;
 
 async function boot() {
-  for (const id of ["stage", "loading", "prompt", "lesson", "code", "run", "status", "prog", "locations", "log", "inventory", "invItems", "noteModal", "noteText", "noteClose"]) els[id] = document.getElementById(id);
+  for (const id of ["stage", "loading", "prompt", "lesson", "code", "run", "status", "prog", "log", "inventory", "invItems", "noteModal", "noteText", "noteClose"]) els[id] = document.getElementById(id);
   els.ctx = els.stage.getContext("2d");
   els.noteClose.onclick = () => (els.noteModal.hidden = true);
   els.noteModal.onclick = (e) => { if (e.target === els.noteModal) els.noteModal.hidden = true; };
@@ -62,11 +64,13 @@ async function boot() {
   els.run.onclick = submit;
   els.code.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && els.code.rows < 2) { e.preventDefault(); submit(); } });
   wireDevBar();
+  if (window.Journal) window.Journal.init({ pyodide: null });
   loop(); play();
   pyodide = await loadPyodide();
   await pyodide.runPythonAsync(HARNESS);
   runUser = pyodide.globals.get("run_user");
   pyReady = true; els.loading.style.display = "none";
+  if (window.Journal) window.Journal.setPyodide(pyodide);
 }
 function fit() { const r = els.stage.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; els.stage.width = r.width * dpr; els.stage.height = r.height * dpr; els.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); els.W = r.width; els.H = r.height; if (!char.x) char.x = els.W * 0.14; }
 
@@ -136,8 +140,8 @@ function renderInventory() {
   els.invItems.innerHTML = inventory.map((it, i) => `<button class="inv-slot" data-i="${i}"><span class="ic">${it.icon}</span><span>${it.name}</span></button>`).join("");
   els.invItems.querySelectorAll(".inv-slot").forEach((b) => (b.onclick = () => { els.noteText.textContent = inventory[+b.dataset.i].note; els.noteModal.hidden = false; }));
 }
-function logCmd(line, mine) { for (const ln of String(line).split("\n")) { if (!ln.trim()) continue; const d = document.createElement("div"); d.className = mine ? "mine" : "auto"; d.textContent = ln; els.log.appendChild(d); } els.log.scrollTop = els.log.scrollHeight; }
-function setLocations(names) { els.locations.innerHTML = names.map((n) => `<div>you.walk("${n}")</div>`).join(""); }
+function logCmd(line, mine) { for (const ln of String(line).split("\n")) { if (!ln.trim()) continue; const d = document.createElement("div"); d.className = mine ? "mine" : "auto"; d.textContent = ln; els.log.appendChild(d); if (window.Journal) window.Journal.noticeLine(ln); } els.log.scrollTop = els.log.scrollHeight; }
+function setLocations(names) { if (!els.locations) return; els.locations.innerHTML = names.map((n) => `<div>you.walk("${n}")</div>`).join(""); }
 function setStatus(m, k) { els.status.textContent = m; els.status.className = `status ${k}`; }
 function translate(err) {
   const m = err.match(/name '(\w+)' is not defined/);
