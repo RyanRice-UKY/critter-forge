@@ -50,7 +50,7 @@ let campSupplies = { armor: 0, food: 0, water: 0 };  // what's been unloaded at 
 let inventory = [];  // items the player carries; click one to read it
 const ORDERS_NOTE = {
   name: "Sealed Orders", icon: "📜",
-  note: "— KNIGHT-CAPTAIN'S ORDERS —\n\nBearer carries the north-watch supplies.\nGrant them passage to the army camp.\n\nThe guard answers to no stranger.\nSpeak this watchword at the shore:\n\n        ironwatch\n\nGuard these orders well.",
+  note: "KNIGHT-CAPTAIN'S ORDERS\n\nBearer carries the north-watch supplies.\nGrant them passage to the army camp.\n\nThe guard answers to no stranger.\nSpeak this watchword at the shore:\n\n        ironwatch\n\nGuard these orders well.",
 };
 let dialogue = null, awaitAdvance = null, currentInput = null;
 let survivor = null, survivorFollow = false, survivorHide = false;
@@ -149,8 +149,8 @@ function setStatus(m, k) { els.status.textContent = m; els.status.className = `s
 function translate(err) {
   const m = err.match(/name '(\w+)' is not defined/);
   if (m) return `Python doesn't know “${m[1]}”. Strings need quotes (e.g. you.walk("tree")) and variables must be set first.`;
-  if (err.includes("SyntaxError")) return "SyntaxError — check quotes, colons and indentation.";
-  if (err.includes("IndentationError")) return "IndentationError — the line under a for loop must be indented 4 spaces.";
+  if (err.includes("SyntaxError")) return "SyntaxError: check quotes, colons and indentation.";
+  if (err.includes("IndentationError")) return "IndentationError: the line under a for loop must be indented 4 spaces.";
   return err;
 }
 
@@ -173,7 +173,7 @@ async function clearingCombat() {
   let first = true;
   while (zoms.some((z) => z.alive && !z.doomed)) {
     const left = zoms.filter((z) => z.alive).length;
-    await ask({ prompt: `Loose an arrow — type:  bow.fire()    (${left} infected)`, placeholder: "bow.fire()", validate: (r) => (r.fires >= 1 ? null : "Call bow.fire() to shoot.") }, null);
+    await ask({ prompt: `Loose an arrow. Type:  bow.fire()    (${left} infected)`, placeholder: "bow.fire()", validate: (r) => (r.fires >= 1 ? null : "Call bow.fire() to shoot.") }, null);
     fireAtNearest();
     if (first) { zombiesApproach = true; first = false; }   // they start advancing after your first shot
     await waitForImpact(); await wait(0.3);
@@ -197,7 +197,7 @@ let pickupFx = 0, craftFx = 0, bowFx = 0;
 function pickup() { pickupFx = 1; char.items = { sticks: 10, string: 3 }; return anim(0.9, (p) => (pickupFx = 1 - p)); }
 function craft() { craftFx = 1; char.items = { sticks: 0, string: 0 }; return anim(1.0, (p) => (craftFx = 1 - p)); }
 async function bestow() { bowFx = 1; await anim(1.3, (p) => (bowFx = 1 - p)); char.hasBow = true; }
-function finish(name) { dialogue = { who: "", text: `Lesson 1 complete — ${name} is armed, blooded, and through the gate. Lesson 1.3 begins inside the keep.` }; awaitAdvance = () => {}; prog(name + " · 1.3 ▸"); }
+function finish(name) { dialogue = { who: "", text: `Lesson 1 complete. ${name} is armed, blooded, and through the gate. Lesson 1.3 begins inside the keep.` }; awaitAdvance = () => {}; prog(name + " · 1.3 ▸"); }
 
 // ---------- the script (split per scene so DEV can jump between them) ----------
 async function play() {
@@ -219,7 +219,7 @@ async function playWildwood() {
   await anim(1.4, (p) => (char.rise = p)); logCmd("you.wake_up()", false);
   await say("???", "A figure watches you from the treeline.");
   await autoWalk("stranger");
-  await say("Stranger", "Easy — you're awake. I thought you were one of them.");
+  await say("Stranger", "Easy now, you're awake. I thought you were one of them.");
   await ask({ prompt: "Speak to the stranger", placeholder: 'print("Where am I?")', lesson: "Your character talks by printing words to the screen. A print statement shows whatever you place inside its parentheses, and text goes inside quotation marks. Ask the stranger where you are.", validate: nonEmptyOut }, (r) => speech(r.stdout));
   await say("Stranger", "There's been an outbreak. The world ended while you slept. What's your name?");
   let name = "survivor";
@@ -231,7 +231,7 @@ async function playWildwood() {
   await say("Smith", "Good. Gather 10 sticks and 3 string from that tree and I'll craft you a bow.");
   await autoWalk("tree");
   logCmd("sticks = 0", false); logCmd("string = 0", false);
-  await say("", "Sticks and string lie at the tree's foot — and you start with 0 of each.");
+  await say("", "Sticks and string lie at the tree's foot, and you start with 0 of each.");
   await ask({ prompt: "Gather the sticks and string", placeholder: "sticks = sticks + 10\nstring = string + 3", rows: 2, seed: "sticks=0\nstring=0", requireOp: "+", lesson: "A variable remembers a value for you. You already carry sticks and string, both starting at zero. To gather more you add to a variable: take its current value, add what you found, and store the result back in the same variable. Pick up ten sticks and three string this way.", validate: (r) => (r.vars.sticks === 10 && r.vars.string === 3 ? null : "You need  sticks = 10  and  string = 3.") }, () => pickup());
   await autoWalk("smith");
   await say("Smith", "Good haul. Speak, and hand them over.");
@@ -239,7 +239,7 @@ async function playWildwood() {
   await ask({ prompt: "Hand the materials over", placeholder: "sticks = sticks - 10\nstring = string - 3", rows: 2, seed: "sticks=10\nstring=3", requireOp: "-", lesson: "Giving things away means taking them out of your variables. Subtraction is addition in reverse: take the current value, remove the amount, and store it back. Hand over all of the sticks and string so each count drops to zero.", validate: (r) => (r.vars.sticks === 0 && r.vars.string === 0 ? null : "Subtract so  sticks = 0  and  string = 0.") }, () => craft());
   await bestow();
   await say("Smith", `A bow, and a quiver to match. Now you've a fighting chance, ${name}.`);
-  await say("", 'Lesson 1.1 done. You can wander — walk by typing, e.g. you.walk("tree"). When ready, head out: you.walk("lesson1.2").');
+  await say("", 'Lesson 1.1 done. You can wander: walk by typing, e.g. you.walk("tree"). When ready, head out: you.walk("lesson1.2").');
   await freeRoam(["stranger", "tree", "smith"], "lesson1.2", 'Wander the Wildwood, or head out: you.walk("lesson1.2")');
   return name;
 }
@@ -249,20 +249,20 @@ async function playClearing(name) {
   survivor = { x: els.W * 0.72, y: -46, state: "tree", wphase: 0, onArrive: null, hideAfter: false };
   survivorFollow = false; zombiesApproach = false;
   zoms = [mkZom(0.66), mkZom(0.72), mkZom(0.78)];
-  await say("Survivor", "HELP! They've got me cornered up here — please!");
+  await say("Survivor", "HELP! They've got me cornered up here, please!");
   await say("", "A survivor clings to a high branch; three infected lurk beneath the tree. Get to the marked spot.");
   await ask({ prompt: 'Get to the marked spot', placeholder: 'you.walk("center")', lesson: "Your character moves by calling the walk command and naming a place inside quotation marks. The marked spot here is called center. Walk there to face the danger.", validate: (r) => (r.walk === "center" ? null : 'Use you.walk("center").') }, null);
   await autoWalk("center");
-  await say("", "They rouse and turn on you. Loose an arrow — bow.fire() — and keep firing!");
+  await say("", "They rouse and turn on you. Loose an arrow with bow.fire() and keep firing!");
   await clearingCombat();
   await say("", "The last one drops. The survivor swings down from the branch and hurries over.");
   await rescueSurvivor();
-  await say("Survivor", "You saved my life. It's not much, but I owe you — take these.");
+  await say("Survivor", "You saved my life. It's not much, but I owe you. Take these.");
   char.gold = 2.55; logCmd("gold = 2.55", false);
-  await say("Survivor", "Two coins and fifty-five — 2.55 gold. Will you escort me to safety?");
+  await say("Survivor", "Two coins and fifty-five, that's 2.55 gold. Will you escort me to safety?");
   const ans = await ask({ prompt: 'Answer the survivor', placeholder: 'print("yes")', lesson: "The survivor asks whether you will escort them. Print your answer as a single word, yes or no, inside quotation marks. Your choice changes what happens next.", validate: (r) => { const s = r.stdout.toLowerCase(); return s.includes("yes") || s.includes("no") ? null : 'Print "yes" or "no".'; } }, (r) => speech(r.stdout));
-  if (ans.stdout.toLowerCase().includes("yes")) { survivorFollow = true; await say("Survivor", "Bless you. This way — there's a bridge east. I'll keep close."); }
-  else { await say("Survivor", "…I understand. I'll hide. Be careful out there."); survivor.hideAfter = true; survivor.target = els.W * 0.72; survivor.state = "walking"; await new Promise((res) => (survivor.onArrive = res)); await say("", "Night falls fast. You'll need shelter and supplies — a bridge lies to the east."); }
+  if (ans.stdout.toLowerCase().includes("yes")) { survivorFollow = true; await say("Survivor", "Bless you. This way: there's a bridge east. I'll keep close."); }
+  else { await say("Survivor", "…I understand. I'll hide. Be careful out there."); survivor.hideAfter = true; survivor.target = els.W * 0.72; survivor.state = "walking"; await new Promise((res) => (survivor.onArrive = res)); await say("", "Night falls fast. You'll need shelter and supplies. A bridge lies to the east."); }
   await freeRoam(["center"], "bridge", 'Cross east when ready: you.walk("bridge")');
   return name;
 }
@@ -271,25 +271,25 @@ async function playCastle(name) {
   await fadeTo("castle"); char.x = els.W * 0.1; char.facing = 1; zombiesApproach = false; char.hearts = 5; dying = false; invinc = 0; dmgFlash = 0; prog(name + " · 1.2");
   survivor = survivorFollow ? { x: els.W * 0.1 - 30, y: 0, state: "beside", wphase: 0 } : null; // the rescued survivor escorts with you
   zoms = [mkZom(0.44), mkZom(0.51), mkZom(0.58), mkZom(0.65)];
-  await say("", "Over the bridge, a great keep rises — and FOUR infected lock onto you at once.");
+  await say("", "Over the bridge, a great keep rises, and FOUR infected lock onto you at once.");
   await say("", "No time to fire them one by one. Repeat your shot with a loop.");
   await ask({
     prompt: "Fire four arrows at once", placeholder: "for i in range(4):\n    bow.fire()", rows: 2,
     lesson: "Four enemies, and repeating one line four times is tedious. A for loop repeats a block of code for you. Write a loop that counts four times and calls the fire command on each pass, so a single short piece of code looses four arrows. Use a range of four so it runs exactly four times.",
-    validate: (r) => { if (!/for\b/.test(lastSrc) || !/range/.test(lastSrc)) return "Use a for loop with range(...)."; return r.fires === 4 ? null : `That fired ${r.fires} arrow(s) — you need exactly 4. Use range(4).`; },
+    validate: (r) => { if (!/for\b/.test(lastSrc) || !/range/.test(lastSrc)) return "Use a for loop with range(...)."; return r.fires === 4 ? null : `That fired ${r.fires} arrow(s). You need exactly 4. Use range(4).`; },
   }, () => volley(4));
   await say("", "Four arrows, four bodies. The gatekeeper watches from the wall.");
   await ask({ prompt: 'Approach the keep', placeholder: 'you.walk("castle")', lesson: "Walk up to the keep gate. Call the walk command and name your destination, castle, inside quotation marks.", validate: (r) => (r.walk === "castle" ? null : 'Use you.walk("castle").') }, null);
   await autoWalk("castle");
   const heads = survivorFollow ? 2 : 1;
   const owe = +(0.25 * heads).toFixed(2), left = +(2.55 - owe).toFixed(2);
-  await say("Gatekeeper", `Toll's a quarter a head${heads > 1 ? " — and I count two of you" : ""}. How much coin do you carry?`);
+  await say("Gatekeeper", `Toll's a quarter a head${heads > 1 ? ", and I count two of you" : ""}. How much coin do you carry?`);
   await ask({
     prompt: "Tell the gatekeeper your coin", placeholder: "print(gold)", seed: "gold=2.55",
     lesson: "A print statement can show the value held in a variable, not just plain text. When you print a variable you leave the quotation marks off, so the screen shows the number it holds instead of its name. Print your gold so the gatekeeper sees the amount.",
-    validate: (r) => { if (!/gold/.test(lastSrc)) return "Use the gold variable inside print()."; return r.stdout.includes("2.55") ? null : "Print your gold — it should show 2.55."; },
+    validate: (r) => { if (!/gold/.test(lastSrc)) return "Use the gold variable inside print()."; return r.stdout.includes("2.55") ? null : "Print your gold. It should show 2.55."; },
   }, (r) => speech(r.stdout));
-  await say("Gatekeeper", `A quarter a head — ${heads} head${heads > 1 ? "s" : ""}, ${owe.toFixed(2)} coin. Name the price, then pay it.`);
+  await say("Gatekeeper", `A quarter a head: ${heads} head${heads > 1 ? "s" : ""}, ${owe.toFixed(2)} coin. Name the price, then pay it.`);
   await ask({
     prompt: "Name the toll, then pay it",
     placeholder: heads > 1 ? "CONST_QUARTER = 0.25\ngold = gold - CONST_QUARTER * 2" : "CONST_QUARTER = 0.25\ngold = gold - CONST_QUARTER",
@@ -297,7 +297,7 @@ async function playCastle(name) {
     lesson: "A constant is a value you name once and reuse so your code reads clearly. Name the quarter coin toll as a constant, then subtract it from your gold to pay. If the gate counts two of you, multiply the toll before you subtract.",
     validate: (r) => { if (!/CONST_QUARTER/.test(lastSrc)) return "Define CONST_QUARTER = 0.25 and use it."; if (Number(r.vars.CONST_QUARTER) !== 0.25) return "CONST_QUARTER should be 0.25."; return Math.abs(Number(r.vars.gold) - left) < 0.001 ? null : `Pay ${owe.toFixed(2)} so that gold = ${left.toFixed(2)}.`; },
   }, () => { char.gold = left; logCmd(`gold = ${left.toFixed(2)}`, true); });
-  await say("Gatekeeper", "Paid in full. Welcome to the keep — mind the curfew.");
+  await say("Gatekeeper", "Paid in full. Welcome to the keep. Mind the curfew.");
   await playKeep(name);
 }
 
@@ -346,7 +346,7 @@ function die() { if (dying) return; dying = true; zombiesApproach = false; locat
 // ---- the keep interior (Lesson 1.3) ----
 const CHAT = ["Stay sharp.", "Heard the east wall held.", "Trade's slow today.", "You new here?", "Mind the curfew.", "Any word from the south?", "Gold's tight this week.", "...", "Keep your blade close."];
 const KEEP_LABEL = { craftsman: "CRAFTSMAN", forhire: "FOR HIRE", blacksmith: "BLACKSMITH", armorsmith: "ARMORSMITH" };
-const KEEP_VENDOR = { craftsman: ["Craftsman", "Need something built? Come back when I'm open for trade."], forhire: ["For Hire", "Looking for hired steel? Soon, friend."], blacksmith: ["Blacksmith", "I'll forge you a finer bow — once my shop's running."], armorsmith: ["Armorsmith", "Armour to keep the bites out. Wares coming soon."] };
+const KEEP_VENDOR = { craftsman: ["Craftsman", "Need something built? Come back when I'm open for trade."], forhire: ["For Hire", "Looking for hired steel? Soon, friend."], blacksmith: ["Blacksmith", "I'll forge you a finer bow once my shop's running."], armorsmith: ["Armorsmith", "Armour to keep the bites out. Wares coming soon."] };
 const circ = (c, x, y, r, col) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); };
 function setupTownsfolk() {
   townsfolk = [];
@@ -504,8 +504,8 @@ const KEEP_MANIFEST_LESSON =
 
 async function startQuest(name) {
   await say("Knight-Captain", `So you want the keep's trust, ${name}? Earn it.`);
-  await say("Knight-Captain", "Pack the supply cart in the storage room for the north watch — read the captain's checklist, exact amounts, mind the weight.");
-  await say("Knight-Captain", "And the army opens to no stranger. Take my sealed orders — the watchword's written inside. Read it from your pack when the guard asks.");
+  await say("Knight-Captain", "Pack the supply cart in the storage room for the north watch. Read the captain's checklist, exact amounts, mind the weight.");
+  await say("Knight-Captain", "And the army opens to no stranger. Take my sealed orders. The watchword's written inside. Read it from your pack when the guard asks.");
   giveItem(ORDERS_NOTE);
   await say("", "📜 The Sealed Orders are in your inventory (top-right). Click them any time to read the watchword.");
   questStep = 1;
@@ -513,16 +513,16 @@ async function startQuest(name) {
 }
 async function playBeat1(name) {
   await fadeTo("storage"); char.x = els.W * 0.06; char.facing = 1; prog(name + " · 1.3"); raftCargo = { armor: 0, food: 0, water: 0 };
-  await say("", "The storage room. Piles of armour, food and water on the left; a raft waits at the dock on the right. The captain's checklist hangs on the wall — read it.");
+  await say("", "The storage room. Piles of armour, food and water on the left; a raft waits at the dock on the right. The captain's checklist hangs on the wall. Read it.");
   const r = await ask({
     prompt: "Pack the supply cart",
     placeholder: "armor = 1\nfood = 2\nwater = 1", rows: 3,
     lesson: KEEP_MANIFEST_LESSON, append: KEEP_MANIFEST_RUN,
-    validate: (r) => (Number(r.vars.checklist) === 4 ? null : "The cart's not right — read the captain's checklist again (exact amounts, and weight ≤ 30)."),
+    validate: (r) => (Number(r.vars.checklist) === 4 ? null : "The cart's not right. Read the captain's checklist again (exact amounts, and weight ≤ 30)."),
   }, null);
-  await say("Guard", "Right — grab what's on the list and load the raft.");
+  await say("Guard", "Right, grab what's on the list and load the raft.");
   await loadRaft({ armor: Number(r.vars.armor), food: Number(r.vars.food), water: Number(r.vars.water) });
-  await say("Guard", "That's her loaded. Cast off — float her across to the camp.");
+  await say("Guard", "That's her loaded. Cast off and float her across to the camp.");
   await raftTransition();
   await playBeat2(name);
 }
@@ -535,23 +535,23 @@ async function playBeat2(name) {
     prompt: "This code is already written for you. Press Run, then type the secret code when the box appears.",
     prefill: 'secret_string = input()\nif secret_string == WATCHWORD:\n    print("Pass, friend.")\nelse:\n    print("Halt!")',
     readonly: true, rows: 4,
-    seed: 'WATCHWORD="ironwatch"', inputPrompt: "The captain waits — speak the secret code:",
+    seed: 'WATCHWORD="ironwatch"', inputPrompt: "The captain waits. Speak the secret code:",
     lesson: "Read the code, then run it. You do not write this one. The input() call is the program asking you a question: a box pops up and whatever you type becomes secret_string. An if and else make a two way choice, where the if line runs when the condition is true and the else line runs when it is false. The == test checks whether two values are equal, and it works on words too. So if what you type equals the watchword, you pass. The watchword is in your sealed orders if you forgot it.",
     validate: (r) => (r.vars.secret_string === "ironwatch" ? null : "That's not the watchword. Check your journal and Run again."),
   }, null);
-  await say("Captain", "The watchword. Good — pass, friend.");
+  await say("Captain", "The watchword. Good. Pass, friend.");
   await say("Captain", "The north-watch supplies! Bring them up off the raft and set them down here, scout.");
   await dropOff();
-  await say("Captain", "Every crate accounted for. The army won't go hungry. My thanks — and my hand on it.");
+  await say("Captain", "Every crate accounted for. The army won't go hungry. My thanks, and my hand on it.");
   await say("Captain", "Carry this back to your knight: the city's being reclaimed… but something older stirs in the dark. We'll need a scout.");
   questStep = 2;
   await fadeTo("keep"); char.x = els.W * 0.06; char.facing = 1; setupTownsfolk();
   setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber"]);
-  await say("", 'Back in the keep, the captain\'s report in hand. Carry it to the knight — you.walk("knight").');
+  await say("", 'Back in the keep, the captain\'s report in hand. Carry it to the knight: you.walk("knight").');
 }
 async function playBeat3(name) {
-  await say("Knight-Captain", "You crossed the water and came back whole? Then the captain trusts you — and so do I.");
-  await say("Knight-Captain", "Here's a scout's pay. One gold and seventy-five — 1.75. A coin with a decimal point is a float; add it to your purse.");
+  await say("Knight-Captain", "You crossed the water and came back whole? Then the captain trusts you, and so do I.");
+  await say("Knight-Captain", "Here's a scout's pay. One gold and seventy-five: 1.75. A coin with a decimal point is a float; add it to your purse.");
   const before = char.gold;
   await ask({
     prompt: "Take your scout's pay",
@@ -561,12 +561,12 @@ async function playBeat3(name) {
     validate: (r) => (Math.abs(Number(r.vars.gold) - (before + 1.75)) < 0.001 ? null : `Add 1.75 so that gold = ${(before + 1.75).toFixed(2)}.`),
   }, null);
   char.gold = before + 1.75; logCmd(`gold = ${char.gold.toFixed(2)}`, true);
-  await say("Knight-Captain", "The armoury's unlocked. See the armorsmith — kit yourself out before the scouting run.");
+  await say("Knight-Captain", "The armoury's unlocked. See the armorsmith and kit yourself out before the scouting run.");
   armoryOpen = true; questStep = 3;
 }
 async function playBeat4(name) {
-  await say("Armorsmith", "Scout armour — light plates, easy to run in. Half a gold each: 0.50 a piece.");
-  await say("Armorsmith", "Spend that 1.75 stipend the captain paid you. Work out how many plates it buys — and your change.");
+  await say("Armorsmith", "Scout armour: light plates, easy to run in. Half a gold each: 0.50 a piece.");
+  await say("Armorsmith", "Spend that 1.75 stipend the captain paid you. Work out how many plates it buys and what change you get.");
   await ask({
     prompt: "Work out the plates and your change",
     placeholder: "pieces = reward // price\nchange = reward % price", rows: 2,
@@ -576,20 +576,20 @@ async function playBeat4(name) {
   }, null);
   char.gold = char.gold - 1.5; char.hasArmor = true; logCmd(`gold = ${char.gold.toFixed(2)}  # bought 3 plates`, true);
   await say("Armorsmith", "Three plates, and a quarter-gold back. You're kitted, scout.");
-  await say("Knight-Captain", "The keep is yours now — the traders, the king's hall, all of it. Well earned.");
+  await say("Knight-Captain", "The keep is yours now: the traders, the king's hall, all of it. Well earned.");
   questStep = 5; lesson1Done = true;
-  await say("", "Lesson 1.3 complete — the stalls are open for trade and the king's chamber doors are unlocked.");
+  await say("", "Lesson 1.3 complete. The stalls are open for trade and the king's chamber doors are unlocked.");
 }
 
 async function playKeep(name) {
   await fadeTo("keep"); char.x = els.W * 0.06; char.facing = 1; zoms = []; ARROWS = []; setupTownsfolk(); prog(name + " · 1.3"); setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber"]);
-  if (survivorFollow) { survivor = { x: char.x + 36, y: 0, state: "beside", wphase: 0 }; await say("Survivor", "You've brought me to safety. I won't forget it — thank you, friend."); survivor = null; survivorFollow = false; }
+  if (survivorFollow) { survivor = { x: char.x + 36, y: 0, state: "beside", wphase: 0 }; await say("Survivor", "You've brought me to safety. I won't forget it. Thank you, friend."); survivor = null; survivorFollow = false; }
   else survivor = null;
   await say("", "Inside the keep at last. Townsfolk mill about; four traders keep stalls along the back wall.");
-  await say("", "A red carpet runs up the centre to a grand staircase — and the sealed doors of the king's chamber above it.");
+  await say("", "A red carpet runs up the centre to a grand staircase, and the sealed doors of the king's chamber above it.");
   await say("", 'An armoured knight stands watch to the east, a quest-marker above him. Wander: walk to a stall, the knight, or the chamber, e.g. you.walk("knight").');
   while (true) {
-    const r = await ask({ prompt: 'Explore the keep — e.g. you.walk("knight") or you.walk("chamber"):', placeholder: 'you.walk("knight")', validate: (rr) => { if (!rr.walk) return 'Type a you.walk("...") command.'; if (!SCENES.keep[rr.walk]) return "Walk to: craftsman, forhire, blacksmith, armorsmith, knight, or chamber."; return null; } }, null);
+    const r = await ask({ prompt: 'Explore the keep, e.g. you.walk("knight") or you.walk("chamber"):', placeholder: 'you.walk("knight")', validate: (rr) => { if (!rr.walk) return 'Type a you.walk("...") command.'; if (!SCENES.keep[rr.walk]) return "Walk to: craftsman, forhire, blacksmith, armorsmith, knight, or chamber."; return null; } }, null);
     logCmd(`you.walk("${r.walk}")`, true);
     await goTo(r.walk);
     if (r.walk === "chamber") {
@@ -598,8 +598,8 @@ async function playKeep(name) {
     } else if (r.walk === "knight") {
       if (questStep === 0) await startQuest(name);
       else if (questStep === 2) await playBeat3(name);
-      else if (questStep === 3) await say("Knight-Captain", "The armoury's open — see the armorsmith for your scout kit before you report back.");
-      else if (questStep >= 5) await say("Knight-Captain", "You've earned the keep's trust, scout. Rest — the north gate is tomorrow's worry.");
+      else if (questStep === 3) await say("Knight-Captain", "The armoury's open. See the armorsmith for your scout kit before you report back.");
+      else if (questStep >= 5) await say("Knight-Captain", "You've earned the keep's trust, scout. Rest. The north gate is tomorrow's worry.");
       else await say("Knight-Captain", "The cart won't pack itself. Off with you.");
     } else {
       if (r.walk === "armorsmith" && armoryOpen && questStep < 5) await playBeat4(name);
@@ -650,7 +650,7 @@ function draw(now) {
   // hearts (combat scenes) + damage flash + death overlay
   if (scene === "clearing" || scene === "castle") drawHearts(c, W);
   if (dmgFlash > 0) { c.fillStyle = `rgba(200,30,30,${dmgFlash * 0.32})`; c.fillRect(0, 0, W, H); }
-  if (dying) { c.fillStyle = "rgba(6,0,0,0.72)"; c.fillRect(0, 0, W, H); c.fillStyle = "#ff6b6b"; c.font = "700 22px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("Overwhelmed — restarting the scene…", W / 2, H / 2); }
+  if (dying) { c.fillStyle = "rgba(6,0,0,0.72)"; c.fillRect(0, 0, W, H); c.fillStyle = "#ff6b6b"; c.font = "700 22px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("Overwhelmed. Restarting the scene…", W / 2, H / 2); }
 
   // dialogue banner
   if (dialogue) {
