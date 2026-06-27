@@ -11,7 +11,6 @@ function cacheDom() {
 
 function renderList() {
   let html = "";
-  let anyNew = false;
   for (const sec of JOURNAL_SECTIONS) {
     html += `<div class="sec">${sec.name}</div>`;
     for (const e of sec.entries) {
@@ -78,7 +77,7 @@ window.Journal = {
         const e = allEntries().find((x) => x.id === id);
         toast(e.label);
         if (!selectedId) selectedId = id;
-        if (!el.journalBook.hidden) renderList();
+        if (!el.journalBook.hidden) { renderList(); renderDetail(); }
       }
     }
   },
