@@ -102,8 +102,7 @@ window.Journal = {
     const code =
       preamble +
       "_SRC = " + JSON.stringify(src) + "\n" +
-      "try:\n    exec(_SRC, globals())\nfinally:\n    sys.stdout = _old\n" +
-      "__cf_out = _buf.getvalue()\n";
+      "try:\n    exec(_SRC, globals())\nfinally:\n    __cf_out = _buf.getvalue()\n    sys.stdout = _old\n";
     let ns;
     try {
       ns = py.toPy({});
@@ -111,7 +110,9 @@ window.Journal = {
       const out = ns.get("__cf_out");
       return { out: out || "(no output)", err: "" };
     } catch (e) {
-      return { out: "", err: String(e.message || e).split("\n").slice(-3).join("\n") };
+      let partial = "";
+      try { partial = (ns && ns.get("__cf_out")) || ""; } catch (_) {}
+      return { out: partial, err: String(e.message || e).split("\n").slice(-3).join("\n") };
     } finally {
       if (ns) ns.destroy();
     }
@@ -121,11 +122,11 @@ window.Journal = {
     const ta = document.querySelector("#journalBook textarea.try");
     const out = document.getElementById("jTryOut");
     if (!btn || !ta || !out) return;
-    btn.addEventListener("click", async () => {
+    btn.onclick = async () => {
       out.className = "out"; out.textContent = "running…";
       const r = await this.runSandbox(ta.value);
-      if (r.err) { out.className = "out err"; out.textContent = r.err; }
+      if (r.err) { out.className = "out err"; out.textContent = (r.out ? r.out + "\n" : "") + r.err; }
       else { out.className = "out"; out.textContent = r.out; }
-    });
+    };
   },
 };
