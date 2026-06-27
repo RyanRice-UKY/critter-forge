@@ -249,7 +249,7 @@ async function playClearing(name) {
   survivor = { x: els.W * 0.72, y: -46, state: "tree", wphase: 0, onArrive: null, hideAfter: false };
   survivorFollow = false; zombiesApproach = false;
   zoms = [mkZom(0.66), mkZom(0.72), mkZom(0.78)];
-  await say("Survivor", "HELP! They've got me cornered up here, please!");
+  await say("Survivor", "HELP! They've got me cornered up here. Please!");
   await say("", "A survivor clings to a high branch; three infected lurk beneath the tree. Get to the marked spot.");
   await ask({ prompt: 'Get to the marked spot', placeholder: 'you.walk("center")', lesson: "Your character moves by calling the walk command and naming a place inside quotation marks. The marked spot here is called center. Walk there to face the danger.", validate: (r) => (r.walk === "center" ? null : 'Use you.walk("center").') }, null);
   await autoWalk("center");
@@ -537,7 +537,7 @@ async function playBeat2(name) {
     readonly: true, rows: 4,
     seed: 'WATCHWORD="ironwatch"', inputPrompt: "The captain waits. Speak the secret code:",
     lesson: "Read the code, then run it. You do not write this one. The input() call is the program asking you a question: a box pops up and whatever you type becomes secret_string. An if and else make a two way choice, where the if line runs when the condition is true and the else line runs when it is false. The == test checks whether two values are equal, and it works on words too. So if what you type equals the watchword, you pass. The watchword is in your sealed orders if you forgot it.",
-    validate: (r) => (r.vars.secret_string === "ironwatch" ? null : "That's not the watchword. Check your journal and Run again."),
+    validate: (r) => (r.vars.secret_string === "ironwatch" ? null : "That's not the watchword. Check your sealed orders and Run again."),
   }, null);
   await say("Captain", "The watchword. Good. Pass, friend.");
   await say("Captain", "The north-watch supplies! Bring them up off the raft and set them down here, scout.");
