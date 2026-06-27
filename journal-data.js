@@ -197,3 +197,26 @@ export function findUnlocks(line) {
   for (const e of allEntries()) if (e.match.test(line)) out.push(e.id);
   return out;
 }
+
+export function createJournalStore(storage, key = "cf_journal_unlocked") {
+  const set = new Set();
+  return {
+    has: (id) => set.has(id),
+    unlock(id) {
+      if (set.has(id)) return false;
+      set.add(id);
+      this.save();
+      return true;
+    },
+    unlocked: () => [...set],
+    load() {
+      try {
+        const raw = storage.getItem(key);
+        if (raw) for (const id of JSON.parse(raw)) set.add(id);
+      } catch (_) { /* corrupt/empty store → start fresh */ }
+    },
+    save() {
+      try { storage.setItem(key, JSON.stringify([...set])); } catch (_) { /* storage unavailable */ }
+    },
+  };
+}

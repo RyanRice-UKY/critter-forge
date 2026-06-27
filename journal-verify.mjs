@@ -1,6 +1,6 @@
 // journal-verify.mjs — catalog integrity + matcher disambiguation for the
 // Command Journal. Run: node journal-verify.mjs
-import { JOURNAL_SECTIONS, allEntries, findUnlocks } from "./journal-data.js";
+import { JOURNAL_SECTIONS, allEntries, findUnlocks, createJournalStore } from "./journal-data.js";
 
 let fails = 0;
 const ok = (cond, msg) => { if (!cond) { console.log("FAIL:", msg); fails++; } };
@@ -51,6 +51,23 @@ eqSet(findUnlocks("reward *= 2"), [], "times-assign unlocks nothing");
 eqSet(findUnlocks("flags |= mask"), [], "bitwise-or-assign unlocks nothing");
 ok(JSON.stringify(findUnlocks("sticks = sticks + 10")) === JSON.stringify(["variables", "plus"]),
    "findUnlocks preserves allEntries order");
+
+// --- unlock store ---
+function fakeStorage() {
+  const m = new Map();
+  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, v), _m: m };
+}
+const st = fakeStorage();
+const store = createJournalStore(st);
+ok(store.has("print") === false, "starts locked");
+ok(store.unlock("print") === true, "first unlock returns true");
+ok(store.unlock("print") === false, "second unlock returns false");
+ok(store.has("print") === true, "now unlocked");
+store.unlock("for");
+store.save();
+const store2 = createJournalStore(st);
+store2.load();
+eqSet(store2.unlocked(), ["print", "for"], "persists + reloads");
 
 console.log(fails === 0 ? "\nALL JOURNAL CHECKS OK" : `\n${fails} FAILURES`);
 process.exit(fails ? 1 : 0);
