@@ -56,6 +56,45 @@
       #devbar span { color:#ffd43b; letter-spacing:1px; }
       .devbtn { background:#2a2114; color:#ffe066; border:1px solid #3a2c14; border-radius:6px; padding:5px 9px; cursor:pointer; font-family:inherit; font-size:12px; }
       .devbtn:hover { background:#3a2c14; }
+/* Command Journal book */
+#journalIcon { position:absolute; top:54px; right:10px; width:40px; height:46px; z-index:30;
+  background:linear-gradient(135deg,#5a4420,#3a2c14); border:1px solid #7a5e2a;
+  border-radius:4px 7px 7px 4px; box-shadow:inset 4px 0 0 #2a1f0e, 0 4px 12px #0009;
+  cursor:pointer; color:#ffe066; font-size:20px; display:flex; align-items:center; justify-content:center; }
+#journalIcon:hover { filter:brightness(1.15); }
+#journalIcon .pip { position:absolute; top:-5px; right:-5px; width:12px; height:12px; border-radius:50%;
+  background:#62d27a; border:2px solid #0a1018; display:none; }
+#journalIcon.has-new .pip { display:block; }
+.jbook-back { position:absolute; inset:0; background:#04070ccc; z-index:45;
+  display:flex; align-items:center; justify-content:center; }
+.jbook-back[hidden] { display:none; }
+.jbook { display:flex; width:min(94%,760px); height:min(90%,440px); border-radius:8px; overflow:hidden;
+  box-shadow:0 16px 50px #000c; font-size:13px; line-height:1.5; }
+.jbook-l { width:38%; padding:16px 14px; background:#efe4c6; color:#2a2113; overflow-y:auto; }
+.jbook-r { width:62%; padding:16px 18px; background:#f3ead0; color:#2a2113; border-left:2px solid #c9b98a; overflow-y:auto; }
+.jbook .head { font-family:"Chakra Petch",sans-serif; font-size:14px; letter-spacing:1px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+.jbook .sec { color:#6b5524; font-weight:700; letter-spacing:.5px; text-transform:uppercase; font-size:10px; margin:12px 0 4px; }
+.jbook .cmd { padding:3px 6px; border-radius:4px; cursor:pointer; }
+.jbook .cmd:hover { background:#e3d6b0; }
+.jbook .cmd.on { background:#d8c896; }
+.jbook .cmd.lock { color:#a89a6e; cursor:default; }
+.jbook .cmd.lock:hover { background:transparent; }
+.jbook .ttl { font-family:"Chakra Petch",sans-serif; font-size:18px; font-weight:700; }
+.jbook .lbl { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#6b5524; margin:11px 0 3px; }
+.jbook .code { background:#e3d6b0; border:1px solid #c9b98a; border-radius:5px; padding:7px 9px;
+  color:#3a2e12; font-family:"IBM Plex Mono",monospace; white-space:pre-wrap; }
+.jbook textarea.try { width:100%; background:#e3d6b0; border:1px solid #c9b98a; border-radius:5px;
+  padding:7px 9px; color:#3a2e12; font-family:"IBM Plex Mono",monospace; font-size:13px; resize:vertical; }
+.jbook .runbtn { background:#2a2113; color:#efe4c6; border:0; border-radius:5px; padding:6px 14px;
+  margin-top:7px; cursor:pointer; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; }
+.jbook .out { margin-top:7px; white-space:pre-wrap; font-family:"IBM Plex Mono",monospace; font-size:12.5px; min-height:8px; }
+.jbook .out.err { color:#9c2b2b; }
+.jbook .x { background:#2a2113; color:#efe4c6; border:0; border-radius:5px; width:24px; height:24px; cursor:pointer; }
+.jbook .empty { color:#8a7c52; font-style:italic; }
+#journalToast { position:absolute; top:108px; right:10px; z-index:50; background:#2a2113; color:#ffe066;
+  border:1px solid #7a5e2a; border-radius:8px; padding:7px 11px; font-size:12px; box-shadow:0 6px 18px #0009;
+  opacity:0; transform:translateY(-6px); transition:opacity .25s, transform .25s; pointer-events:none; }
+#journalToast.show { opacity:1; transform:none; }
     </style>
   </head>
   <body>
@@ -72,12 +111,20 @@
           <div id="noteModal" class="note-back" hidden>
             <div class="note-paper"><pre id="noteText"></pre><button id="noteClose" class="note-x">Close</button></div>
           </div>
+          <button id="journalIcon" title="Command Journal">📖<span class="pip"></span></button>
+          <div id="journalToast"></div>
+          <div id="journalBook" class="jbook-back" hidden>
+            <div class="jbook">
+              <div class="jbook-l">
+                <div class="head"><span>📖 Command Journal</span></div>
+                <div id="jbookList"></div>
+              </div>
+              <div class="jbook-r" id="jbookDetail"></div>
+            </div>
+          </div>
         </div>
         <div class="journal">
-          <h3>⟡ Command Journal</h3>
-          <div class="sub">Places you can walk</div>
-          <div id="locations"></div>
-          <div class="sub">Commands run</div>
+          <h3>⟡ Command Log</h3>
           <div id="log"></div>
         </div>
       </div>
