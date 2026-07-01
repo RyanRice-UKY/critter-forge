@@ -53,6 +53,7 @@ const ORDERS_NOTE = {
   note: "KNIGHT-CAPTAIN'S ORDERS\n\nBearer carries the north-watch supplies.\nGrant them passage to the army camp.\n\nThe guard answers to no stranger.\nSpeak this watchword at the shore:\n\n        ironwatch\n\nGuard these orders well.",
 };
 let dialogue = null, awaitAdvance = null, currentInput = null;
+let lastSaid = null; // the last spoken line stays on screen while the IDE waits for your code
 let survivor = null, survivorFollow = false, survivorHide = false;
 
 async function boot() {
@@ -87,7 +88,7 @@ function walkTo(frac) { return walkToX(els.W * frac); }
 const STAND_BESIDE = { stranger: 1, smith: 1, castle: 1, craftsman: 1, forhire: 1, blacksmith: 1, armorsmith: 1, knight: 1, chamber: 1, gate: 1 }; // stop next to these, not on top
 function goTo(name) { let tx = els.W * locFrac(name); const dir = Math.sign(tx - char.x) || 1; if (STAND_BESIDE[name]) tx -= dir * 46; return walkToX(tx); }
 async function autoWalk(name) { logCmd(`you.walk("${name}")`, false); await goTo(name); }
-function say(who, text) { return new Promise((res) => { dialogue = { who, text }; awaitAdvance = res; }); }
+function say(who, text) { return new Promise((res) => { dialogue = { who, text }; lastSaid = { who, text }; awaitAdvance = res; }); }
 function speech(t) { char.bubble = String(t || "").trim().split("\n").filter(Boolean).slice(0, 1).join(" "); char.bubbleT = 3.4; return wait(0.4); }
 function advance() { if (awaitAdvance) { const r = awaitAdvance; awaitAdvance = null; dialogue = null; r(); } }
 
@@ -157,7 +158,7 @@ async function submit() {
   Editor.setEnabled(false); els.run.disabled = true; Editor.setValue(""); els.lesson.style.display = "none";
   els.prompt.textContent = "Watch…"; setStatus("✓", "ok");
   awardXP(opts.xp || 10);
-  currentInput = null;
+  currentInput = null; lastSaid = null; // the pinned NPC line clears once your command runs
   ideClose();
   if (onCode) await onCode(r);
   res(r);
@@ -704,20 +705,22 @@ function draw(now) {
   if (dmgFlash > 0) { c.fillStyle = `rgba(200,30,30,${dmgFlash * 0.32})`; c.fillRect(0, 0, W, H); }
   if (dying) { c.fillStyle = "rgba(6,0,0,0.72)"; c.fillRect(0, 0, W, H); c.fillStyle = "#ff6b6b"; c.font = "700 22px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("Overwhelmed. Restarting the scene…", W / 2, H / 2); }
 
-  // dialogue banner — a centered panel at the top of the screen, cutscene-style
-  if (dialogue) {
+  // dialogue banner — a centered panel at the top of the screen, cutscene-style.
+  // While the IDE is waiting for code, the last spoken line stays pinned (no click cue).
+  const banner = dialogue || (currentInput ? lastSaid : null);
+  if (banner) {
     c.font = "15px 'IBM Plex Mono',monospace";
     const maxW = Math.min(W * 0.62, 700), pad = 18, lh = 19;
-    const whoW = dialogue.who ? c.measureText(dialogue.who + ":  ").width + 6 : 0;
-    const lines = countLines(c, dialogue.text, maxW);
+    const whoW = banner.who ? c.measureText(banner.who + ":  ").width + 6 : 0;
+    const lines = countLines(c, banner.text, maxW);
     const boxW = Math.min(maxW + whoW, W - 40) + pad * 2, boxH = 24 + lines * lh + 18;
     const bx = W / 2 - boxW / 2, by = 54;
     c.fillStyle = "rgba(7,11,17,0.92)"; rr(c, bx, by, boxW, boxH, 12); c.fill();
     c.strokeStyle = "#2a3548"; c.lineWidth = 1; c.stroke();
     let tx = bx + pad; c.textAlign = "left";
-    if (dialogue.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(dialogue.who + ":", tx, by + 28); tx += whoW; }
-    c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, dialogue.text, tx, by + 28, maxW, lh);
-    c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "12px 'IBM Plex Mono',monospace"; c.fillText("▸ click", bx + boxW - 12, by + boxH - 10);
+    if (banner.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(banner.who + ":", tx, by + 28); tx += whoW; }
+    c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, banner.text, tx, by + 28, maxW, lh);
+    if (dialogue) { c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "12px 'IBM Plex Mono',monospace"; c.fillText("▸ click", bx + boxW - 12, by + boxH - 10); }
   }
   if (fadeAmt > 0) { c.fillStyle = `rgba(5,7,11,${fadeAmt})`; c.fillRect(0, 0, W, H); }
 }
