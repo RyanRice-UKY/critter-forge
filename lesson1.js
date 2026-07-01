@@ -704,15 +704,20 @@ function draw(now) {
   if (dmgFlash > 0) { c.fillStyle = `rgba(200,30,30,${dmgFlash * 0.32})`; c.fillRect(0, 0, W, H); }
   if (dying) { c.fillStyle = "rgba(6,0,0,0.72)"; c.fillRect(0, 0, W, H); c.fillStyle = "#ff6b6b"; c.font = "700 22px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("Overwhelmed. Restarting the scene…", W / 2, H / 2); }
 
-  // dialogue banner (bottom normally; flips to the top while the IDE panel is up so they never overlap)
+  // dialogue banner — a centered panel at the top of the screen, cutscene-style
   if (dialogue) {
-    const bh = 64, by = currentInput ? 52 : H - bh;
-    c.fillStyle = "rgba(7,11,17,0.9)"; c.fillRect(0, by, W, bh);
-    c.strokeStyle = "#1b2533"; c.beginPath(); c.moveTo(0, currentInput ? by + bh : by); c.lineTo(W, currentInput ? by + bh : by); c.stroke();
-    let tx = 18; c.textAlign = "left";
-    if (dialogue.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(dialogue.who + ":", 18, by + 26); tx = 18 + c.measureText(dialogue.who + ":  ").width; }
-    c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, dialogue.text, tx, by + 26, W - tx - 80, 19);
-    c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "13px 'IBM Plex Mono',monospace"; c.fillText("▸ click", W - 16, by + bh - 16);
+    c.font = "15px 'IBM Plex Mono',monospace";
+    const maxW = Math.min(W * 0.62, 700), pad = 18, lh = 19;
+    const whoW = dialogue.who ? c.measureText(dialogue.who + ":  ").width + 6 : 0;
+    const lines = countLines(c, dialogue.text, maxW);
+    const boxW = Math.min(maxW + whoW, W - 40) + pad * 2, boxH = 24 + lines * lh + 18;
+    const bx = W / 2 - boxW / 2, by = 54;
+    c.fillStyle = "rgba(7,11,17,0.92)"; rr(c, bx, by, boxW, boxH, 12); c.fill();
+    c.strokeStyle = "#2a3548"; c.lineWidth = 1; c.stroke();
+    let tx = bx + pad; c.textAlign = "left";
+    if (dialogue.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(dialogue.who + ":", tx, by + 28); tx += whoW; }
+    c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, dialogue.text, tx, by + 28, maxW, lh);
+    c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "12px 'IBM Plex Mono',monospace"; c.fillText("▸ click", bx + boxW - 12, by + boxH - 10);
   }
   if (fadeAmt > 0) { c.fillStyle = `rgba(5,7,11,${fadeAmt})`; c.fillRect(0, 0, W, H); }
 }
@@ -816,6 +821,7 @@ function bubble(c, x, y, text) {
 function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 function sparkle(c, x, y, amt, col) { c.globalAlpha = amt; for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, r = (1 - amt) * 26 + 4; px(c, x + Math.cos(a) * r, y + Math.sin(a) * r, 3, 3, col); } c.globalAlpha = 1; }
 function wrapText(c, text, x, y, maxW, lh) { const words = String(text).split(" "); let line = "", yy = y; for (const w of words) { const t = line ? line + " " + w : w; if (c.measureText(t).width > maxW && line) { c.fillText(line, x, yy); line = w; yy += lh; } else line = t; } c.fillText(line, x, yy); }
+function countLines(c, text, maxW) { const words = String(text).split(" "); let line = "", n = 1; for (const w of words) { const t = line ? line + " " + w : w; if (c.measureText(t).width > maxW && line) { line = w; n++; } else line = t; } return n; }
 function drawHearts(c, W) {
   const n = 5, sp = 26, x0 = W / 2 - (n * sp) / 2 + sp / 2, y = 24;
   c.fillStyle = "rgba(7,11,17,0.55)"; rr(c, x0 - 18, 10, n * sp + 8, 28, 8); c.fill();
