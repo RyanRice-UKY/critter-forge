@@ -719,12 +719,12 @@ function draw(now) {
       const lines = countLines(c, banner.text, maxW);
       const boxW = Math.min(maxW + whoW, W - 40) + pad * 2, boxH = 24 + lines * lh + 18;
       const bx = W / 2 - boxW / 2, by = 54;
-      c.fillStyle = "rgba(245,247,250,0.97)"; rr(c, bx, by, boxW, boxH, 12); c.fill();
-      c.strokeStyle = "#0b0e14"; c.lineWidth = 1.5; c.stroke();
+      c.fillStyle = "rgba(7,11,17,0.92)"; rr(c, bx, by, boxW, boxH, 12); c.fill();
+      c.strokeStyle = "#2a3548"; c.lineWidth = 1; c.stroke();
       let tx = bx + pad; c.textAlign = "left";
-      if (banner.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#1f7a38"; c.fillText(banner.who + ":", tx, by + 28); tx += whoW; }
-      c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#0b0e14"; wrapText(c, banner.text, tx, by + 28, maxW, lh);
-      if (dialogue) { c.fillStyle = "#8a6d00"; c.textAlign = "right"; c.font = "12px 'IBM Plex Mono',monospace"; c.fillText("▸ click", bx + boxW - 12, by + boxH - 10); }
+      if (banner.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(banner.who + ":", tx, by + 28); tx += whoW; }
+      c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, banner.text, tx, by + 28, maxW, lh);
+      if (dialogue) { c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "12px 'IBM Plex Mono',monospace"; c.fillText("▸ click", bx + boxW - 12, by + boxH - 10); }
     }
   }
   if (fadeAmt > 0) { c.fillStyle = `rgba(5,7,11,${fadeAmt})`; c.fillRect(0, 0, W, H); }
