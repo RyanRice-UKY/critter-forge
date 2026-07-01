@@ -12,202 +12,214 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/placeholder.min.js"></script>
     <style>
-      :root { --bg:#070a0f; --panel:#0d121b; --line:#1b2533; --ink:#dbe6f2; --muted:#7b8aa0; --green:#62d27a; --red:#ff6b6b; --amber:#ffd43b; }
-      * { box-sizing:border-box; } html,body{margin:0;}
-      body { background:var(--bg); color:var(--ink); font-family:"IBM Plex Mono",monospace; }
-      .wrap { max-width:1240px; margin:0 auto; padding:12px 16px 28px; }
-      .top { display:flex; align-items:baseline; gap:12px; padding:4px 2px 10px; }
-      .top .k { font-size:11px; letter-spacing:3px; color:var(--muted); text-transform:uppercase; }
-      .top h1 { font-family:"Chakra Petch",sans-serif; font-size:18px; margin:0; }
-      .top h1 b { color:var(--green); }
-      .game { display:grid; grid-template-columns:1fr 270px; gap:14px; align-items:stretch; }
-      @media (max-width:920px){ .game{grid-template-columns:1fr;} }
-      .stagewrap { position:relative; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#0a1018; }
-      #stage { display:block; width:100%; height:56vh; min-height:330px; }
-      #loading { position:absolute; right:10px; bottom:10px; padding:6px 12px; background:#0a0f17dd; border:1px solid var(--line); border-radius:8px; color:var(--muted); font-size:12px; }
-      .journal { background:#0b0f17; border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; min-height:0; }
-      .journal h3 { font-family:"Chakra Petch",sans-serif; font-size:13px; letter-spacing:1px; margin:0 0 8px; color:var(--amber); }
-      .journal .sub { font-size:10.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin:10px 0 5px; }
-      #log { flex:1; overflow-y:auto; font-size:12px; line-height:1.5; max-height:200px; }
-      #log .auto { color:#5f8aa8; } #log .mine { color:#9ae6b4; }
-      .inputbar { margin-top:14px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
-      .prompt { font-size:14px; color:#cfe3ff; min-height:22px; margin-bottom:8px; }
-      .lesson { font-size:12.5px; color:var(--muted); border-left:3px solid var(--amber); padding:6px 10px; margin-bottom:8px; line-height:1.55; display:none; white-space:pre-wrap; }
-      button#run { background:var(--green); color:#04130a; border:0; font-weight:700; padding:10px 18px; border-radius:9px; cursor:pointer; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; height:42px; }
-      button#run:disabled { opacity:.45; cursor:not-allowed; }
-      .status { font-size:12.5px; margin-top:8px; min-height:16px; }
-      .status.err{color:var(--red);} .status.ok{color:var(--green);} .status.muted{color:var(--muted);}
-      /* Inventory popup + note viewer (top-right of the stage) */
-      .inv { position:absolute; top:10px; right:10px; width:158px; background:#0d121bf2; border:1px solid var(--line); border-radius:11px; padding:9px; z-index:30; box-shadow:0 6px 22px #0008; animation:invpop .28s ease; }
+      :root { --bg:#0b0e14; --glass:rgba(8,11,18,.92); --line:#2a3548; --line2:#1b2533; --ink:#dbe6f2; --muted:#8a94a3; --green:#62d27a; --red:#ff6b6b; --amber:#ffd43b; --chipline:#3a2c14; }
+      * { box-sizing:border-box; } html,body{margin:0; height:100%;}
+      body { background:var(--bg); color:var(--ink); font-family:"IBM Plex Mono",monospace; overflow:hidden; }
+
+      /* full-bleed world */
+      #stage { position:fixed; inset:0; width:100%; height:100%; display:block; }
+      #loading { position:fixed; left:16px; bottom:16px; z-index:20; padding:6px 12px; background:var(--glass); border:1px solid var(--line2); border-radius:8px; color:var(--muted); font-size:12px; }
+
+      /* corner HUD chips (title-screen chrome) */
+      .hud { position:fixed; top:14px; z-index:25; display:flex; gap:10px; align-items:center; }
+      .hud-left { left:16px; } .hud-right { right:16px; }
+      .chip { font:700 12px "Chakra Petch",sans-serif; letter-spacing:1px; color:#e7c878; background:rgba(7,10,16,.78); border:1px solid var(--chipline); border-radius:8px; padding:7px 12px; backdrop-filter:blur(4px); text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+      .chip b { color:var(--green); font-weight:700; }
+      a.chip:hover { border-color:#6b4f25; color:#ffe066; }
+      #xplv { color:#e7c878; }
+      .xpbar { width:90px; height:7px; background:#111825; border:1px solid #232c3a; border-radius:4px; overflow:hidden; display:inline-block; }
+      #xpfill { display:block; height:100%; width:0; background:var(--green); transition:width .4s; }
+      .xp-toast { position:fixed; left:50%; top:16%; transform:translateX(-50%); font-family:"Chakra Petch",sans-serif; font-weight:700; color:var(--green); text-shadow:0 2px 8px #000; pointer-events:none; animation:xpfloat 1.4s ease-out forwards; z-index:26; }
+      .xp-toast.lvl { color:var(--amber); font-size:22px; }
+      @keyframes xpfloat { 0%{opacity:0;margin-top:14px;} 15%{opacity:1;} 100%{opacity:0;margin-top:-34px;} }
+
+      /* command log drawer (right edge) */
+      #logTab { position:fixed; right:0; top:38%; z-index:24; writing-mode:vertical-rl; font:700 11px "Chakra Petch",sans-serif; letter-spacing:2px; color:#a08a5e; background:var(--glass); border:1px solid var(--line); border-right:none; border-radius:10px 0 0 10px; padding:14px 7px; cursor:pointer; user-select:none; transition:right .3s; }
+      #logTab:hover { color:#ffe066; }
+      #logDrawer { position:fixed; right:-292px; top:60px; bottom:60px; width:280px; z-index:23; background:var(--glass); border:1px solid var(--line); border-right:none; border-radius:14px 0 0 14px; backdrop-filter:blur(6px); padding:14px; display:flex; flex-direction:column; transition:right .3s; }
+      body.log-open #logDrawer { right:0; }
+      body.log-open #logTab { right:280px; }
+      #logDrawer h3 { font-family:"Chakra Petch",sans-serif; font-size:13px; letter-spacing:1px; margin:0 0 8px; color:var(--amber); }
+      #log { flex:1; overflow-y:auto; font-size:12px; line-height:1.5; }
+      #log .auto { color:#7b93ab; } #log .mine { color:#9ae6b4; }
+
+      /* ---------- floating mini-IDE ---------- */
+      #ide { position:fixed; z-index:30; background:var(--glass); border:1px solid var(--line); border-radius:12px; backdrop-filter:blur(8px); box-shadow:0 18px 60px rgba(0,0,0,.6); overflow:hidden; display:flex; flex-direction:column; transition:transform .32s ease, opacity .32s ease, width .3s ease; }
+      /* bottom dock (default): centered, grows wide before tall */
+      #ide.dock-bottom { left:50%; bottom:18px; width:min(840px,94vw); transform:translateX(-50%); }
+      #ide.dock-bottom.wide { width:min(1160px,96vw); }
+      #ide.dock-left { left:14px; top:64px; bottom:14px; width:min(400px,44vw); transform:none; }
+      #ide.dock-right { right:14px; top:64px; bottom:14px; width:min(400px,44vw); transform:none; }
+      /* hidden until the game asks for code */
+      #ide:not(.open) { opacity:0; pointer-events:none; }
+      #ide.dock-bottom:not(.open) { transform:translate(-50%,130%); }
+      #ide.dock-left:not(.open) { transform:translateX(-130%); }
+      #ide.dock-right:not(.open) { transform:translateX(130%); }
+
+      .titlebar { display:flex; align-items:center; background:#0a0e17; border-bottom:1px solid var(--line2); flex:none; }
+      .filetab { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink); background:#111726; border-right:1px solid var(--line2); border-top:2px solid var(--amber); padding:8px 16px; white-space:nowrap; }
+      .filetab .dot { width:7px; height:7px; border-radius:50%; background:var(--green); }
+      .filetab .dot.err { background:var(--red); }
+      .prompt { flex:1; min-width:0; padding:0 14px; font:700 12.5px "Chakra Petch",sans-serif; color:var(--green); letter-spacing:.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .dockbtns { display:flex; gap:2px; padding-right:8px; }
+      .dockbtns button { background:none; border:none; color:#5d6a7d; font-size:13px; cursor:pointer; padding:4px 6px; border-radius:5px; }
+      .dockbtns button:hover { color:var(--amber); background:#141c2c; }
+      .dockbtns button.on { color:var(--amber); }
+
+      .lesson { font-size:12.5px; color:#aab6c6; border-left:3px solid var(--amber); padding:8px 12px; margin:10px 14px 0; line-height:1.55; display:none; white-space:pre-wrap; max-height:22vh; overflow-y:auto; flex:none; }
+
+      .editor { flex:1; min-height:0; overflow-y:auto; }
+      .editor .CodeMirror { height:auto; min-height:58px; font-family:"IBM Plex Mono",monospace; font-size:14.5px; background:transparent; color:#e9f0f8; }
+      #ide.dock-bottom .editor { max-height:34vh; }
+      .editor .CodeMirror-gutters { background:#0a0e17; border-right:1px solid #161e2e; }
+      .editor .CodeMirror-linenumber { color:#3d4757; }
+      .editor .CodeMirror-cursor { border-left:2px solid var(--amber); }
+      .editor .CodeMirror-selected { background:#1e2c46; }
+      .editor .CodeMirror-placeholder { color:#5d6a7d; font-style:italic; }
+      .cm-s-default .cm-keyword { color:#7ec9ff; }
+      .cm-s-default .cm-def { color:#e7c878; }
+      .cm-s-default .cm-builtin { color:#e7c878; }
+      .cm-s-default .cm-string, .cm-s-default .cm-string-2 { color:#a3d977; }
+      .cm-s-default .cm-comment { color:#5a6273; }
+      .cm-s-default .cm-number { color:#cf8a6a; }
+      .cm-s-default .cm-operator { color:#c9b89a; }
+      .cm-s-default .cm-variable, .cm-s-default .cm-variable-2, .cm-s-default .cm-property { color:#dcd8c8; }
+      .cm-disabled { opacity:.5; }
+
+      /* error / status strip (hidden when empty) */
+      .status { flex:none; font-size:13px; padding:0 14px; min-height:0; }
+      .status:empty { display:none; }
+      .status.err { color:#ffb3b3; background:rgba(80,20,20,.35); border-top:1px solid #5c2020; padding:9px 14px; }
+      .status.ok { color:var(--green); padding:6px 14px 0; }
+      .status.muted { color:var(--muted); padding:6px 14px 0; }
+
+      .statusbar { display:flex; align-items:center; gap:14px; font-size:11.5px; color:#5d6a7d; background:#0a0e17; border-top:1px solid var(--line2); padding:6px 12px; flex:none; }
+      #pystat.ok { color:var(--green); }
+      .hintbtn { background:none; color:#e7c878; border:1px solid #3a2c14; border-radius:6px; padding:4px 10px; cursor:pointer; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; font-size:11px; }
+      .hintbtn:hover { filter:brightness(1.15); background:#141c2c; }
+      .hintbtn[hidden] { display:none; }
+      .run-hint { margin-left:auto; }
+      button#run { background:var(--amber); color:#0b0e14; border:0; font-weight:700; padding:7px 16px; border-radius:7px; cursor:pointer; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; font-size:12.5px; }
+      button#run:disabled { opacity:.4; cursor:not-allowed; }
+
+      /* Inventory popup + note viewer */
+      .inv { position:fixed; top:64px; right:16px; width:158px; background:#0d121bf2; border:1px solid var(--line2); border-radius:11px; padding:9px; z-index:24; box-shadow:0 6px 22px #0008; animation:invpop .28s ease; }
       @keyframes invpop { from{transform:translateY(-8px) scale(.96);opacity:0;} to{transform:none;opacity:1;} }
       .inv-head { font-family:"Chakra Petch",sans-serif; font-size:11px; letter-spacing:1px; color:var(--amber); margin-bottom:7px; }
       .inv-items { display:flex; flex-direction:column; gap:6px; }
-      .inv-slot { display:flex; align-items:center; gap:8px; width:100%; background:#11161f; border:1px solid var(--line); border-radius:8px; padding:7px 8px; cursor:pointer; color:var(--ink); font-family:inherit; font-size:11.5px; text-align:left; }
+      .inv-slot { display:flex; align-items:center; gap:8px; width:100%; background:#11161f; border:1px solid var(--line2); border-radius:8px; padding:7px 8px; cursor:pointer; color:var(--ink); font-family:inherit; font-size:11.5px; text-align:left; }
       .inv-slot:hover { border-color:var(--amber); background:#171d28; }
       .inv-slot .ic { font-size:16px; line-height:1; }
-      .note-back { position:absolute; inset:0; background:#04070cbb; display:flex; align-items:center; justify-content:center; z-index:40; }
+      .note-back { position:fixed; inset:0; background:#04070cbb; display:flex; align-items:center; justify-content:center; z-index:40; }
       .inv[hidden], .note-back[hidden] { display:none; }
       .note-paper { position:relative; max-width:80%; background:#efe4c6; color:#2a2113; border-radius:6px; padding:20px 24px 16px; box-shadow:0 12px 44px #000c; border:1px solid #c9b98a; }
       .note-paper pre { margin:0; white-space:pre-wrap; font-family:"IBM Plex Mono",monospace; font-size:13.5px; line-height:1.6; }
       .note-x { margin-top:14px; background:#2a2113; color:#efe4c6; border:0; border-radius:6px; padding:7px 16px; cursor:pointer; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; }
+
+      /* Command Journal book */
+      #journalIcon { position:fixed; top:60px; right:16px; width:40px; height:46px; z-index:24;
+        background:linear-gradient(135deg,#5a4420,#3a2c14); border:1px solid #7a5e2a;
+        border-radius:4px 7px 7px 4px; box-shadow:inset 4px 0 0 #2a1f0e, 0 4px 12px #0009;
+        cursor:pointer; color:#ffe066; font-size:20px; display:flex; align-items:center; justify-content:center; }
+      #journalIcon:hover { filter:brightness(1.15); }
+      #journalIcon .pip { position:absolute; top:-5px; right:-5px; width:12px; height:12px; border-radius:50%; background:#62d27a; border:2px solid #0a1018; display:none; }
+      #journalIcon.has-new .pip { display:block; }
+      .inv { top:116px; } /* inventory sits under the journal icon */
+      .jbook-back { position:fixed; inset:0; background:#04070ccc; z-index:45; display:flex; align-items:center; justify-content:center; }
+      .jbook-back[hidden] { display:none; }
+      .jbook { display:flex; width:min(94%,760px); height:min(90%,440px); border-radius:8px; overflow:hidden; box-shadow:0 16px 50px #000c; font-size:13px; line-height:1.5; }
+      .jbook-l { width:38%; padding:16px 14px; background:#efe4c6; color:#2a2113; overflow-y:auto; }
+      .jbook-r { width:62%; padding:16px 18px; background:#f3ead0; color:#2a2113; border-left:2px solid #c9b98a; overflow-y:auto; }
+      .jbook .head { font-family:"Chakra Petch",sans-serif; font-size:14px; letter-spacing:1px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+      .jbook .sec { color:#6b5524; font-weight:700; letter-spacing:.5px; text-transform:uppercase; font-size:10px; margin:12px 0 4px; }
+      .jbook .cmd { padding:3px 6px; border-radius:4px; cursor:pointer; }
+      .jbook .cmd:hover { background:#e3d6b0; }
+      .jbook .cmd.on { background:#d8c896; }
+      .jbook .cmd.lock { color:#a89a6e; cursor:default; }
+      .jbook .cmd.lock:hover { background:transparent; }
+      .jbook .ttl { font-family:"Chakra Petch",sans-serif; font-size:18px; font-weight:700; }
+      .jbook .lbl { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#6b5524; margin:11px 0 3px; }
+      .jbook .code { background:#e3d6b0; border:1px solid #c9b98a; border-radius:5px; padding:7px 9px; color:#3a2e12; font-family:"IBM Plex Mono",monospace; white-space:pre-wrap; }
+      .jbook textarea.try { width:100%; background:#e3d6b0; border:1px solid #c9b98a; border-radius:5px; padding:7px 9px; color:#3a2e12; font-family:"IBM Plex Mono",monospace; font-size:13px; resize:vertical; }
+      .jbook .runbtn { background:#2a2113; color:#efe4c6; border:0; border-radius:5px; padding:6px 14px; margin-top:7px; cursor:pointer; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; }
+      .jbook .out { margin-top:7px; white-space:pre-wrap; font-family:"IBM Plex Mono",monospace; font-size:12.5px; min-height:8px; }
+      .jbook .out.err { color:#9c2b2b; }
+      .jbook .x { background:#2a2113; color:#efe4c6; border:0; border-radius:5px; width:24px; height:24px; cursor:pointer; }
+      .jbook .empty { color:#8a7c52; font-style:italic; }
+      #journalToast { position:fixed; top:116px; right:16px; z-index:50; background:#2a2113; color:#ffe066; border:1px solid #7a5e2a; border-radius:8px; padding:7px 11px; font-size:12px; box-shadow:0 6px 18px #0009; opacity:0; transform:translateY(-6px); transition:opacity .25s, transform .25s; pointer-events:none; }
+      #journalToast.show { opacity:1; transform:none; }
+
       /* DEV bar (remove before shipping) */
-      #devbar { position:fixed; right:12px; bottom:12px; z-index:60; background:#19140c; border:1px solid #3a2c14; border-radius:10px; padding:7px 9px; display:flex; gap:6px; align-items:center; font-size:12px; box-shadow:0 6px 24px #000a; }
+      #devbar { position:fixed; left:12px; bottom:52px; z-index:60; background:#19140c; border:1px solid #3a2c14; border-radius:10px; padding:7px 9px; display:flex; gap:6px; align-items:center; font-size:12px; box-shadow:0 6px 24px #000a; }
       #devbar span { color:#ffd43b; letter-spacing:1px; }
       .devbtn { background:#2a2114; color:#ffe066; border:1px solid #3a2c14; border-radius:6px; padding:5px 9px; cursor:pointer; font-family:inherit; font-size:12px; }
       .devbtn:hover { background:#3a2c14; }
-/* Command Journal book */
-#journalIcon { position:absolute; top:54px; right:10px; width:40px; height:46px; z-index:30;
-  background:linear-gradient(135deg,#5a4420,#3a2c14); border:1px solid #7a5e2a;
-  border-radius:4px 7px 7px 4px; box-shadow:inset 4px 0 0 #2a1f0e, 0 4px 12px #0009;
-  cursor:pointer; color:#ffe066; font-size:20px; display:flex; align-items:center; justify-content:center; }
-#journalIcon:hover { filter:brightness(1.15); }
-#journalIcon .pip { position:absolute; top:-5px; right:-5px; width:12px; height:12px; border-radius:50%;
-  background:#62d27a; border:2px solid #0a1018; display:none; }
-#journalIcon.has-new .pip { display:block; }
-.jbook-back { position:absolute; inset:0; background:#04070ccc; z-index:45;
-  display:flex; align-items:center; justify-content:center; }
-.jbook-back[hidden] { display:none; }
-.jbook { display:flex; width:min(94%,760px); height:min(90%,440px); border-radius:8px; overflow:hidden;
-  box-shadow:0 16px 50px #000c; font-size:13px; line-height:1.5; }
-.jbook-l { width:38%; padding:16px 14px; background:#efe4c6; color:#2a2113; overflow-y:auto; }
-.jbook-r { width:62%; padding:16px 18px; background:#f3ead0; color:#2a2113; border-left:2px solid #c9b98a; overflow-y:auto; }
-.jbook .head { font-family:"Chakra Petch",sans-serif; font-size:14px; letter-spacing:1px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
-.jbook .sec { color:#6b5524; font-weight:700; letter-spacing:.5px; text-transform:uppercase; font-size:10px; margin:12px 0 4px; }
-.jbook .cmd { padding:3px 6px; border-radius:4px; cursor:pointer; }
-.jbook .cmd:hover { background:#e3d6b0; }
-.jbook .cmd.on { background:#d8c896; }
-.jbook .cmd.lock { color:#a89a6e; cursor:default; }
-.jbook .cmd.lock:hover { background:transparent; }
-.jbook .ttl { font-family:"Chakra Petch",sans-serif; font-size:18px; font-weight:700; }
-.jbook .lbl { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#6b5524; margin:11px 0 3px; }
-.jbook .code { background:#e3d6b0; border:1px solid #c9b98a; border-radius:5px; padding:7px 9px;
-  color:#3a2e12; font-family:"IBM Plex Mono",monospace; white-space:pre-wrap; }
-.jbook textarea.try { width:100%; background:#e3d6b0; border:1px solid #c9b98a; border-radius:5px;
-  padding:7px 9px; color:#3a2e12; font-family:"IBM Plex Mono",monospace; font-size:13px; resize:vertical; }
-.jbook .runbtn { background:#2a2113; color:#efe4c6; border:0; border-radius:5px; padding:6px 14px;
-  margin-top:7px; cursor:pointer; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; }
-.jbook .out { margin-top:7px; white-space:pre-wrap; font-family:"IBM Plex Mono",monospace; font-size:12.5px; min-height:8px; }
-.jbook .out.err { color:#9c2b2b; }
-.jbook .x { background:#2a2113; color:#efe4c6; border:0; border-radius:5px; width:24px; height:24px; cursor:pointer; }
-.jbook .empty { color:#8a7c52; font-style:italic; }
-#journalToast { position:absolute; top:108px; right:10px; z-index:50; background:#2a2113; color:#ffe066;
-  border:1px solid #7a5e2a; border-radius:8px; padding:7px 11px; font-size:12px; box-shadow:0 6px 18px #0009;
-  opacity:0; transform:translateY(-6px); transition:opacity .25s, transform .25s; pointer-events:none; }
-#journalToast.show { opacity:1; transform:none; }
-/* IDE editor container (structural; warm theme applied in re-skin) */
-.editor { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#0a0e15; }
-.filetab { font-size:12px; padding:6px 12px; color:#cfe3ff; background:#0e1117; border-bottom:1px solid var(--line); }
-.editor .CodeMirror { height:auto; min-height:64px; font-family:"IBM Plex Mono",monospace; font-size:15px; background:#0a0e15; color:#e9f0f8; }
-.editor-foot { display:flex; align-items:center; justify-content:space-between; padding:7px 10px; border-top:1px solid var(--line); }
-.run-hint { font-size:11px; color:var(--muted); }
-.cm-disabled { opacity:.5; }
-/* ===================== WARM FANTASY THEME (Phase 1 re-skin) ===================== */
-:root {
-  --bg:#15100a; --panel:#241a10; --line:#6b4f25; --ink:#e8dcc4;
-  --muted:#a08a5e; --green:#e7c878; --red:#c2552e; --amber:#e7c878;
-}
-body { background:#15100a; }
-.top .k { color:#a08a5e; }
-.top h1 b { color:#e7c878; }
-.stagewrap { border:2px solid #6b4f25; border-radius:12px; }
-/* Command Log rail: wood frame, dark log pane for code readability */
-.journal { background:#1b130b; border:2px solid #6b4f25; }
-.journal h3 { color:#e7c878; }
-#log .auto { color:#b8a884; }
-#log .mine { color:#d9c07a; }
-/* Input bar + prose */
-.inputbar { background:#241a10; border:2px solid #6b4f25; }
-.prompt { color:#f0e2c2; }
-.lesson { color:#cbb892; border-left-color:#e7c878; }
-.status.ok { color:#9ec07a; } .status.muted { color:#a08a5e; } .status.err { color:#e0814f; }
-/* Editor: wood frame + parchment file tab over a dark code pane */
-.editor { border:2px solid #6b4f25; background:#0d1017; }
-.filetab { background:linear-gradient(#3a2a16,#2a1d10); color:#f0d8a0; border-bottom:2px solid #6b4f25; }
-.editor-foot { background:#1b130b; border-top:1px solid #3a2a16; }
-.run-hint { color:#8a7c52; }
-button#run { background:#7a5a1e; color:#f7eccf; }
-button#run:hover { filter:brightness(1.08); }
-/* CodeMirror warm theme (default theme class is cm-s-default) */
-.editor .CodeMirror { background:#0d1017; color:#dcd8c8; }
-.editor .CodeMirror-gutters { background:#0a0d13; border-right:1px solid #1b2230; }
-.editor .CodeMirror-linenumber { color:#46506a; }
-.editor .CodeMirror-cursor { border-left:2px solid #f0d8a0; }
-.editor .CodeMirror-selected { background:#2a3a1e; }
-.cm-s-default .cm-keyword { color:#c98a3a; }
-.cm-s-default .cm-def { color:#e0b15a; }
-.cm-s-default .cm-builtin { color:#d9a441; }
-.cm-s-default .cm-string, .cm-s-default .cm-string-2 { color:#8fbf6f; }
-.cm-s-default .cm-comment { color:#5a6273; }
-.cm-s-default .cm-number { color:#cf8a6a; }
-.cm-s-default .cm-operator { color:#c9b89a; }
-.cm-s-default .cm-variable, .cm-s-default .cm-variable-2, .cm-s-default .cm-property { color:#dcd8c8; }
-/* Hint button + greyed ghost text */
-.hintbtn { background:#2a2113; color:#e7c878; border:1px solid #6b4f25; border-radius:6px; padding:5px 11px; cursor:pointer; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; font-size:12px; }
-.hintbtn:hover { filter:brightness(1.12); }
-.hintbtn[hidden] { display:none; }
-.editor .CodeMirror-placeholder { color:#6a6552; font-style:italic; }
-/* XP pill + map link (top-right) */
-.topright { margin-left:auto; display:flex; align-items:center; gap:14px; }
-#xpwrap { display:flex; align-items:center; gap:8px; }
-#xplv { font-family:"Chakra Petch",sans-serif; font-size:12px; letter-spacing:1px; color:#e7c878; }
-.xpbar { width:110px; height:8px; background:#111825; border:1px solid #232c3a; border-radius:4px; overflow:hidden; }
-#xpfill { height:100%; width:0; background:#62d27a; transition:width 0.4s; }
-#mapBtn { font-family:"Chakra Petch",sans-serif; font-size:12px; letter-spacing:1px; color:#a08a5e; text-decoration:none; border:1px solid #3a2c14; border-radius:6px; padding:4px 10px; }
-#mapBtn:hover { color:#e7c878; border-color:#6b4f25; }
-/* floating XP toast over the stage */
-.xp-toast { position:absolute; left:50%; top:18%; transform:translateX(-50%); font-family:"Chakra Petch",sans-serif; font-weight:700; color:#62d27a; text-shadow:0 2px 8px #000; pointer-events:none; animation:xpfloat 1.4s ease-out forwards; z-index:8; }
-.xp-toast.lvl { color:#ffd43b; font-size:22px; }
-@keyframes xpfloat { 0% { opacity:0; margin-top:14px; } 15% { opacity:1; } 100% { opacity:0; margin-top:-34px; } }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <div class="top">
-        <span class="k">Survive the Stack · Lesson 1.2</span><h1>The Wildwood <b id="prog"></b></h1>
-        <div class="topright">
-          <div id="xpwrap" title="Experience"><span id="xplv">Lv 1</span><div class="xpbar"><div id="xpfill"></div></div></div>
-          <a id="mapBtn" href="survive.html#map" title="World map">⌂ Map</a>
+    <canvas id="stage"></canvas>
+    <div id="loading">loading Python…</div>
+
+    <!-- corner HUD -->
+    <div class="hud hud-left">
+      <span class="chip">SURVIVE THE STACK · <b>The Wildwood</b><b id="prog"></b></span>
+    </div>
+    <div class="hud hud-right">
+      <span class="chip" id="xpwrap"><span id="xplv">Lv 1</span><span class="xpbar"><span id="xpfill"></span></span></span>
+      <a class="chip" id="mapBtn" href="survive.html#map" title="World map">⌂ Map</a>
+    </div>
+
+    <!-- command log drawer -->
+    <div id="logTab">COMMAND LOG</div>
+    <aside id="logDrawer">
+      <h3>⟡ Command Log</h3>
+      <div id="log"></div>
+    </aside>
+
+    <!-- overlays -->
+    <div id="inventory" class="inv" hidden>
+      <div class="inv-head">🎒 Inventory</div>
+      <div id="invItems" class="inv-items"></div>
+    </div>
+    <div id="noteModal" class="note-back" hidden>
+      <div class="note-paper"><pre id="noteText"></pre><button id="noteClose" class="note-x">Close</button></div>
+    </div>
+    <button id="journalIcon" title="Command Journal">📖<span class="pip"></span></button>
+    <div id="journalToast"></div>
+    <div id="journalBook" class="jbook-back" hidden>
+      <div class="jbook">
+        <div class="jbook-l">
+          <div class="head"><span>📖 Command Journal</span></div>
+          <div id="jbookList"></div>
         </div>
-      </div>
-      <div class="game">
-        <div class="stagewrap">
-          <canvas id="stage"></canvas>
-          <div id="loading">loading Python…</div>
-          <div id="inventory" class="inv" hidden>
-            <div class="inv-head">🎒 Inventory</div>
-            <div id="invItems" class="inv-items"></div>
-          </div>
-          <div id="noteModal" class="note-back" hidden>
-            <div class="note-paper"><pre id="noteText"></pre><button id="noteClose" class="note-x">Close</button></div>
-          </div>
-          <button id="journalIcon" title="Command Journal">📖<span class="pip"></span></button>
-          <div id="journalToast"></div>
-          <div id="journalBook" class="jbook-back" hidden>
-            <div class="jbook">
-              <div class="jbook-l">
-                <div class="head"><span>📖 Command Journal</span></div>
-                <div id="jbookList"></div>
-              </div>
-              <div class="jbook-r" id="jbookDetail"></div>
-            </div>
-          </div>
-        </div>
-        <div class="journal">
-          <h3>⟡ Command Log</h3>
-          <div id="log"></div>
-        </div>
-      </div>
-      <div class="inputbar">
-        <div class="prompt" id="prompt">Watch…</div>
-        <div class="lesson" id="lesson"></div>
-        <div class="editor">
-          <div class="filetab">📜 lesson_1.py</div>
-          <textarea id="code" spellcheck="false" autocomplete="off" disabled></textarea>
-          <div class="editor-foot"><button id="hint" class="hintbtn" type="button">💡 Hint</button><span class="run-hint">Enter to run · Shift+Enter for a new line</span><button id="run" disabled>▸ Run</button></div>
-        </div>
-        <div class="status muted" id="status"></div>
+        <div class="jbook-r" id="jbookDetail"></div>
       </div>
     </div>
+
+    <!-- floating mini-IDE -->
+    <div id="ide" class="dock-bottom">
+      <div class="titlebar">
+        <div class="filetab"><span class="dot" id="ideDot"></span> lesson_1.py</div>
+        <div class="prompt" id="prompt">Watch…</div>
+        <div class="dockbtns">
+          <button id="dockL" title="Dock left">⇤</button>
+          <button id="dockB" title="Dock bottom" class="on">⤓</button>
+          <button id="dockR" title="Dock right">⇥</button>
+        </div>
+      </div>
+      <div class="lesson" id="lesson"></div>
+      <div class="editor">
+        <textarea id="code" spellcheck="false" autocomplete="off" disabled></textarea>
+      </div>
+      <div class="status muted" id="status"></div>
+      <div class="statusbar">
+        <span id="pystat">● loading python…</span>
+        <button id="hint" class="hintbtn" type="button">💡 Hint</button>
+        <span class="run-hint">⏎ run · shift+⏎ new line</span>
+        <button id="run" disabled>▸ Run</button>
+      </div>
+    </div>
+
     <!-- DEV bar — remove this whole block (and wireDevBar/skipStep in lesson1.js) before shipping -->
     <div id="devbar">
       <span>DEV</span>

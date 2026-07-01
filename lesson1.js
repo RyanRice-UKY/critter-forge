@@ -56,7 +56,8 @@ let dialogue = null, awaitAdvance = null, currentInput = null;
 let survivor = null, survivorFollow = false, survivorHide = false;
 
 async function boot() {
-  for (const id of ["stage", "loading", "prompt", "lesson", "code", "run", "status", "prog", "log", "inventory", "invItems", "noteModal", "noteText", "noteClose", "hint"]) els[id] = document.getElementById(id);
+  for (const id of ["stage", "loading", "prompt", "lesson", "code", "run", "status", "prog", "log", "inventory", "invItems", "noteModal", "noteText", "noteClose", "hint", "ide", "ideDot", "pystat", "logTab"]) els[id] = document.getElementById(id);
+  wireIde();
   els.ctx = els.stage.getContext("2d");
   els.noteClose.onclick = () => (els.noteModal.hidden = true);
   els.noteModal.onclick = (e) => { if (e.target === els.noteModal) els.noteModal.hidden = true; };
@@ -64,7 +65,7 @@ async function boot() {
   els.stage.onclick = advance;
   els.run.onclick = submit;
   els.hint.onclick = () => { if (currentInput) Editor.toggleHint(currentInput.opts.placeholder || ""); };
-  Editor.init({ onSubmit: submit });
+  Editor.init({ onSubmit: submit, onChange: (lines) => els.ide.classList.toggle("wide", lines > 8) }); // grow wide before tall at the bottom dock
   wireDevBar();
   if (window.Journal) window.Journal.init({ pyodide: null });
   loop(); play();
@@ -72,6 +73,7 @@ async function boot() {
   await pyodide.runPythonAsync(HARNESS);
   runUser = pyodide.globals.get("run_user");
   pyReady = true; els.loading.style.display = "none";
+  if (els.pystat) { els.pystat.textContent = "● python ready"; els.pystat.classList.add("ok"); }
   if (window.Journal) window.Journal.setPyodide(pyodide);
 }
 function fit() { const r = els.stage.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; els.stage.width = r.width * dpr; els.stage.height = r.height * dpr; els.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); els.W = r.width; els.H = r.height; if (!char.x) char.x = els.W * 0.14; }
@@ -101,6 +103,25 @@ function wireDevBar() {
   document.addEventListener("keydown", (e) => { if (e.key === "Tab") { e.preventDefault(); skipStep(); } }); // Tab = skip
 }
 // ===== end DEV ONLY =====
+// ---------- floating IDE panel: open/close, dock position, log drawer ----------
+let ideCloseT = null;
+function ideOpen() { clearTimeout(ideCloseT); els.ide.classList.add("open"); Editor.refresh(); }
+function ideClose() { clearTimeout(ideCloseT); ideCloseT = setTimeout(() => els.ide.classList.remove("open"), 300); } // small delay so back-to-back asks don't flicker
+function setDock(where) {
+  els.ide.classList.remove("dock-bottom", "dock-left", "dock-right"); els.ide.classList.add("dock-" + where);
+  for (const [id, w] of [["dockL", "left"], ["dockB", "bottom"], ["dockR", "right"]]) document.getElementById(id).classList.toggle("on", w === where);
+  try { localStorage.setItem("sts-dock", where); } catch (e) {}
+  Editor.refresh();
+}
+function wireIde() {
+  document.getElementById("dockL").onclick = () => setDock("left");
+  document.getElementById("dockB").onclick = () => setDock("bottom");
+  document.getElementById("dockR").onclick = () => setDock("right");
+  let d = "bottom"; try { d = localStorage.getItem("sts-dock") || "bottom"; } catch (e) {}
+  if (d !== "bottom") setDock(d);
+  els.logTab.onclick = () => document.body.classList.toggle("log-open");
+}
+
 const nonEmptyOut = (r) => (r.stdout.trim() ? null : "Put some words between the quotes.");
 const firstLine = (s) => s.trim().split("\n")[0];
 const prog = (s) => (els.prog.textContent = ""); // progress suffix hidden; lesson number shown in the top-left label instead
@@ -108,6 +129,7 @@ const prog = (s) => (els.prog.textContent = ""); // progress suffix hidden; less
 function ask(opts, onCode) {
   return new Promise((res) => {
     currentInput = { opts, onCode, res };
+    ideOpen();
     els.prompt.textContent = opts.prompt;
     if (opts.lesson) { els.lesson.textContent = opts.lesson; els.lesson.style.display = "block"; } else els.lesson.style.display = "none";
     Editor.setSingleLine((opts.rows || 1) < 2); Editor.setValue(opts.prefill || ""); Editor.clearHint(); Editor.setEnabled(true); Editor.setReadOnly(!!opts.readonly);
@@ -136,6 +158,7 @@ async function submit() {
   els.prompt.textContent = "Watch…"; setStatus("✓", "ok");
   awardXP(opts.xp || 10);
   currentInput = null;
+  ideClose();
   if (onCode) await onCode(r);
   res(r);
 }
@@ -146,14 +169,14 @@ function renderInventory() {
 }
 function logCmd(line, mine) { for (const ln of String(line).split("\n")) { if (!ln.trim()) continue; const d = document.createElement("div"); d.className = mine ? "mine" : "auto"; d.textContent = ln; els.log.appendChild(d); if (window.Journal) window.Journal.noticeLine(ln); } els.log.scrollTop = els.log.scrollHeight; }
 function setLocations(names) { if (!els.locations) return; els.locations.innerHTML = names.map((n) => `<div>you.walk("${n}")</div>`).join(""); }
-function setStatus(m, k) { els.status.textContent = m; els.status.className = `status ${k}`; }
+function setStatus(m, k) { els.status.textContent = m; els.status.className = `status ${k}`; if (els.ideDot) els.ideDot.classList.toggle("err", k === "err"); }
 
 // ---------- XP / save (core/save.js, plain script loaded before this module) ----------
 const Sv = window.Save || null;
 function xpPill() { if (!Sv) return; const s = Sv.load(), lv = document.getElementById("xplv"), f = document.getElementById("xpfill"); if (lv) lv.textContent = "Lv " + Sv.level(s.xp); if (f) f.style.width = (Sv.levelProgress(s.xp) * 100).toFixed(0) + "%"; }
 function awardXP(n) {
   if (!Sv) return; const r = Sv.addXP(n); xpPill();
-  const wrap = document.querySelector(".stagewrap"); if (!wrap) return;
+  const wrap = document.body;
   const t = document.createElement("div"); t.className = "xp-toast"; t.textContent = `+${n} XP`; wrap.appendChild(t); setTimeout(() => t.remove(), 1450);
   if (r.leveled) { const l = document.createElement("div"); l.className = "xp-toast lvl"; l.style.top = "27%"; l.textContent = `LEVEL UP! Survivor Lv ${r.level}`; wrap.appendChild(l); setTimeout(() => l.remove(), 1600); }
 }
@@ -667,13 +690,13 @@ function draw(now) {
   vg.addColorStop(0, "rgba(5,8,14,0)"); vg.addColorStop(1, "rgba(5,8,14,0.42)");
   c.fillStyle = vg; c.fillRect(0, 0, W, H);
 
-  // gold HUD (top-left)
+  // gold HUD (below the top-left title chip)
   if (char.gold > 0) {
-    c.fillStyle = "rgba(7,11,17,0.82)"; rr(c, 12, 12, 120, 32, 8); c.fill(); c.strokeStyle = "#3a3a18"; c.stroke();
-    c.fillStyle = "#e6a700"; c.beginPath(); c.arc(31, 28, 9, 0, Math.PI * 2); c.fill();
-    c.fillStyle = "#ffd43b"; c.beginPath(); c.arc(31, 28, 6.5, 0, Math.PI * 2); c.fill();
-    c.fillStyle = "#caa000"; c.font = "bold 9px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText("$", 31, 31);
-    c.fillStyle = "#ffe066"; c.font = "15px 'IBM Plex Mono',monospace"; c.textAlign = "left"; c.fillText("× " + char.gold.toFixed(2), 46, 33);
+    c.fillStyle = "rgba(7,11,17,0.82)"; rr(c, 16, 56, 120, 32, 8); c.fill(); c.strokeStyle = "#3a3a18"; c.stroke();
+    c.fillStyle = "#e6a700"; c.beginPath(); c.arc(35, 72, 9, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#ffd43b"; c.beginPath(); c.arc(35, 72, 6.5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#caa000"; c.font = "bold 9px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText("$", 35, 75);
+    c.fillStyle = "#ffe066"; c.font = "15px 'IBM Plex Mono',monospace"; c.textAlign = "left"; c.fillText("× " + char.gold.toFixed(2), 50, 77);
   }
 
   // hearts (combat scenes) + damage flash + death overlay
@@ -681,14 +704,15 @@ function draw(now) {
   if (dmgFlash > 0) { c.fillStyle = `rgba(200,30,30,${dmgFlash * 0.32})`; c.fillRect(0, 0, W, H); }
   if (dying) { c.fillStyle = "rgba(6,0,0,0.72)"; c.fillRect(0, 0, W, H); c.fillStyle = "#ff6b6b"; c.font = "700 22px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("Overwhelmed. Restarting the scene…", W / 2, H / 2); }
 
-  // dialogue banner
+  // dialogue banner (bottom normally; flips to the top while the IDE panel is up so they never overlap)
   if (dialogue) {
-    const bh = 64; c.fillStyle = "rgba(7,11,17,0.9)"; c.fillRect(0, H - bh, W, bh);
-    c.strokeStyle = "#1b2533"; c.beginPath(); c.moveTo(0, H - bh); c.lineTo(W, H - bh); c.stroke();
+    const bh = 64, by = currentInput ? 52 : H - bh;
+    c.fillStyle = "rgba(7,11,17,0.9)"; c.fillRect(0, by, W, bh);
+    c.strokeStyle = "#1b2533"; c.beginPath(); c.moveTo(0, currentInput ? by + bh : by); c.lineTo(W, currentInput ? by + bh : by); c.stroke();
     let tx = 18; c.textAlign = "left";
-    if (dialogue.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(dialogue.who + ":", 18, H - bh + 26); tx = 18 + c.measureText(dialogue.who + ":  ").width; }
-    c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, dialogue.text, tx, H - bh + 26, W - tx - 80, 19);
-    c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "13px 'IBM Plex Mono',monospace"; c.fillText("▸ click", W - 16, H - 16);
+    if (dialogue.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(dialogue.who + ":", 18, by + 26); tx = 18 + c.measureText(dialogue.who + ":  ").width; }
+    c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, dialogue.text, tx, by + 26, W - tx - 80, 19);
+    c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "13px 'IBM Plex Mono',monospace"; c.fillText("▸ click", W - 16, by + bh - 16);
   }
   if (fadeAmt > 0) { c.fillStyle = `rgba(5,7,11,${fadeAmt})`; c.fillRect(0, 0, W, H); }
 }

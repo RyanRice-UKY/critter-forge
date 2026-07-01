@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Survive the Stack — UI layout options</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { background:#0b0e14; color:#dbe6f2; font-family:"IBM Plex Mono",monospace; overflow:hidden; }
+  #stage { position:fixed; inset:0; width:100%; height:100%; }
+  .hidden { display:none !important; }
+
+  /* switcher */
+  #switch { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:50; display:flex; gap:6px; background:rgba(7,10,16,.9); border:1px solid #232c3a; border-radius:10px; padding:6px 8px; }
+  #switch button { font:700 12px "Chakra Petch",sans-serif; letter-spacing:1px; color:#8a94a3; background:none; border:1px solid transparent; border-radius:7px; padding:5px 11px; cursor:pointer; }
+  #switch button.on { color:#ffd43b; border-color:#4a3a18; }
+
+  /* shared bits */
+  .chip { font:700 12px "Chakra Petch",sans-serif; letter-spacing:1px; color:#e7c878; background:rgba(7,10,16,.78); border:1px solid #3a2c14; border-radius:8px; padding:6px 12px; backdrop-filter:blur(4px); }
+  .xpbar { width:90px; height:7px; background:#111825; border:1px solid #232c3a; border-radius:4px; display:inline-block; vertical-align:middle; margin-left:8px; overflow:hidden; }
+  .xpbar i { display:block; height:100%; width:38%; background:#62d27a; }
+  .runbtn { font:700 13px "Chakra Petch",sans-serif; letter-spacing:1px; color:#0b0e14; background:#ffd43b; border:none; border-radius:7px; padding:7px 16px; }
+  .ghost { color:#6a7382; }
+  .kw { color:#7ec9ff; } .str { color:#a3d977; } .fn { color:#e7c878; }
+
+  /* ---- A: overlay HUD ---- */
+  .hud-top { position:fixed; top:14px; left:16px; z-index:10; display:flex; gap:10px; align-items:center; }
+  .hud-top2 { position:fixed; top:14px; right:16px; z-index:10; display:flex; gap:10px; }
+  .console-a { position:fixed; left:50%; transform:translateX(-50%); bottom:18px; width:min(760px,92vw); z-index:10;
+    background:rgba(9,13,20,.86); border:1px solid #2a3548; border-radius:14px; backdrop-filter:blur(6px); box-shadow:0 18px 60px rgba(0,0,0,.55); overflow:hidden; }
+  .console-a .bar { display:flex; align-items:center; gap:10px; padding:9px 14px; border-bottom:1px solid #1b2533; }
+  .console-a .bar .obj { font:700 13px "Chakra Petch",sans-serif; color:#62d27a; letter-spacing:.6px; }
+  .console-a .code { padding:12px 16px 14px; font-size:14.5px; line-height:1.55; }
+  .console-a .foot { display:flex; justify-content:space-between; align-items:center; padding:8px 14px 12px; }
+  .drawer-tab { position:fixed; right:0; top:38%; z-index:10; writing-mode:vertical-rl; font:700 12px "Chakra Petch",sans-serif; letter-spacing:2px; color:#a08a5e; background:rgba(9,13,20,.85); border:1px solid #2a3548; border-right:none; border-radius:10px 0 0 10px; padding:14px 7px; }
+
+  /* ---- E: floating mini-IDE (A layout + B sleekness) ---- */
+  .ide-e { position:fixed; left:50%; transform:translateX(-50%); bottom:18px; width:min(820px,94vw); z-index:10;
+    background:rgba(8,11,18,.92); border:1px solid #2a3548; border-radius:12px; backdrop-filter:blur(8px);
+    box-shadow:0 18px 60px rgba(0,0,0,.6); overflow:hidden; }
+  .ide-e .titlebar { display:flex; align-items:center; gap:0; background:#0a0e17; border-bottom:1px solid #1b2533; }
+  .ide-e .tab { display:flex; align-items:center; gap:8px; font-size:12.5px; color:#dbe6f2; background:#111726; border-right:1px solid #1b2533; border-top:2px solid #ffd43b; padding:8px 16px; }
+  .ide-e .tab .dot { width:7px; height:7px; border-radius:50%; background:#62d27a; }
+  .ide-e .objbar { margin-left:auto; padding:0 14px; font:700 12.5px "Chakra Petch",sans-serif; color:#62d27a; letter-spacing:.5px; }
+  .ide-e .editor { display:flex; font-size:14.5px; line-height:1.6; }
+  .ide-e .gutter { padding:12px 0 14px; width:44px; text-align:right; color:#3d4757; background:#0a0e17; border-right:1px solid #161e2e; user-select:none; }
+  .ide-e .gutter div { padding-right:12px; }
+  .ide-e .codearea { padding:12px 16px 14px; flex:1; }
+  .ide-e .statusbar { display:flex; align-items:center; gap:16px; font-size:11.5px; color:#5d6a7d; background:#0a0e17; border-top:1px solid #1b2533; padding:6px 14px; }
+  .ide-e .statusbar .ok { color:#62d27a; }
+  .ide-e .statusbar .runbtn { margin-left:auto; padding:5px 14px; font-size:12px; }
+
+  /* ---- B: cinematic console ---- */
+  .cine-strip { position:fixed; left:0; right:0; bottom:0; height:200px; z-index:10; background:#070a10ee; border-top:2px solid #2a3548; display:grid; grid-template-columns:1fr 340px; }
+  .cine-strip .left { padding:12px 20px; border-right:1px solid #1b2533; }
+  .cine-strip .obj { font:700 13px "Chakra Petch",sans-serif; color:#62d27a; letter-spacing:.6px; margin-bottom:8px; }
+  .cine-strip .code { font-size:14.5px; line-height:1.55; }
+  .cine-strip .right { padding:12px 16px; font-size:12.5px; line-height:1.7; color:#8a94a3; overflow:hidden; }
+  .cine-strip .right b { color:#a08a5e; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; font-size:11px; }
+  .cine-foot { position:absolute; bottom:10px; right:360px; }
+
+  /* ---- C: field journal ---- */
+  .journal-c { position:fixed; right:22px; bottom:20px; width:min(540px,46vw); z-index:10; transform:rotate(.4deg);
+    background:linear-gradient(175deg,#f2e3c2,#e7d3a8); color:#2a2014; border-radius:4px; box-shadow:0 16px 50px rgba(0,0,0,.6), inset 0 0 60px rgba(122,90,48,.25); padding:16px 20px 14px; }
+  .journal-c:before { content:""; position:absolute; left:0; top:0; bottom:0; width:26px; background:linear-gradient(90deg,rgba(90,60,25,.35),transparent); border-radius:4px 0 0 4px; }
+  .journal-c .obj { font:700 14px "Chakra Petch",sans-serif; color:#6b3f16; letter-spacing:.5px; margin-bottom:6px; }
+  .journal-c .code { font-size:14.5px; line-height:1.6; color:#33260f; }
+  .journal-c .code .kw { color:#7a3a9e; } .journal-c .code .str { color:#3f6b2a; } .journal-c .code .fn { color:#8a5a10; }
+  .journal-c .foot { display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
+  .journal-c .runbtn { background:#6b3f16; color:#f2e3c2; }
+  .log-ghost { position:fixed; left:20px; top:64px; z-index:9; font-size:13px; line-height:1.8; color:rgba(219,230,242,.42); text-shadow:0 1px 6px #000; }
+  .log-ghost .me { color:rgba(255,212,59,.55); }
+
+  /* ---- D: challenge modal ---- */
+  .dim { position:fixed; inset:0; z-index:9; background:radial-gradient(ellipse at 50% 42%, rgba(4,6,10,.25), rgba(4,6,10,.78)); }
+  .modal-d { position:fixed; left:50%; top:50%; transform:translate(-50%,-52%); width:min(680px,90vw); z-index:10;
+    background:#0d1320f2; border:1px solid #3b4a63; border-radius:16px; box-shadow:0 0 0 4px rgba(255,212,59,.05), 0 30px 90px rgba(0,0,0,.7); overflow:hidden; }
+  .modal-d .head { padding:14px 22px; background:linear-gradient(180deg,#141d30,#0d1320); border-bottom:1px solid #22304a; display:flex; justify-content:space-between; align-items:baseline; }
+  .modal-d .head .t { font:700 17px "Chakra Petch",sans-serif; color:#ffd43b; letter-spacing:.6px; }
+  .modal-d .head .r { font-size:12px; color:#62d27a; }
+  .modal-d .body { padding:14px 22px 6px; color:#aab6c6; font-size:13.5px; line-height:1.65; }
+  .modal-d .code { margin:10px 22px 0; background:#0a0f1a; border:1px solid #1e293d; border-radius:10px; padding:12px 16px; font-size:14.5px; line-height:1.55; }
+  .modal-d .foot { display:flex; justify-content:space-between; align-items:center; padding:12px 22px 16px; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="switch">
+  <button data-v="a">A · Overlay HUD</button>
+  <button data-v="b">B · Cinematic console</button>
+  <button data-v="c">C · Field journal</button>
+  <button data-v="d">D · Challenge modal</button>
+  <button data-v="e">E · Floating mini-IDE</button>
+  <button data-v="f">E · with long code</button>
+  <button data-v="g">E · error state</button>
+  <button data-v="h">E · side dock</button>
+</div>
+
+<!-- G: error state -->
+<div class="v vg hidden">
+  <div class="hud-top"><span class="chip">Survivor Lv 3<span class="xpbar"><i></i></span></span><span class="chip">🪙 2.55</span></div>
+  <div class="hud-top2"><span class="chip">📜 Quest</span><span class="chip">⌂ Map</span></div>
+  <div class="drawer-tab">COMMAND LOG</div>
+  <div class="ide-e" style="box-shadow:0 18px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(255,107,107,.35);">
+    <div class="titlebar">
+      <div class="tab"><span class="dot" style="background:#ff6b6b"></span> lesson_1.py</div>
+      <div class="objbar">◈ Say your name to the stranger</div>
+    </div>
+    <div class="editor">
+      <div class="gutter"><div>1</div><div style="color:#ff6b6b">2</div></div>
+      <div class="codearea">
+        <span class="ghost"># speak, survivor</span><br/>
+        <span style="display:inline-block; width:100%; background:rgba(255,107,107,.08); border-left:2px solid #ff6b6b; margin-left:-16px; padding-left:14px;"><span class="fn">print</span>(<span class="str">"Ryan</span>)</span>
+      </div>
+    </div>
+    <div class="errbar" style="display:flex; gap:10px; align-items:flex-start; background:rgba(80,20,20,.35); border-top:1px solid #5c2020; padding:9px 14px; font-size:13px; color:#ffb3b3;">
+      <span>✗</span><span><b style="color:#ff8787">Line 2:</b> SyntaxError: check quotes, colons and indentation. It looks like a quote never got closed.</span>
+    </div>
+    <div class="statusbar"><span style="color:#ff6b6b">● 1 problem</span><span>pyodide 3.12</span><span>💡 hint</span><button class="runbtn">▸ Run</button></div>
+  </div>
+</div>
+
+<!-- H: side dock for long code -->
+<div class="v vh hidden">
+  <div class="hud-top"><span class="chip">Survivor Lv 3<span class="xpbar"><i></i></span></span><span class="chip">🪙 2.55</span></div>
+  <div class="drawer-tab" style="right:392px">COMMAND LOG</div>
+  <div class="ide-e" style="left:auto; right:14px; transform:none; bottom:14px; top:58px; width:370px; display:flex; flex-direction:column; border-radius:12px;">
+    <div class="titlebar">
+      <div class="tab"><span class="dot"></span> keep_manifest.py</div>
+      <div style="padding:0 12px; margin-left:auto; color:#5d6a7d; font-size:13px; cursor:pointer" title="dock to bottom">⇩</div>
+    </div>
+    <div style="padding:8px 14px; font:700 12.5px 'Chakra Petch',sans-serif; color:#62d27a; border-bottom:1px solid #1b2533;">◈ Check the captain's manifest</div>
+    <div class="editor" style="flex:1; overflow-y:auto;">
+      <div class="gutter"><div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>10</div><div>11</div><div>12</div><div>13</div><div>14</div><div>15</div></div>
+      <div class="codearea">
+<span class="ghost"># count what's packed</span><br/>
+checklist = 0<br/>
+armor = 1<br/>
+food = 2<br/>
+water = 1<br/>
+<br/>
+<span class="kw">if</span> armor &gt;= 1:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;checklist = checklist + 1<br/>
+<span class="kw">if</span> food &gt;= 2:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;checklist = checklist + 1<br/>
+<span class="kw">if</span> water &gt;= 1:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;checklist = checklist + 1<br/>
+<br/>
+<span class="fn">print</span>(<span class="str">"packed:"</span>, checklist)<span style="border-left:2px solid #ffd43b">&thinsp;</span>
+      </div>
+    </div>
+    <div class="statusbar"><span class="ok">● python ready</span><span>ln 15</span><span>💡</span><button class="runbtn">▸ Run</button></div>
+  </div>
+</div>
+
+<!-- F: E showing a long program -->
+<div class="v vf hidden">
+  <div class="hud-top"><span class="chip">Survivor Lv 3<span class="xpbar"><i></i></span></span><span class="chip">🪙 2.55</span></div>
+  <div class="hud-top2"><span class="chip">📜 Quest</span><span class="chip">⌂ Map</span></div>
+  <div class="drawer-tab">COMMAND LOG</div>
+  <div class="ide-e">
+    <div class="titlebar">
+      <div class="tab"><span class="dot"></span> keep_manifest.py</div>
+      <div class="objbar">◈ Check the captain's manifest</div>
+      <div style="padding:0 12px; color:#5d6a7d; font-size:13px; cursor:pointer" title="expand">⤢</div>
+    </div>
+    <div class="editor">
+      <div class="gutter"><div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>10</div><div>11</div><div>12</div><div>13</div><div>14</div><div>15</div></div>
+      <div class="codearea" style="max-height:288px; overflow-y:auto;">
+<span class="ghost"># the captain's manifest: count what's packed</span><br/>
+<span class="kw">checklist</span> = 0<br/>
+armor = 1<br/>
+food = 2<br/>
+water = 1<br/>
+<br/>
+<span class="kw">if</span> armor &gt;= 1:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;checklist = checklist + 1<br/>
+<span class="kw">if</span> food &gt;= 2:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;checklist = checklist + 1<br/>
+<span class="kw">if</span> water &gt;= 1:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;checklist = checklist + 1<br/>
+<br/>
+<span class="fn">print</span>(<span class="str">"packed:"</span>, checklist)<span style="border-left:2px solid #ffd43b">&thinsp;</span>
+      </div>
+    </div>
+    <div class="statusbar"><span class="ok">● python ready</span><span>pyodide 3.12</span><span>ln 15, col 26</span><span>💡 hint</span><button class="runbtn">▸ Run</button></div>
+  </div>
+</div>
+
+<!-- E -->
+<div class="v ve hidden">
+  <div class="hud-top"><span class="chip">Survivor Lv 3<span class="xpbar"><i></i></span></span><span class="chip">🪙 2.55</span></div>
+  <div class="hud-top2"><span class="chip">📜 Quest</span><span class="chip">⌂ Map</span></div>
+  <div class="drawer-tab">COMMAND LOG</div>
+  <div class="ide-e">
+    <div class="titlebar">
+      <div class="tab"><span class="dot"></span> lesson_1.py</div>
+      <div class="objbar">◈ Say your name to the stranger</div>
+    </div>
+    <div class="editor">
+      <div class="gutter"><div>1</div><div>2</div></div>
+      <div class="codearea"><span class="ghost"># speak, survivor</span><br/><span class="fn">print</span>(<span class="str">"..."</span>)<span style="border-left:2px solid #ffd43b">&thinsp;</span></div>
+    </div>
+    <div class="statusbar"><span class="ok">● python ready</span><span>pyodide 3.12</span><span>💡 hint</span><span>⏎ run</span><button class="runbtn">▸ Run</button></div>
+  </div>
+</div>
+
+<!-- A -->
+<div class="v va">
+  <div class="hud-top"><span class="chip">Survivor Lv 3<span class="xpbar"><i></i></span></span><span class="chip">🪙 2.55</span></div>
+  <div class="hud-top2"><span class="chip">📜 Quest</span><span class="chip">⌂ Map</span></div>
+  <div class="drawer-tab">COMMAND LOG</div>
+  <div class="console-a">
+    <div class="bar"><span class="obj">◈ Say your name to the stranger</span></div>
+    <div class="code"><span class="ghost">1</span>&nbsp; <span class="fn">print</span>(<span class="str">"..."</span>)<span style="border-left:2px solid #ffd43b">&thinsp;</span></div>
+    <div class="foot"><span class="ghost">💡 Hint · Enter to run</span><button class="runbtn">▸ Run</button></div>
+  </div>
+</div>
+
+<!-- B -->
+<div class="v vb hidden">
+  <div class="hud-top"><span class="chip">Survivor Lv 3<span class="xpbar"><i></i></span></span><span class="chip">🪙 2.55</span></div>
+  <div class="hud-top2"><span class="chip">⌂ Map</span></div>
+  <div class="cine-strip">
+    <div class="left">
+      <div class="obj">◈ Say your name to the stranger</div>
+      <div class="code"><span class="ghost">1</span>&nbsp; <span class="fn">print</span>(<span class="str">"..."</span>)</div>
+      <div class="cine-foot"><button class="runbtn">▸ Run</button></div>
+    </div>
+    <div class="right"><b>COMMAND LOG</b><br/><span class="ghost">you.walk("stranger")</span><br/><span style="color:#e7c878">print("Where am I?")</span><br/><span class="ghost">Stranger: "The Wildwood…"</span></div>
+  </div>
+</div>
+
+<!-- C -->
+<div class="v vc hidden">
+  <div class="hud-top"><span class="chip">Survivor Lv 3<span class="xpbar"><i></i></span></span><span class="chip">🪙 2.55</span></div>
+  <div class="hud-top2"><span class="chip">⌂ Map</span></div>
+  <div class="log-ghost">you.walk("stranger")<br/><span class="me">print("Where am I?")</span><br/>Stranger: "The Wildwood…"</div>
+  <div class="journal-c">
+    <div class="obj">✎ Say your name to the stranger</div>
+    <div class="code"><span class="ghost">1</span>&nbsp; <span class="fn">print</span>(<span class="str">"..."</span>)</div>
+    <div class="foot"><span style="color:#7a5a30;font-size:12px">💡 Hint · Enter to run</span><button class="runbtn">▸ Run</button></div>
+  </div>
+</div>
+
+<!-- D -->
+<div class="v vd hidden">
+  <div class="hud-top"><span class="chip">Survivor Lv 3<span class="xpbar"><i></i></span></span><span class="chip">🪙 2.55</span></div>
+  <div class="hud-top2"><span class="chip">⌂ Map</span></div>
+  <div class="dim"></div>
+  <div class="modal-d">
+    <div class="head"><span class="t">THE STRANGER</span><span class="r">+10 XP</span></div>
+    <div class="body">He eyes you warily. "Speak, survivor. What do they call you?"<br/>Use print() to say your name aloud. Whatever you print is how the world will know you.</div>
+    <div class="code"><span class="ghost">1</span>&nbsp; <span class="fn">print</span>(<span class="str">"..."</span>)</div>
+    <div class="foot"><span class="ghost">💡 Hint · Enter to run</span><button class="runbtn">▸ Run</button></div>
+  </div>
+</div>
+
+<script>
+// full-bleed night wildwood backdrop (static-friendly for screenshots)
+const cv = document.getElementById("stage"), c = cv.getContext("2d");
+function px(x,y,w,h,col){ c.fillStyle=col; c.fillRect(Math.round(x),Math.round(y),Math.ceil(w),Math.ceil(h)); }
+function draw(){
+  const dpr = devicePixelRatio||1, W = innerWidth, H = innerHeight;
+  cv.width = W*dpr; cv.height = H*dpr; c.setTransform(dpr,0,0,dpr,0,0);
+  const gy = H*0.78;
+  const g = c.createLinearGradient(0,0,0,H); g.addColorStop(0,"#0d1626"); g.addColorStop(0.5,"#16243c"); g.addColorStop(0.74,"#21303c"); c.fillStyle=g; c.fillRect(0,0,W,H);
+  for(let i=0;i<70;i++){ c.globalAlpha=.25+.4*Math.abs(Math.sin(i)); px((i*89)%W,(i*53)%(H*.55),2,2,"#cfe0f5"); } c.globalAlpha=1;
+  c.fillStyle="#0e1a14";
+  for(let i=0;i<Math.ceil(W/60)+1;i++){ const x=i*60+((i*37)%22), h=52+((i*53)%44); c.beginPath(); c.moveTo(x-34,gy); c.lineTo(x,gy-h); c.lineTo(x+34,gy); c.closePath(); c.fill(); }
+  for(let i=0;i*26<W;i++) px(i*26,gy,26,H-gy,i%2?"#22512c":"#275c32");
+  // tree + hut + figures, scaled up for full-bleed
+  const s=2.1, hx=W*0.62, tx=W*0.45;
+  c.save(); c.translate(tx,gy); c.scale(s,s);
+  px(-6,-46,12,50,"#5a3f22"); for(let r=0;r<5;r++){ c.fillStyle=r%2?"#1f5a2c":"#256a33"; c.beginPath(); c.arc(0,-(60+r*11),(44-r*6)*.5,0,Math.PI*2); c.fill(); } c.restore();
+  c.save(); c.translate(hx,gy); c.scale(s,s);
+  px(-90,-13,180,4,"#4a3a22"); for(let k=0,p=-90;p<90;p+=13,k++){ const h=[30,22,34,20,28,24,32,21,29,23,31,26,33][k%13], col=k%2?"#6b4f2a":"#5a4424"; px(p,-h,9,h+2,col); c.fillStyle=col; c.beginPath(); c.moveTo(p,-h); c.lineTo(p+4.5,-h-9); c.lineTo(p+9,-h); c.closePath(); c.fill(); }
+  px(-34,-50,68,50,"#7a5a30"); for(let i=0;i<5;i++) px(-34,-50+i*11,68,1,"#5a4424");
+  c.fillStyle="#8a2f1f"; c.beginPath(); c.moveTo(-42,-50); c.lineTo(0,-78); c.lineTo(42,-50); c.closePath(); c.fill();
+  px(-10,-30,20,30,"#3a2c18"); c.restore();
+  // hero + stranger
+  const fig=(x,cloth,skin)=>{ c.save(); c.translate(x,gy); c.scale(s,s); px(-4,-4,4,12,"#241018"); px(1,-4,4,12,"#241018"); px(-6,-22,12,18,cloth); px(-5,-32,11,11,skin); px(-6,-34,12,4,"#241018"); c.restore(); };
+  fig(W*0.30,"#3f6b2a","#e0a070"); fig(W*0.37,"#6741a8","#c89060");
+  // hero glow + vignette
+  const lg=c.createRadialGradient(W*0.30,gy-24,14,W*0.30,gy-24,220); lg.addColorStop(0,"rgba(255,178,102,.12)"); lg.addColorStop(1,"rgba(255,178,102,0)"); c.fillStyle=lg; c.fillRect(0,0,W,H);
+  const vg=c.createRadialGradient(W/2,H*.46,Math.min(W,H)*.42,W/2,H*.46,Math.max(W,H)*.78); vg.addColorStop(0,"rgba(5,8,14,0)"); vg.addColorStop(1,"rgba(5,8,14,.45)"); c.fillStyle=vg; c.fillRect(0,0,W,H);
+}
+draw(); addEventListener("resize",draw);
+// variant switching (hash-driven so each can be screenshot)
+const show=(v)=>{ document.querySelectorAll(".v").forEach(el=>el.classList.add("hidden")); document.querySelector(".v"+v)?.classList.remove("hidden");
+  document.querySelectorAll("#switch button").forEach(b=>b.classList.toggle("on",b.dataset.v===v)); location.hash=v; };
+document.querySelectorAll("#switch button").forEach(b=>b.onclick=()=>show(b.dataset.v));
+show((location.hash||"#a").slice(1));
+</script>
+</body>
+</html>
