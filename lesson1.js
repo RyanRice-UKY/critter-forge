@@ -280,9 +280,19 @@ async function playWildwood() {
   await ask({ prompt: "Answer the smith", placeholder: 'print("No")', concept: "print", task: "The smith needs to hear a clear no.", validate: (r) => (r.stdout.toLowerCase().includes("no") ? null : 'Tell them: print("No").') }, (r) => speech(r.stdout));
   await say("Smith", "Good. Gather 10 sticks and 3 string from that tree and I'll craft you a bow.");
   await autoWalk("tree");
-  logCmd("sticks = 0", false); logCmd("string = 0", false);
-  await say("", "Sticks and string lie at the tree's foot, and you start with 0 of each.");
-  await ask({ prompt: "Gather the sticks and string", placeholder: "sticks = sticks + 10\nstring = string + 3", rows: 2, seed: "sticks=0\nstring=0", requireOp: "+", concept: ["variable", "add"], task: "You carry sticks and string, both starting at zero. Pick up ten sticks and three string.", validate: (r) => (r.vars.sticks === 10 && r.vars.string === 3 ? null : "You need  sticks = 10  and  string = 3.") }, () => pickup());
+  await say("", "Sticks and string lie scattered at the tree's foot. Before you can count things, you need somewhere to keep the count.");
+  await ask({
+    prompt: "Make two empty pouches: sticks and string", placeholder: "sticks = 0\nstring = 0", rows: 2,
+    concept: "variable", task: "Declare two variables named sticks and string, and set each one to 0.",
+    validate: (r) => (r.vars.sticks === 0 && r.vars.string === 0 ? null : "Set both to zero:  sticks = 0  and  string = 0."),
+  }, null);
+  await say("", "That was it. You just declared your first variables: two labelled boxes named sticks and string, each holding 0.");
+  await ask({
+    prompt: "Gather the sticks and string", placeholder: "sticks = sticks + 10\nstring = string + 3", rows: 2,
+    seed: "sticks=0\nstring=0", requireOp: "+",
+    concept: "add", task: "Pick up ten sticks and three string. Two ways work: the long way  sticks = sticks + 10  or the shortcut  sticks += 10. Both add into the box.",
+    validate: (r) => (r.vars.sticks === 10 && r.vars.string === 3 ? null : "You need  sticks = 10  and  string = 3."),
+  }, () => pickup());
   await autoWalk("smith");
   await say("Smith", "Good haul. Speak, and hand them over.");
   await ask({ prompt: "Speak to the smith", placeholder: 'print("Here you go.")', concept: "print", task: "Say something to the smith before you hand the materials over.", validate: nonEmptyOut }, (r) => speech(r.stdout));
@@ -436,6 +446,12 @@ function drawKeep(c, W, gy, now) {
   const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#171a24"); g.addColorStop(1, "#1f2330"); c.fillStyle = g; c.fillRect(0, 0, W, H);
   px(c, 0, H * 0.14, W, 5, "#a8832a"); px(c, 0, H * 0.14 + 5, W, 2, "#ffd43b"); // gold trim
   for (let i = 0; i < 6; i++) { const cx = W * (0.08 + i * 0.17); px(c, cx - 11, 0, 22, gy + 30, "#2c303b"); px(c, cx - 14, 0, 28, 9, "#3a3f4b"); px(c, cx - 14, gy + 22, 28, 10, "#3a3f4b"); }
+  for (const fx of [0.165, 0.335, 0.675, 0.845]) { // royal banners hanging between the columns
+    const bx2 = W * fx, bw = 26, bt = H * 0.14 + 9;
+    px(c, bx2 - bw / 2 - 2, bt, bw + 4, 3, "#a8832a");
+    c.fillStyle = "#6e1d1d"; c.beginPath(); c.moveTo(bx2 - bw / 2, bt + 3); c.lineTo(bx2 + bw / 2, bt + 3); c.lineTo(bx2 + bw / 2, bt + 52); c.lineTo(bx2, bt + 64); c.lineTo(bx2 - bw / 2, bt + 52); c.closePath(); c.fill();
+    px(c, bx2 - bw / 2, bt + 3, 3, 50, "#8a2a2a"); c.fillStyle = "#d9b23a"; c.beginPath(); c.arc(bx2, bt + 28, 6, 0, Math.PI * 2); c.fill(); px(c, bx2 - 1, bt + 24, 2, 9, "#6e1d1d");
+  }
   for (let x = 0; x < W; x += 30) px(c, x, gy, 30, H - gy, (x / 30 | 0) % 2 ? "#2a2d36" : "#262931");
   px(c, W * 0.43, gy - 2, W * 0.14, H - gy + 2, "#6e1d1d"); px(c, W * 0.43, gy - 2, W * 0.14, 3, "#a8832a"); // carpet leading to the stairs
   // central staircase rising to the king's chamber (sealed until Lesson 1 is done)
@@ -669,12 +685,33 @@ function draw(now) {
   const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#0d1626"); g.addColorStop(0.5, "#16243c"); g.addColorStop(0.74, "#21303c"); c.fillStyle = g; c.fillRect(0, 0, W, H);
   for (let i = 0; i < 70; i++) { const sx = (i * 89) % W, sy = (i * 53) % (H * 0.55); c.globalAlpha = 0.2 + 0.45 * Math.abs(Math.sin(now * 0.5 + i)); px(c, sx, sy, 2, 2, "#cfe0f5"); } c.globalAlpha = 1;
   const outdoors = scene === "wildwood" || scene === "clearing" || scene === "castle";
-  if (outdoors) { // distant forest silhouette behind the playfield
+  if (outdoors) {
+    // moon with glow + craters (the scene's light source, upper left)
+    const mx = W * 0.13, my = H * 0.15;
+    c.shadowColor = "rgba(215,232,255,0.75)"; c.shadowBlur = 34; circ(c, mx, my, 21, "#dfe9f5"); c.shadowBlur = 0;
+    circ(c, mx - 6, my - 4, 4, "#c3d2e4"); circ(c, mx + 7, my + 3, 3, "#c9d7e8"); circ(c, mx + 1, my + 9, 2, "#c3d2e4");
+    // slow drifting cloud wisps
+    for (let i = 0; i < 3; i++) {
+      const cw = 150 + i * 60, cx = ((now * (5 + i * 3) + i * 500) % (W + cw * 2)) - cw, cy = H * (0.1 + i * 0.08);
+      c.fillStyle = `rgba(180,198,222,${0.05 + i * 0.02})`;
+      c.beginPath(); c.ellipse(cx, cy, cw / 2, 11 + i * 3, 0, 0, Math.PI * 2); c.ellipse(cx + cw * 0.22, cy - 7, cw / 3, 9, 0, 0, Math.PI * 2); c.fill();
+    }
+    // distant forest silhouette behind the playfield
     c.fillStyle = "#0e1a14";
     for (let i = 0; i < Math.ceil(W / 60) + 1; i++) { const x = i * 60 + ((i * 37) % 22), h = 46 + ((i * 53) % 38); c.beginPath(); c.moveTo(x - 34, gy); c.lineTo(x, gy - h); c.lineTo(x + 34, gy); c.closePath(); c.fill(); }
   }
   for (let i = 0; i * 26 < W; i++) px(c, i * 26, gy, 26, H - gy, i % 2 ? "#22512c" : "#275c32");
+  px(c, 0, gy, W, 3, "#2f6a3a"); // moonlit rim where the treeline meets the grass
+  for (let i = 0; i < 24; i++) { const dx = (i * 211) % W, dy = gy + 8 + ((i * 97) % Math.max(8, H - gy - 16)); px(c, dx, dy, 18 + ((i * 31) % 22), 3, "rgba(9,26,13,0.16)"); } // soft worn patches
+  for (let i = 0; i < 12; i++) px(c, (i * 173 + 40) % W, gy + 12 + ((i * 61) % Math.max(6, H - gy - 20)), 3, 2, "#215030"); // pebbles
   for (let i = 0; i < 18; i++) { const x = (i * 71) % W, y = gy + 16 + (i * 37) % (H - gy - 22), sw = Math.sin(now * 2 + i) * 2; c.strokeStyle = "#1b4223"; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y + 6); c.lineTo(x + sw, y - 5); c.stroke(); }
+  if (outdoors) { // fireflies drifting over the grass
+    for (let i = 0; i < 9; i++) {
+      const t = now * 0.25 + i * 1.7, fx = (((i * 137 + Math.sin(t) * 46) % W) + W) % W, fy = gy - 6 - ((i * 53) % 52) - Math.sin(t * 2.3) * 9;
+      c.globalAlpha = 0.25 + 0.55 * Math.abs(Math.sin(t * 3 + i)); px(c, fx, fy, 2, 2, "#d9f77f");
+    }
+    c.globalAlpha = 1;
+  }
 
   if (scene === "wildwood") drawWildwood(c, W, gy, now);
   else if (scene === "clearing") drawClearing(c, W, gy, now);
@@ -755,10 +792,19 @@ function drawClearing(c, W, gy, now) {
   // river + bridge to the east
   const rx = W * 0.84;
   c.fillStyle = "#16344e"; c.fillRect(rx, gy, W - rx, els.H - gy);
+  px(c, rx - 4, gy, 6, els.H - gy, "#123044"); // shaded near bank
   for (let i = 0; i < 7; i++) { c.strokeStyle = "rgba(120,180,225,0.35)"; c.lineWidth = 1; const yy = gy + 10 + i * 11; c.beginPath(); c.moveTo(rx, yy + Math.sin(now * 3 + i) * 2); c.lineTo(W, yy + Math.sin(now * 3 + i + 2) * 2); c.stroke(); }
+  for (let i = 0; i < 5; i++) { const gx = rx + 14 + ((i * 67) % Math.max(10, W - rx - 24)), gyy = gy + 14 + (i * 29) % 40; c.globalAlpha = 0.4 + 0.5 * Math.abs(Math.sin(now * 2.4 + i * 2)); px(c, gx, gyy, 7, 2, "#bfe0ff"); } c.globalAlpha = 1; // moon glints
+  // reeds on the bank
+  for (let i = 0; i < 4; i++) { const bx2 = rx - 8 - i * 7, sway = Math.sin(now * 1.8 + i) * 2; c.strokeStyle = "#2c5a34"; c.lineWidth = 2; c.beginPath(); c.moveTo(bx2, gy + 2); c.lineTo(bx2 + sway, gy - 16 - (i % 2) * 5); c.stroke(); px(c, bx2 + sway - 1, gy - 21 - (i % 2) * 5, 3, 7, "#6b4f2a"); }
+  // bridge: deck, planks, rail posts + rope
   px(c, rx - 14, gy - 2, W - rx + 16, 7, "#5a4424");
   for (let i = 0; rx - 14 + i * 13 < W; i++) px(c, rx - 14 + i * 13, gy - 7, 9, 13, i % 2 ? "#6b4f2a" : "#5a4424");
   px(c, rx - 14, gy - 9, W - rx + 16, 3, "#7a5a30");
+  for (let i = 0; rx - 10 + i * 34 < W; i++) px(c, rx - 10 + i * 34, gy - 26, 4, 18, "#4a3a22"); // rail posts
+  c.strokeStyle = "#8a7448"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(rx - 10, gy - 24); for (let x2 = rx + 8; x2 < W + 20; x2 += 34) c.quadraticCurveTo(x2 - 17, gy - 20, x2, gy - 24); c.stroke(); // sagging rope
+  // an old stump near the fight
+  px(c, W * 0.3 - 8, gy - 9, 16, 11, "#4a331c"); px(c, W * 0.3 - 8, gy - 11, 16, 3, "#63482a"); px(c, W * 0.3 - 5, gy - 10, 4, 2, "#3a2814");
   // marked centre
   const cx = W * 0.42; c.strokeStyle = "rgba(255,212,59," + (0.5 + 0.4 * Math.sin(now * 4)) + ")"; c.lineWidth = 2; c.beginPath(); c.arc(cx, gy + 8, 15, 0, Math.PI * 2); c.stroke(); c.beginPath(); c.moveTo(cx - 7, gy + 8); c.lineTo(cx + 7, gy + 8); c.moveTo(cx, gy + 1); c.lineTo(cx, gy + 15); c.stroke();
   // the survivor's tree
@@ -776,17 +822,27 @@ function drawCastle(c, W, gy, now) {
   for (let yy = base; yy < gy; yy += 24) for (let xx = x - half; xx < x + half; xx += 32) px(c, xx + 1, yy + 1, 30, 22, ((Math.floor(xx / 32) + Math.floor(yy / 24)) % 2) ? "#4e555e" : "#535a63");
   // battlements
   for (let i = -half; i < half; i += 36) px(c, x + i, base - 20, 22, 20, "#565d66");
-  // flanking towers
+  // flanking towers with waving banners
   for (const tx of [x - half - 30, x + half + 8]) {
     px(c, tx, base - 50, 30, gy - base + 50, "#4a515a"); for (let yy = base - 50; yy < gy; yy += 24) px(c, tx + 2, yy + 1, 26, 22, "#525962");
     c.fillStyle = "#7a1f1f"; c.beginPath(); c.moveTo(tx - 8, base - 50); c.lineTo(tx + 15, base - 78); c.lineTo(tx + 38, base - 50); c.closePath(); c.fill();
     px(c, tx + 11, base - 30, 8, 14, "#1a140d"); // arrow slit
+    px(c, tx + 14, base - 100, 2, 24, "#3a2c18"); // banner pole
+    c.fillStyle = "#8a1f2e"; c.beginPath(); const fw = 6 * Math.sin(now * 2.4 + tx);
+    c.moveTo(tx + 16, base - 100); c.quadraticCurveTo(tx + 30 + fw, base - 96, tx + 34 + fw, base - 90); c.lineTo(tx + 16, base - 86); c.closePath(); c.fill();
   }
+  // moss at the wall's foot
+  for (let i = 0; i < 6; i++) px(c, x - half + 8 + i * 36, gy - 5, 12 + (i % 3) * 5, 4, "#2c5a34");
   // grand gate
   px(c, x - 34, gy - 96, 68, 96, "#2a2017"); c.fillStyle = "#6e757e"; c.beginPath(); c.arc(x, gy - 96, 34, Math.PI, 0); c.fill();
   px(c, x - 34, gy - 96, 68, 8, "#3a2c18"); for (let i = -28; i <= 28; i += 14) px(c, x + i, gy - 88, 2, 88, "#1a120b");
   px(c, x - 6, gy - 130, 12, 16, "#1a2a44"); // window above gate (glow)
   c.fillStyle = "#3b6ea5"; c.fillRect(x - 4, gy - 128, 8, 12);
+  for (const s of [-1, 1]) { // torches flanking the gate
+    const tx2 = x + s * 48; px(c, tx2 - 2, gy - 66, 4, 16, "#3a2c18");
+    const fl = 0.65 + 0.35 * Math.sin(now * 11 + s * 2); c.shadowColor = "#ffb14d"; c.shadowBlur = 16 * fl;
+    circ(c, tx2, gy - 70, 5 * fl, "#ff9f43"); circ(c, tx2, gy - 71, 3 * fl, "#ffe066"); c.shadowBlur = 0;
+  }
   // gatekeeper peeking over the battlements
   const top = base - 20; const gxp = x - half + 50;
   px(c, gxp - 11, top - 20, 22, 20, "#565d66"); px(c, gxp - 7, top - 34, 14, 15, "#c89a72"); px(c, gxp - 8, top - 38, 16, 6, "#454c55");
@@ -814,8 +870,17 @@ function zombie(c, x, y, sw = 0) {
   px(c, x - 4, y + 8 - Math.max(0, sw) * 2, 3, 9, "#2a2014"); px(c, x + 2, y + 8 - Math.max(0, -sw) * 2, 3, 9, "#2a2014"); px(c, x + 5, y - 6, 6, 2, "#aab98a");
 }
 function drawTree(c, x, gy, now, items, scl = 1) {
-  px(c, x - 6 * scl, gy - 46 * scl, 12 * scl, 50 * scl, "#5a3f22");
-  for (let r = 0; r < 5; r++) { const yy = gy - (60 + r * 11) * scl, rad = (44 - r * 6) * scl + Math.sin(now + r) * 2; c.fillStyle = r % 2 ? "#1f5a2c" : "#256a33"; c.beginPath(); c.arc(x, yy, rad * 0.5, 0, Math.PI * 2); c.fill(); }
+  // trunk: shaded bark with a moonlit edge and a root flare
+  px(c, x - 7 * scl, gy - 46 * scl, 14 * scl, 50 * scl, "#4a331c");
+  px(c, x - 7 * scl, gy - 46 * scl, 4 * scl, 50 * scl, "#63482a"); // moon side
+  px(c, x + 1 * scl, gy - 40 * scl, 2 * scl, 30 * scl, "#3a2814"); // bark groove
+  px(c, x - 11 * scl, gy - 5 * scl, 22 * scl, 7 * scl, "#4a331c");
+  // canopy: dark base blobs with moonlit clusters on the upper left
+  for (let r = 0; r < 5; r++) {
+    const yy = gy - (60 + r * 11) * scl, rad = ((44 - r * 6) * scl) / 2 + Math.sin(now + r) * 2;
+    c.fillStyle = r % 2 ? "#173f20" : "#1d4d27"; c.beginPath(); c.arc(x, yy, rad, 0, Math.PI * 2); c.fill();
+    c.fillStyle = r % 2 ? "#256a33" : "#2c7a3c"; c.beginPath(); c.arc(x - rad * 0.32, yy - rad * 0.28, rad * 0.55, 0, Math.PI * 2); c.fill();
+  }
   if (items) { c.strokeStyle = "#9c6b3f"; c.lineWidth = 3; for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(x + 18 + i * 6, gy + 2); c.lineTo(x + 26 + i * 6, gy - 8); c.stroke(); } c.strokeStyle = "#e9dcc0"; c.lineWidth = 2; c.beginPath(); c.arc(x + 32, gy + 4, 5, 0, Math.PI * 2); c.stroke(); if (pickupFx > 0) sparkle(c, x + 24, gy - 4, pickupFx, "#fff"); }
 }
 function drawHut(c, x, gy) {
@@ -831,9 +896,22 @@ function drawHut(c, x, gy) {
   }
   c.strokeStyle = "#3a2c18"; c.lineWidth = 2; // lashed cross-sticks on the flanks
   c.beginPath(); c.moveTo(bx0 + 4, gy - 2); c.lineTo(bx0 + 40, gy - 26); c.moveTo(bx1 - 40, gy - 24); c.lineTo(bx1 - 4, gy - 2); c.stroke();
-  px(c, x - 34, gy - 50, 68, 50, "#7a5a30"); for (let i = 0; i < 5; i++) px(c, x - 34, gy - 50 + i * 11, 68, 1, "#5a4424");
-  c.fillStyle = "#8a2f1f"; c.beginPath(); c.moveTo(x - 42, gy - 50); c.lineTo(x, gy - 78); c.lineTo(x + 42, gy - 50); c.closePath(); c.fill();
-  px(c, x - 10, gy - 30, 20, 30, "#3a2c18");
+  // cabin: log walls over a stone base, gable roof with ridge, chimney + smoke
+  px(c, x - 36, gy - 8, 72, 8, "#4e555e"); px(c, x - 30, gy - 8, 10, 4, "#5d656f"); px(c, x + 8, gy - 6, 12, 4, "#5d656f"); // stone footing
+  px(c, x - 34, gy - 50, 68, 42, "#7a5a30"); for (let i = 0; i < 4; i++) px(c, x - 34, gy - 50 + i * 11, 68, 2, "#5a4424"); // log courses
+  px(c, x - 34, gy - 50, 3, 42, "#8a6d3b"); // moonlit corner
+  c.fillStyle = "#7a2a1c"; c.beginPath(); c.moveTo(x - 42, gy - 50); c.lineTo(x, gy - 78); c.lineTo(x + 42, gy - 50); c.closePath(); c.fill();
+  c.strokeStyle = "#5c1f14"; c.lineWidth = 2; for (let i = 1; i <= 3; i++) { c.beginPath(); c.moveTo(x - 42 + i * 9, gy - 50 - 0.5); c.lineTo(x - 1, gy - 78 + i * 2); c.stroke(); } // roof shakes
+  px(c, x - 4, gy - 82, 8, 5, "#8a3a28"); // ridge cap
+  // chimney + drifting smoke
+  px(c, x + 17, gy - 76, 10, 22, "#565d66"); px(c, x + 15, gy - 78, 14, 4, "#6e757e");
+  for (let i = 0; i < 3; i++) { const t = (now * 0.32 + i * 0.34) % 1; c.globalAlpha = 0.28 * (1 - t); circ(c, x + 22 + Math.sin(now * 1.4 + i * 2.2) * 6 + t * 10, gy - 84 - t * 34, 4 + t * 7, "#aab6c4"); }
+  c.globalAlpha = 1;
+  // door with frame + handle, and a warm window
+  px(c, x - 12, gy - 32, 24, 32, "#2a1d10"); px(c, x - 10, gy - 30, 20, 30, "#3a2c18"); px(c, x + 5, gy - 17, 3, 3, "#c9a24a");
+  px(c, x - 28, gy - 38, 14, 12, "#241a0e"); // window frame
+  const wf = 0.75 + 0.25 * Math.sin(now * 5.2); c.shadowColor = "#ffb14d"; c.shadowBlur = 14 * wf;
+  px(c, x - 26, gy - 36, 10, 8, "#ffb14d"); c.shadowBlur = 0; px(c, x - 22, gy - 36, 2, 8, "#241a0e"); px(c, x - 26, gy - 33, 10, 2, "#241a0e");
 }
 function bubble(c, x, y, text) {
   c.font = "13px 'IBM Plex Mono',monospace"; const w = Math.min(150, c.measureText(text).width) + 14, h = 22, bx = x - w / 2, by = y - h;
