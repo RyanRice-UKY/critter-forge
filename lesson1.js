@@ -254,9 +254,10 @@ function finish(name) { dialogue = { who: "", text: `Lesson 1 complete. ${name} 
 async function play() {
   const start = (location.hash || "").slice(1);
   let name = "survivor";
-  const skip = start === "clearing" || start === "castle" || start === "keep";
+  const skip = start === "clearing" || start === "castle" || start === "keep" || start === "storage";
   if (!skip) name = await playWildwood();
   else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; }
+  if (start === "storage") { scene = "storage"; questStep = 1; char.gold = 2.05; char.x = els.W * 0.06; await playBeat1(name); await playKeep(name); return; } // DEV jump into Beat 1
   if (start === "keep") { char.gold = 2.05; await playKeep(name); return; }
   if (start !== "castle") name = await playClearing(name);
   else char.gold = 2.55;
@@ -542,24 +543,90 @@ function drawCargo(c, rx, y, cargo = raftCargo) {
   let i = 0; const cols = { armor: "#7a828c", food: "#c2410c", water: "#1971c2" };
   for (const k of ["armor", "food", "water"]) for (let n = 0; n < cargo[k]; n++) { px(c, rx - 15 + (i % 3) * 10, y - 8 - Math.floor(i / 3) * 8, 8, 7, cols[k]); px(c, rx - 15 + (i % 3) * 10, y - 8 - Math.floor(i / 3) * 8, 8, 2, "rgba(255,255,255,0.25)"); i++; }
 }
+// warehouse props (shared by the storage room, reusable elsewhere)
+function drawCrate(c, x, y, w, h, col = "#7a5a30") {
+  px(c, x, y, w, h, col); px(c, x, y, w, 3, "#8a6d3b"); px(c, x, y, 2, h, "#8a6d3b");
+  px(c, x + 3, y + (h >> 1), w - 6, 2, "#5a4424"); px(c, x + (w >> 1) - 1, y + 3, 2, h - 6, "#5a4424"); // plank cross
+  px(c, x + 2, y + 2, 2, 2, "#caa24a"); px(c, x + w - 4, y + 2, 2, 2, "#caa24a"); px(c, x + 2, y + h - 4, 2, 2, "#caa24a"); px(c, x + w - 4, y + h - 4, 2, 2, "#caa24a"); // corner nails
+}
+function drawSack(c, x, y, col = "#a9844a") {
+  c.fillStyle = col; c.beginPath(); c.ellipse(x, y - 8, 10, 9, 0, 0, Math.PI * 2); c.fill();
+  px(c, x - 10, y - 4, 20, 5, col); px(c, x - 3, y - 19, 6, 5, col); px(c, x - 3, y - 16, 6, 2, "#3a2c18"); // gathered tie
+  c.fillStyle = "rgba(255,255,255,0.12)"; c.beginPath(); c.ellipse(x - 3, y - 10, 4, 5, 0, 0, Math.PI * 2); c.fill();
+}
+function drawBarrel(c, x, y, w = 20, h = 24, wood = "#6e4a28", hoop = "#3a3a42") {
+  px(c, x - w / 2, y - h, w, h, wood); px(c, x - w / 2, y - h, 3, h, "#8a6244");
+  px(c, x - w / 2 - 1, y - h + 4, w + 2, 3, hoop); px(c, x - w / 2 - 1, y - 7, w + 2, 3, hoop);
+  px(c, x - w / 2 + 2, y - h, w - 4, 2, "#553a20");
+}
 function drawStorage(c, W, gy, now) {
   const H = els.H;
-  for (let y = 0; y < gy; y += 16) { c.fillStyle = (y / 16 | 0) % 2 ? "#3a2f22" : "#332a1f"; c.fillRect(0, y, W, 16); }
-  for (const sy of [gy * 0.4, gy * 0.7]) { px(c, 0, sy, W * 0.74, 6, "#5a4424"); for (let x = 24; x < W * 0.66; x += 72) { px(c, x, sy - 22, 26, 22, "#7a5a30"); px(c, x, sy - 22, 26, 4, "#8a6d3b"); } }
-  // floor (left ~0.78) then water (right)
-  for (let x = 0; x < W * 0.78; x += 28) px(c, x, gy, 28, H - gy, (x / 28 | 0) % 2 ? "#2e2820" : "#28231c");
+  // plank wall falling into ceiling shadow
+  for (let y = 0; y < gy; y += 16) { c.fillStyle = (y / 16 | 0) % 2 ? "#4a3c29" : "#423525"; c.fillRect(0, y, W, 16); }
+  const ceil = c.createLinearGradient(0, 0, 0, gy * 0.5); ceil.addColorStop(0, "rgba(0,0,0,0.38)"); ceil.addColorStop(1, "rgba(0,0,0,0)"); c.fillStyle = ceil; c.fillRect(0, 0, W, gy * 0.5);
+  // timber studs bracing the wall
+  for (const fx of [0.055, 0.49, 0.73]) { px(c, W * fx - 5, 0, 10, gy, "#241c11"); px(c, W * fx - 5, 0, 3, gy, "#3f3220"); }
+  // high shuttered window; moonlight spills through onto the dock
+  const wx = W * 0.62, wy = gy * 0.1;
+  px(c, wx - 17, wy - 1, 34, 27, "#0e1622"); px(c, wx - 17, wy - 1, 34, 3, "#3a2c18"); px(c, wx - 17, wy + 23, 34, 3, "#3a2c18"); px(c, wx - 2, wy - 1, 3, 27, "#3a2c18"); px(c, wx - 17, wy + 11, 34, 2, "#3a2c18");
+  c.fillStyle = "rgba(180,205,235,0.06)"; c.beginPath(); c.moveTo(wx - 17, wy + 26); c.lineTo(wx + 17, wy + 26); c.lineTo(wx + 80, gy + 8); c.lineTo(wx - 40, gy + 8); c.closePath(); c.fill();
+  // the captain's checklist, pinned by the door
+  px(c, W * 0.53 - 11, gy * 0.28, 22, 28, "#e8dcc0"); px(c, W * 0.53 - 11, gy * 0.28, 22, 2, "#c9b98a");
+  circ(c, W * 0.53, gy * 0.28 + 2, 2, "#b34a3a");
+  for (let i = 0; i < 4; i++) px(c, W * 0.53 - 7, gy * 0.28 + 8 + i * 5, 14 - (i % 2) * 4, 2, "#b9a97f");
+  // coiled rope + a saw hung between the studs
+  c.strokeStyle = "#8a6d3b"; c.lineWidth = 3; c.beginPath(); c.arc(W * 0.12, gy * 0.3, 9, 0, Math.PI * 2); c.stroke(); c.strokeStyle = "#6e551f"; c.lineWidth = 1.5; c.beginPath(); c.arc(W * 0.12, gy * 0.3, 6, 0, Math.PI * 2); c.stroke();
+  px(c, W * 0.44 - 2, gy * 0.24, 4, 6, "#5a3f22"); px(c, W * 0.44 - 14, gy * 0.3, 28, 4, "#9aa3ad"); for (let i = 0; i < 6; i++) px(c, W * 0.44 - 13 + i * 5, gy * 0.34, 3, 2, "#7a828c");
+  // wall lanterns with warm pools of light
+  for (const fx of [0.2, 0.35, 0.68]) {
+    const lx = W * fx, ly = gy * 0.4, fl = 0.7 + 0.3 * Math.sin(now * 9 + fx * 20);
+    px(c, lx - 1, ly - 16, 2, 6, "#3a2c18"); px(c, lx - 5, ly - 10, 10, 13, "#2a2014"); px(c, lx - 5, ly - 10, 10, 2, "#4a3a22");
+    c.shadowColor = "#ffb14d"; c.shadowBlur = 18 * fl; px(c, lx - 3, ly - 7, 6, 8, "#ffb14d"); c.shadowBlur = 0;
+    const pool = c.createRadialGradient(lx, gy - 20, 4, lx, gy - 20, 130); pool.addColorStop(0, `rgba(255,177,77,${0.16 * fl})`); pool.addColorStop(1, "rgba(255,177,77,0)"); c.fillStyle = pool; c.fillRect(lx - 130, gy - 150, 260, 260);
+  }
+  // two shelf tiers with mixed goods: crates, sacks, barrels
+  for (const [ti, sy] of [[0, gy * 0.5], [1, gy * 0.76]]) {
+    px(c, W * 0.02, sy, W * 0.64, 7, "#5a4424"); px(c, W * 0.02, sy, W * 0.64, 2, "#7a5a30");
+    for (let x = W * 0.05; x < W * 0.6; x += W * 0.09) px(c, x, sy + 7, 4, 8, "#3a2c18"); // brackets
+    let k = ti; // stagger the mix per tier
+    for (let x = W * 0.06; x < W * 0.6; x += 46, k++) {
+      if (k % 3 === 0) drawCrate(c, x, sy - 22, 26, 22);
+      else if (k % 3 === 1) drawSack(c, x + 12, sy);
+      else drawBarrel(c, x + 12, sy, 18, 22);
+    }
+  }
+  // plank floor with seams, sill highlight, stray straw
+  for (let x = 0; x < W * 0.78; x += 28) px(c, x, gy, 28, H - gy, (x / 28 | 0) % 2 ? "#3a3225" : "#342c20");
+  for (let x = 28; x < W * 0.78; x += 28) px(c, x, gy, 1, H - gy, "#241e15");
+  px(c, 0, gy, W * 0.78, 3, "#4a3a26");
+  c.strokeStyle = "#6e5a2e"; c.lineWidth = 1.5;
+  for (let i = 0; i < 6; i++) { const sx2 = (i * 157 + 30) % (W * 0.7), sy2 = gy + 14 + (i * 43) % Math.max(8, H - gy - 20); c.beginPath(); c.moveTo(sx2, sy2); c.lineTo(sx2 + 6, sy2 - 3); c.moveTo(sx2 + 2, sy2); c.lineTo(sx2 + 7, sy2 + 2); c.stroke(); }
+  // water with moon glints
   c.fillStyle = "#16344e"; c.fillRect(W * 0.78, gy, W * 0.22, H - gy);
   for (let i = 0; i < 6; i++) { c.strokeStyle = "rgba(120,180,225,0.3)"; c.lineWidth = 1; const yy = gy + 12 + i * 12; c.beginPath(); c.moveTo(W * 0.78, yy + Math.sin(now * 3 + i) * 2); c.lineTo(W, yy + Math.sin(now * 3 + i + 2) * 2); c.stroke(); }
-  // a wooden pier runs out over the water so you never step on the water itself
-  px(c, W * 0.78, gy + 14, 4, H - gy - 14, "#3a2c18"); px(c, W * 0.86, gy + 14, 4, H - gy - 14, "#3a2c18"); // pilings
-  for (let x = W * 0.7; x < W * 0.92; x += 12) px(c, x, gy, 11, 9, ((x / 12) | 0) % 2 ? "#6b4f2a" : "#5a4424"); // planks
+  for (let i = 0; i < 3; i++) { c.globalAlpha = 0.4 + 0.5 * Math.abs(Math.sin(now * 2.2 + i * 2.1)); px(c, W * (0.81 + i * 0.05), gy + 16 + (i * 23) % 34, 7, 2, "#bfe0ff"); } c.globalAlpha = 1;
+  // pier on pilings, mooring post, rope down to the raft
+  px(c, W * 0.78, gy + 14, 4, H - gy - 14, "#3a2c18"); px(c, W * 0.86, gy + 14, 4, H - gy - 14, "#3a2c18");
+  for (let x = W * 0.7; x < W * 0.92; x += 12) px(c, x, gy, 11, 9, ((x / 12) | 0) % 2 ? "#6b4f2a" : "#5a4424");
   px(c, W * 0.7, gy + 9, W * 0.22, 3, "#3a2c18");
+  px(c, W * 0.925, gy - 14, 5, 16, "#4a3a22"); px(c, W * 0.925, gy - 14, 5, 3, "#5f4a2c"); // mooring post
+  c.strokeStyle = "#8a7448"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(W * 0.9275, gy - 10); c.quadraticCurveTo(W * 0.915, gy + 6, W * 0.9, gy + 4); c.stroke();
+  // the docked raft (with anything already loaded)
   const rx = W * 0.9;
-  for (let i = 0; i < 6; i++) px(c, rx - 34 + i * 12, gy + 2, 10, 9, i % 2 ? "#6b4f2a" : "#5a4424"); // docked raft
+  for (let i = 0; i < 6; i++) px(c, rx - 34 + i * 12, gy + 2, 10, 9, i % 2 ? "#6b4f2a" : "#5a4424");
   px(c, rx - 34, gy + 11, 70, 3, "#3a2c18");
   drawCargo(c, rx, gy + 2);
-  // supply piles (left)
-  for (const [label, f, col] of [["armour", 0.16, "#7a828c"], ["food", 0.28, "#c2410c"], ["water", 0.40, "#1971c2"]]) { const x = W * f; px(c, x - 13, gy - 15, 26, 15, col); px(c, x - 13, gy - 15, 26, 4, "rgba(255,255,255,0.25)"); c.fillStyle = "#cdd8e6"; c.font = "10px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText(label, x, gy + 18); }
+  // supply bays: raised pallets, hanging signs, and goods that look like what they are
+  for (const [label, f, col] of [["armour", 0.16, "#7a828c"], ["food", 0.28, "#c2410c"], ["water", 0.40, "#1971c2"]]) {
+    const x = W * f;
+    px(c, x - 18, gy - 3, 36, 5, "#4a3a22"); px(c, x - 18, gy - 3, 36, 2, "#5f4a2c"); // pallet
+    px(c, x - 1, gy - 44, 2, 12, "#3a2c18"); px(c, x - 15, gy - 50, 30, 10, "#5a4424"); px(c, x - 15, gy - 50, 30, 2, "#7a5a30"); // hanging sign
+    c.fillStyle = "#f5ecd8"; c.font = "9px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText(label.toUpperCase(), x, gy - 42.5);
+    px(c, x - 15, gy - 40, 30, 2, col); // colour key stripe under the sign
+    if (label === "armour") { drawCrate(c, x - 14, gy - 19, 28, 16, "#5b626b"); px(c, x - 6, gy - 26, 12, 7, "#9aa3ad"); px(c, x - 4, gy - 30, 8, 5, "#9aa3ad"); } // steel chest + helm on top
+    else if (label === "food") { drawSack(c, x - 7, gy - 3, "#b0541e"); drawSack(c, x + 7, gy - 3, "#c2410c"); }
+    else { drawBarrel(c, x - 8, gy - 3, 16, 20, "#4f6a8a", "#1971c2"); drawBarrel(c, x + 8, gy - 3, 16, 24, "#4f6a8a", "#1971c2"); }
+  }
 }
 function drawCamp(c, W, gy, now) {
   const H = els.H;
