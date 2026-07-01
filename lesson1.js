@@ -253,7 +253,7 @@ async function playWildwood() {
   await wait(0.7);
   await say("", "Cold ground. Aching head. You don't remember lying down here.");
   await anim(1.4, (p) => (char.rise = p)); logCmd("you.wake_up()", false);
-  await say("???", "A figure watches you from the treeline.");
+  await say("", "A figure watches you from the treeline.");
   await autoWalk("stranger");
   await say("Stranger", "Easy now, you're awake. I thought you were one of them.");
   await ask({ prompt: "Speak to the stranger", placeholder: 'print("Where am I?")', lesson: "Your character talks by printing words to the screen. A print statement shows whatever you place inside its parentheses, and text goes inside quotation marks. Ask the stranger where you are.", validate: nonEmptyOut }, (r) => speech(r.stdout));
@@ -719,12 +719,12 @@ function draw(now) {
       const lines = countLines(c, banner.text, maxW);
       const boxW = Math.min(maxW + whoW, W - 40) + pad * 2, boxH = 24 + lines * lh + 18;
       const bx = W / 2 - boxW / 2, by = 54;
-      c.fillStyle = "rgba(7,11,17,0.92)"; rr(c, bx, by, boxW, boxH, 12); c.fill();
-      c.strokeStyle = "#2a3548"; c.lineWidth = 1; c.stroke();
+      c.fillStyle = "rgba(245,247,250,0.97)"; rr(c, bx, by, boxW, boxH, 12); c.fill();
+      c.strokeStyle = "#0b0e14"; c.lineWidth = 1.5; c.stroke();
       let tx = bx + pad; c.textAlign = "left";
-      if (banner.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(banner.who + ":", tx, by + 28); tx += whoW; }
-      c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, banner.text, tx, by + 28, maxW, lh);
-      if (dialogue) { c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "12px 'IBM Plex Mono',monospace"; c.fillText("▸ click", bx + boxW - 12, by + boxH - 10); }
+      if (banner.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#1f7a38"; c.fillText(banner.who + ":", tx, by + 28); tx += whoW; }
+      c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#0b0e14"; wrapText(c, banner.text, tx, by + 28, maxW, lh);
+      if (dialogue) { c.fillStyle = "#8a6d00"; c.textAlign = "right"; c.font = "12px 'IBM Plex Mono',monospace"; c.fillText("▸ click", bx + boxW - 12, by + boxH - 10); }
     }
   }
   if (fadeAmt > 0) { c.fillStyle = `rgba(5,7,11,${fadeAmt})`; c.fillRect(0, 0, W, H); }
@@ -849,15 +849,15 @@ function drawSpeechBubble(c, W, anch, banner, clickable) {
   const boxH = nameH + lines * lh + pad + 8;
   const bx = Math.max(10, Math.min(W - boxW - 10, anch.x - boxW / 2));
   const by = anch.y - boxH - 14;
-  c.fillStyle = "rgba(7,11,17,0.92)"; rr(c, bx, by, boxW, boxH, 10); c.fill();
-  c.strokeStyle = "#2a3548"; c.lineWidth = 1; c.stroke();
-  c.fillStyle = "rgba(7,11,17,0.92)"; c.beginPath(); // tail down to the speaker
+  c.fillStyle = "rgba(245,247,250,0.97)"; rr(c, bx, by, boxW, boxH, 10); c.fill();
+  c.strokeStyle = "#0b0e14"; c.lineWidth = 1.5; c.stroke();
+  c.fillStyle = "rgba(245,247,250,0.97)"; c.beginPath(); // tail down to the speaker
   const tx0 = Math.max(bx + 12, Math.min(bx + boxW - 24, anch.x - 6));
   c.moveTo(tx0, by + boxH); c.lineTo(tx0 + 12, by + boxH); c.lineTo(anch.x, anch.y - 2); c.closePath(); c.fill();
   c.textAlign = "left";
-  c.font = "700 12px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(banner.who, bx + pad, by + 16);
-  c.font = "14px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, banner.text, bx + pad, by + nameH + 15, maxW, lh);
-  if (clickable) { c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "11px 'IBM Plex Mono',monospace"; c.fillText("▸", bx + boxW - 8, by + boxH - 7); }
+  c.font = "700 12px 'Chakra Petch',sans-serif"; c.fillStyle = "#1f7a38"; c.fillText(banner.who, bx + pad, by + 16);
+  c.font = "14px 'IBM Plex Mono',monospace"; c.fillStyle = "#0b0e14"; wrapText(c, banner.text, bx + pad, by + nameH + 15, maxW, lh);
+  if (clickable) { c.fillStyle = "#8a6d00"; c.textAlign = "right"; c.font = "11px 'IBM Plex Mono',monospace"; c.fillText("▸", bx + boxW - 8, by + boxH - 7); }
 }
 function wrapText(c, text, x, y, maxW, lh) { const words = String(text).split(" "); let line = "", yy = y; for (const w of words) { const t = line ? line + " " + w : w; if (c.measureText(t).width > maxW && line) { c.fillText(line, x, yy); line = w; yy += lh; } else line = t; } c.fillText(line, x, yy); }
 function countLines(c, text, maxW) { const words = String(text).split(" "); let line = "", n = 1; for (const w of words) { const t = line ? line + " " + w : w; if (c.measureText(t).width > maxW && line) { line = w; n++; } else line = t; } return n; }
