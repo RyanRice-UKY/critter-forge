@@ -256,7 +256,7 @@ async function play() {
   let name = "survivor";
   const skip = start === "clearing" || start === "castle" || start === "keep" || start === "storage" || start === "camp";
   if (!skip) name = await playWildwood();
-  else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; }
+  else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; scene = start; } // hash names match scene names; set sync so the scene shows before the first fade
   if (start === "storage") { scene = "storage"; questStep = 1; char.gold = 2.05; char.x = els.W * 0.06; await playBeat1(name); await playKeep(name); return; } // DEV jump into Beat 1
   if (start === "camp") { scene = "camp"; questStep = 1; char.gold = 2.05; raftCargo = { armor: 1, food: 2, water: 1 }; giveItem(ORDERS_NOTE); await playBeat2(name); await playKeep(name); return; } // DEV jump into Beat 2 (raft already loaded, orders in pack)
   if (start === "keep") { char.gold = 2.05; await playKeep(name); return; }
@@ -1065,29 +1065,74 @@ function drawClearing(c, W, gy, now) {
   if (survivor) P(c, survivor.x, gy + survivor.y, (cc) => npc(cc, 0, 0, "#37b24d", "#c89060", "#241018"));
 }
 function drawCastle(c, W, gy, now) {
-  // a much larger keep so the characters read as small before it
+  // the great keep: skyline towers behind a stone curtain wall, twin gatehouse turrets,
+  // a portcullis gate over a lowered drawbridge, all torchlit
   const x = W * 0.78, base = gy - 168, half = 118;
-  // main wall + stone blocks
+  // distant inner towers rising behind the wall (dark skyline for depth)
+  for (const [dx, w2, h2] of [[-70, 44, 92], [58, 38, 74], [-6, 56, 118]]) {
+    const tx = x + dx; c.fillStyle = "#343b45"; c.fillRect(tx - w2 / 2, base - h2, w2, h2);
+    for (let i = -w2 / 2; i < w2 / 2; i += 12) px(c, tx + i, base - h2 - 8, 8, 8, "#343b45");
+    c.fillStyle = "#7a1f1f"; c.beginPath(); c.moveTo(tx - w2 / 2 - 4, base - h2 - 8); c.lineTo(tx, base - h2 - 8 - w2 * 0.55); c.lineTo(tx + w2 / 2 + 4, base - h2 - 8); c.closePath(); c.fill();
+    px(c, tx - 3, base - h2 + 12, 6, 9, "#1a2a44"); c.fillStyle = "#3b6ea5"; c.fillRect(tx - 2, base - h2 + 13, 4, 7); // lit window
+  }
+  // central banner pole on the tallest tower
+  px(c, x - 7, base - 118 - 8 - 56 * 0.55 - 26, 2, 26, "#3a2c18");
+  { c.fillStyle = "#8a1f2e"; c.beginPath(); const fw = 5 * Math.sin(now * 2.2); const fy = base - 118 - 8 - 56 * 0.55 - 26;
+    c.moveTo(x - 5, fy); c.quadraticCurveTo(x + 14 + fw, fy + 4, x + 20 + fw, fy + 9); c.lineTo(x - 5, fy + 13); c.closePath(); c.fill(); }
+  // curtain wall with varied stone + cracks
   px(c, x - half, base, half * 2, gy - base, "#565d66");
-  for (let yy = base; yy < gy; yy += 24) for (let xx = x - half; xx < x + half; xx += 32) px(c, xx + 1, yy + 1, 30, 22, ((Math.floor(xx / 32) + Math.floor(yy / 24)) % 2) ? "#4e555e" : "#535a63");
-  // battlements
-  for (let i = -half; i < half; i += 36) px(c, x + i, base - 20, 22, 20, "#565d66");
-  // flanking towers with waving banners
+  for (let yy = base; yy < gy; yy += 24) for (let xx = x - half; xx < x + half; xx += 32) {
+    const v = (Math.floor(xx / 32) * 7 + Math.floor(yy / 24) * 13) % 4;
+    px(c, xx + 1, yy + 1, 30, 22, v === 0 ? "#4e555e" : v === 1 ? "#535a63" : v === 2 ? "#4a5058" : "#575e67");
+  }
+  c.strokeStyle = "#3a4048"; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(x - 70, base + 30); c.lineTo(x - 62, base + 52); c.lineTo(x - 68, base + 66); c.moveTo(x + 52, base + 80); c.lineTo(x + 60, base + 102); c.stroke(); // cracks
+  px(c, x - half, base + 2, half * 2, 4, "rgba(0,0,0,0.28)"); // shadow under the parapet
+  // battlements with moonlit caps
+  for (let i = -half; i < half; i += 36) { px(c, x + i, base - 20, 22, 20, "#565d66"); px(c, x + i, base - 20, 22, 3, "#6e757e"); }
+  // ivy spilling down the wall
+  for (const [ix, ih] of [[x - half + 18, 64], [x + half - 34, 88]]) {
+    c.fillStyle = "#2c5a34";
+    for (let yy = 0; yy < ih; yy += 9) px(c, ix + Math.sin(yy * 0.4) * 5, base + 8 + yy, 7 + (yy % 3) * 2, 7, yy % 2 ? "#2c5a34" : "#256a33");
+  }
+  // twin gatehouse turrets flanking the gate (stand proud of the wall)
+  for (const s of [-1, 1]) {
+    const tx = x + s * 52 - 14;
+    px(c, tx, base - 34, 28, gy - base + 34, "#4a515a");
+    for (let yy = base - 34; yy < gy; yy += 22) px(c, tx + 2, yy + 1, 24, 20, ((yy / 22) | 0) % 2 ? "#505761" : "#4c535c");
+    for (let i = 0; i < 3; i++) px(c, tx + 2 + i * 10, base - 46, 7, 12, "#4a515a");
+    px(c, tx + 2, base - 46, 26, 2, "#6e757e");
+    px(c, tx + 10, base + 10, 8, 14, "#1a140d"); px(c, tx + 11, base + 12, 2, 10, "#ffb14d"); // glowing arrow slit
+  }
+  // flanking towers with waving banners (outer works)
   for (const tx of [x - half - 30, x + half + 8]) {
     px(c, tx, base - 50, 30, gy - base + 50, "#4a515a"); for (let yy = base - 50; yy < gy; yy += 24) px(c, tx + 2, yy + 1, 26, 22, "#525962");
     c.fillStyle = "#7a1f1f"; c.beginPath(); c.moveTo(tx - 8, base - 50); c.lineTo(tx + 15, base - 78); c.lineTo(tx + 38, base - 50); c.closePath(); c.fill();
-    px(c, tx + 11, base - 30, 8, 14, "#1a140d"); // arrow slit
-    px(c, tx + 14, base - 100, 2, 24, "#3a2c18"); // banner pole
+    px(c, tx + 11, base - 30, 8, 14, "#1a140d"); px(c, tx + 12, base - 28, 2, 10, "#ffb14d");
+    px(c, tx + 14, base - 100, 2, 24, "#3a2c18");
     c.fillStyle = "#8a1f2e"; c.beginPath(); const fw = 6 * Math.sin(now * 2.4 + tx);
     c.moveTo(tx + 16, base - 100); c.quadraticCurveTo(tx + 30 + fw, base - 96, tx + 34 + fw, base - 90); c.lineTo(tx + 16, base - 86); c.closePath(); c.fill();
   }
   // moss at the wall's foot
   for (let i = 0; i < 6; i++) px(c, x - half + 8 + i * 36, gy - 5, 12 + (i % 3) * 5, 4, "#2c5a34");
-  // grand gate
-  px(c, x - 34, gy - 96, 68, 96, "#2a2017"); c.fillStyle = "#6e757e"; c.beginPath(); c.arc(x, gy - 96, 34, Math.PI, 0); c.fill();
-  px(c, x - 34, gy - 96, 68, 8, "#3a2c18"); for (let i = -28; i <= 28; i += 14) px(c, x + i, gy - 88, 2, 88, "#1a120b");
-  px(c, x - 6, gy - 130, 12, 16, "#1a2a44"); // window above gate (glow)
-  c.fillStyle = "#3b6ea5"; c.fillRect(x - 4, gy - 128, 8, 12);
+  // the gate: tall arch, warm glow behind a portcullis grid, royal banner above
+  px(c, x - 34, gy - 96, 68, 96, "#1c1610");
+  c.fillStyle = "#6e757e"; c.beginPath(); c.arc(x, gy - 96, 34, Math.PI, 0); c.fill();
+  c.fillStyle = "#565d66"; c.beginPath(); c.arc(x, gy - 96, 29, Math.PI, 0); c.fill();
+  { const gl = c.createLinearGradient(0, gy - 96, 0, gy); gl.addColorStop(0, "rgba(255,177,77,0.05)"); gl.addColorStop(1, "rgba(255,177,77,0.16)"); c.fillStyle = gl; c.fillRect(x - 30, gy - 96, 60, 96); } // torchlight inside
+  for (let i = -28; i <= 28; i += 14) px(c, x + i, gy - 110, 3, 110, "#241a0e");   // portcullis verticals
+  for (let yy = gy - 88; yy < gy; yy += 22) px(c, x - 30, yy, 60, 3, "#241a0e");   // portcullis crossbars
+  px(c, x - 34, gy - 96, 68, 6, "#3a2c18");
+  // royal banner hanging over the arch
+  px(c, x - 10, gy - 148, 20, 3, "#a8832a");
+  c.fillStyle = "#6e1d1d"; c.beginPath(); c.moveTo(x - 9, gy - 145); c.lineTo(x + 9, gy - 145); c.lineTo(x + 9, gy - 118); c.lineTo(x, gy - 110); c.lineTo(x - 9, gy - 118); c.closePath(); c.fill();
+  circ(c, x, gy - 130, 4, "#d9b23a");
+  // lowered drawbridge the road runs over, chains up to the gatehouse
+  px(c, x - 90, gy - 2, 90, 6, "#5a4424"); for (let i = 0; i < 6; i++) px(c, x - 90 + i * 15, gy - 2, 2, 6, "#3a2c18");
+  px(c, x - 90, gy - 4, 90, 2, "#7a5a30");
+  c.strokeStyle = "#6a727c"; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(x - 86, gy - 3); c.lineTo(x - 40, gy - 92); c.moveTo(x - 12, gy - 3); c.lineTo(x - 8, gy - 92); c.stroke();
+  for (const [cx2, cy2] of [[x - 86, gy - 3], [x - 40, gy - 92], [x - 12, gy - 3], [x - 8, gy - 92]]) px(c, cx2 - 2, cy2 - 2, 4, 4, "#7a828c"); // chain pins
   for (const s of [-1, 1]) { // torches flanking the gate
     const tx2 = x + s * 48; px(c, tx2 - 2, gy - 66, 4, 16, "#3a2c18");
     const fl = 0.65 + 0.35 * Math.sin(now * 11 + s * 2); c.shadowColor = "#ffb14d"; c.shadowBlur = 16 * fl;
