@@ -89,7 +89,7 @@ function walkTo(frac) { return walkToX(els.W * frac); }
 const STAND_BESIDE = { stranger: 1, smith: 1, castle: 1, craftsman: 1, forhire: 1, blacksmith: 1, armorsmith: 1, knight: 1, chamber: 1, gate: 1 }; // stop next to these, not on top
 function goTo(name) { let tx = els.W * locFrac(name); const dir = Math.sign(tx - char.x) || 1; if (STAND_BESIDE[name]) tx -= dir * 46; return walkToX(tx); }
 async function autoWalk(name) { logCmd(`you.walk("${name}")`, false); await goTo(name); }
-function say(who, text) { return new Promise((res) => { dialogue = { who, text }; lastSaid = { who, text }; awaitAdvance = res; }); }
+function say(who, text) { return new Promise((res) => { char.bubble = null; char.bubbleT = 0; dialogue = { who, text }; lastSaid = { who, text }; awaitAdvance = res; }); } // one speaker at a time: a new line clears the player's bubble
 function speech(t) { char.bubble = String(t || "").trim().split("\n").filter(Boolean).slice(0, 1).join(" "); char.bubbleT = 3.4; return wait(0.4); }
 function advance() { if (awaitAdvance) { const r = awaitAdvance; awaitAdvance = null; dialogue = null; r(); } }
 
@@ -465,7 +465,7 @@ function drawKeep(c, W, gy, now) {
   }
   for (const bx of [W * 0.1, W * 0.82]) { px(c, bx - 4, gy - 26, 8, 20, "#a8832a"); const fl = 0.6 + 0.4 * Math.sin(now * 12 + bx); c.shadowColor = "#ffb14d"; c.shadowBlur = 18 * fl; circ(c, bx, gy - 28, 7 * fl, "#ffb14d"); circ(c, bx, gy - 29, 4 * fl, "#ffe066"); c.shadowBlur = 0; }
   // townsfolk — bubbles raised above the (scaled) heads so they don't clip
-  for (const w of townsfolk) { P(c, w.x * W, gy, (cc) => townBody(cc, 0, 0, w)); if (w.bubble) bubble(c, w.x * W, gy - 37 * CH - 4, w.bubble); }
+  for (const w of townsfolk) { P(c, w.x * W, gy, (cc) => townBody(cc, 0, 0, w)); if (w.bubble && !dialogue && !(currentInput && lastSaid)) bubble(c, w.x * W, gy - 37 * CH - 4, w.bubble); } // chatter yields to story dialogue
   // the knight-captain (quest giver), far right, with a quest marker + walk hint
   { const kx = W * SCENES.keep.knight; P(c, kx, gy, (cc) => knight(cc, 0, 0, now));
     c.font = "11px 'IBM Plex Mono',monospace"; c.textAlign = "center"; const cmd = 'you.walk("knight")', cw = c.measureText(cmd).width, cy = gy - 49 * CH - 8;
