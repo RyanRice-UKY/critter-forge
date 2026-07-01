@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Survive the Stack</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+      * { box-sizing: border-box; margin: 0; }
+      html, body { height: 100%; }
+      body { background: #0b0e14; color: #dbe6f2; font-family: "IBM Plex Mono", monospace; overflow: hidden; }
+      #stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+      .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 9vh; gap: 14px; pointer-events: none; }
+      .overlay.hidden { display: none; }
+      .menu-btn {
+        pointer-events: auto; min-width: 240px; padding: 13px 30px; border-radius: 10px; cursor: pointer;
+        font: 700 17px "Chakra Petch", sans-serif; letter-spacing: 0.12em; text-transform: uppercase;
+        color: #ffd43b; background: rgba(10, 14, 20, 0.88); border: 2px solid #4a3a18;
+        transition: transform 0.08s, border-color 0.12s, color 0.12s;
+      }
+      .menu-btn:hover { border-color: #ffd43b; transform: translateY(-2px); }
+      .menu-btn.dim { color: #8a94a3; border-color: #232c3a; }
+      .menu-btn.dim:hover { border-color: #8a94a3; }
+      #backBtn {
+        position: fixed; top: 16px; left: 16px; z-index: 5; pointer-events: auto; cursor: pointer;
+        font: 700 13px "Chakra Petch", sans-serif; letter-spacing: 0.1em; color: #8a94a3;
+        background: rgba(10, 14, 20, 0.85); border: 1px solid #232c3a; border-radius: 8px; padding: 8px 14px;
+      }
+      #backBtn:hover { color: #ffd43b; border-color: #4a3a18; }
+      #toast {
+        position: fixed; left: 50%; bottom: 12vh; transform: translateX(-50%); z-index: 6;
+        font: 700 15px "Chakra Petch", sans-serif; color: #ff8787; background: rgba(10, 14, 20, 0.92);
+        border: 1px solid #5c2020; border-radius: 8px; padding: 10px 18px; opacity: 0; transition: opacity 0.25s;
+        pointer-events: none;
+      }
+      .hidden { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <div class="overlay" id="titleMenu">
+      <button class="menu-btn" id="btnContinue">Continue</button>
+      <button class="menu-btn" id="btnNew">New Game</button>
+      <button class="menu-btn dim" id="btnChapters">Chapters</button>
+    </div>
+    <button id="backBtn" class="hidden">◂ Title</button>
+    <div id="toast"></div>
+    <script src="core/save.js"></script>
+    <script src="survive.js"></script>
+  </body>
+</html>
