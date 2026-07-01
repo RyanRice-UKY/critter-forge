@@ -627,10 +627,16 @@ const CH = 1.55;
 function P(c, x, gy, fn) { c.save(); c.translate(x, gy); c.scale(CH, CH); fn(c, 0, 0); c.restore(); }
 function draw(now) {
   const c = els.ctx, W = els.W, H = els.H, gy = H * 0.74;
-  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#16243c"); g.addColorStop(0.5, "#21303c"); g.addColorStop(0.62, "#2b4a2f"); c.fillStyle = g; c.fillRect(0, 0, W, H);
-  for (let i = 0; i < 46; i++) { const sx = (i * 89) % W, sy = (i * 53) % (H * 0.45); c.globalAlpha = 0.25 + 0.4 * Math.abs(Math.sin(now * 0.5 + i)); px(c, sx, sy, 2, 2, "#cfe0f5"); } c.globalAlpha = 1;
-  for (let i = 0; i * 26 < W; i++) px(c, i * 26, gy, 26, H - gy, i % 2 ? "#2c6b3a" : "#347a42");
-  for (let i = 0; i < 18; i++) { const x = (i * 71) % W, y = gy + 16 + (i * 37) % (H - gy - 22), sw = Math.sin(now * 2 + i) * 2; c.strokeStyle = "#235c30"; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y + 6); c.lineTo(x + sw, y - 5); c.stroke(); }
+  // night palette matched to the title screen (survive.js): deeper sky, silhouette treeline, darker grass
+  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#0d1626"); g.addColorStop(0.5, "#16243c"); g.addColorStop(0.74, "#21303c"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  for (let i = 0; i < 70; i++) { const sx = (i * 89) % W, sy = (i * 53) % (H * 0.55); c.globalAlpha = 0.2 + 0.45 * Math.abs(Math.sin(now * 0.5 + i)); px(c, sx, sy, 2, 2, "#cfe0f5"); } c.globalAlpha = 1;
+  const outdoors = scene === "wildwood" || scene === "clearing" || scene === "castle";
+  if (outdoors) { // distant forest silhouette behind the playfield
+    c.fillStyle = "#0e1a14";
+    for (let i = 0; i < Math.ceil(W / 60) + 1; i++) { const x = i * 60 + ((i * 37) % 22), h = 46 + ((i * 53) % 38); c.beginPath(); c.moveTo(x - 34, gy); c.lineTo(x, gy - h); c.lineTo(x + 34, gy); c.closePath(); c.fill(); }
+  }
+  for (let i = 0; i * 26 < W; i++) px(c, i * 26, gy, 26, H - gy, i % 2 ? "#22512c" : "#275c32");
+  for (let i = 0; i < 18; i++) { const x = (i * 71) % W, y = gy + 16 + (i * 37) % (H - gy - 22), sw = Math.sin(now * 2 + i) * 2; c.strokeStyle = "#1b4223"; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y + 6); c.lineTo(x + sw, y - 5); c.stroke(); }
 
   if (scene === "wildwood") drawWildwood(c, W, gy, now);
   else if (scene === "clearing") drawClearing(c, W, gy, now);
@@ -650,6 +656,16 @@ function draw(now) {
   }
   // bestow glow
   if (bowFx > 0) sparkle(c, char.x, gy - 34, bowFx, "#9be7ff");
+
+  // warm ambient light around the hero + a soft edge vignette (title-screen atmosphere)
+  if (scene !== "raft") {
+    const lg = c.createRadialGradient(char.x, gy - 20, 12, char.x, gy - 20, 170);
+    lg.addColorStop(0, "rgba(255,178,102,0.10)"); lg.addColorStop(1, "rgba(255,178,102,0)");
+    c.fillStyle = lg; c.fillRect(char.x - 170, gy - 190, 340, 340);
+  }
+  const vg = c.createRadialGradient(W / 2, H * 0.46, Math.min(W, H) * 0.42, W / 2, H * 0.46, Math.max(W, H) * 0.78);
+  vg.addColorStop(0, "rgba(5,8,14,0)"); vg.addColorStop(1, "rgba(5,8,14,0.42)");
+  c.fillStyle = vg; c.fillRect(0, 0, W, H);
 
   // gold HUD (top-left)
   if (char.gold > 0) {
