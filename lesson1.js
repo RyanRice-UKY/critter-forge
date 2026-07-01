@@ -705,22 +705,27 @@ function draw(now) {
   if (dmgFlash > 0) { c.fillStyle = `rgba(200,30,30,${dmgFlash * 0.32})`; c.fillRect(0, 0, W, H); }
   if (dying) { c.fillStyle = "rgba(6,0,0,0.72)"; c.fillRect(0, 0, W, H); c.fillStyle = "#ff6b6b"; c.font = "700 22px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("Overwhelmed. Restarting the scene…", W / 2, H / 2); }
 
-  // dialogue banner — a centered panel at the top of the screen, cutscene-style.
+  // dialogue — NPC lines appear in a speech bubble over the speaker's head;
+  // narrator/guide lines (no speaker) use a centered panel at the top of the screen.
   // While the IDE is waiting for code, the last spoken line stays pinned (no click cue).
   const banner = dialogue || (currentInput ? lastSaid : null);
   if (banner) {
-    c.font = "15px 'IBM Plex Mono',monospace";
-    const maxW = Math.min(W * 0.62, 700), pad = 18, lh = 19;
-    const whoW = banner.who ? c.measureText(banner.who + ":  ").width + 6 : 0;
-    const lines = countLines(c, banner.text, maxW);
-    const boxW = Math.min(maxW + whoW, W - 40) + pad * 2, boxH = 24 + lines * lh + 18;
-    const bx = W / 2 - boxW / 2, by = 54;
-    c.fillStyle = "rgba(7,11,17,0.92)"; rr(c, bx, by, boxW, boxH, 12); c.fill();
-    c.strokeStyle = "#2a3548"; c.lineWidth = 1; c.stroke();
-    let tx = bx + pad; c.textAlign = "left";
-    if (banner.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(banner.who + ":", tx, by + 28); tx += whoW; }
-    c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, banner.text, tx, by + 28, maxW, lh);
-    if (dialogue) { c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "12px 'IBM Plex Mono',monospace"; c.fillText("▸ click", bx + boxW - 12, by + boxH - 10); }
+    const anch = speakerAnchor(banner.who, W, gy);
+    if (anch) drawSpeechBubble(c, W, anch, banner, !!dialogue);
+    else {
+      c.font = "15px 'IBM Plex Mono',monospace";
+      const maxW = Math.min(W * 0.62, 700), pad = 18, lh = 19;
+      const whoW = banner.who ? c.measureText(banner.who + ":  ").width + 6 : 0;
+      const lines = countLines(c, banner.text, maxW);
+      const boxW = Math.min(maxW + whoW, W - 40) + pad * 2, boxH = 24 + lines * lh + 18;
+      const bx = W / 2 - boxW / 2, by = 54;
+      c.fillStyle = "rgba(7,11,17,0.92)"; rr(c, bx, by, boxW, boxH, 12); c.fill();
+      c.strokeStyle = "#2a3548"; c.lineWidth = 1; c.stroke();
+      let tx = bx + pad; c.textAlign = "left";
+      if (banner.who) { c.font = "700 15px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(banner.who + ":", tx, by + 28); tx += whoW; }
+      c.font = "15px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, banner.text, tx, by + 28, maxW, lh);
+      if (dialogue) { c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "12px 'IBM Plex Mono',monospace"; c.fillText("▸ click", bx + boxW - 12, by + boxH - 10); }
+    }
   }
   if (fadeAmt > 0) { c.fillStyle = `rgba(5,7,11,${fadeAmt})`; c.fillRect(0, 0, W, H); }
 }
@@ -823,6 +828,37 @@ function bubble(c, x, y, text) {
 }
 function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 function sparkle(c, x, y, amt, col) { c.globalAlpha = amt; for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, r = (1 - amt) * 26 + 4; px(c, x + Math.cos(a) * r, y + Math.sin(a) * r, 3, 3, col); } c.globalAlpha = 1; }
+// where does a speaker's head sit on screen? null → not on stage (narrator banner instead)
+const SPEAKER_KEY = { "???": "stranger", stranger: "stranger", smith: "smith", "knight-captain": "knight", guard: "chamber", armorsmith: "armorsmith", blacksmith: "blacksmith", craftsman: "craftsman", captain: "gate" };
+function speakerAnchor(who, W, gy) {
+  if (!who) return null;
+  const w = who.toLowerCase();
+  if (w === "survivor") return survivor ? { x: survivor.x, y: gy + (survivor.y || 0) - 36 * CH } : null;
+  if (w === "gatekeeper" && scene === "castle") return { x: W * 0.78 - 118 + 50, y: gy - 168 - 20 - 44 }; // peeking over the battlements
+  const key = SPEAKER_KEY[w];
+  if (!key || !SCENES[scene] || SCENES[scene][key] == null) return null;
+  return { x: W * SCENES[scene][key], y: gy - 36 * CH };
+}
+// a readable speech bubble anchored above a character's head (bigger than the tiny status bubbles)
+function drawSpeechBubble(c, W, anch, banner, clickable) {
+  c.font = "14px 'IBM Plex Mono',monospace";
+  const maxW = 320, pad = 12, lh = 18;
+  const lines = countLines(c, banner.text, maxW);
+  const textW = lines === 1 ? c.measureText(banner.text).width : maxW;
+  const nameH = 17, boxW = Math.max(textW, c.measureText(banner.who).width) + pad * 2;
+  const boxH = nameH + lines * lh + pad + 8;
+  const bx = Math.max(10, Math.min(W - boxW - 10, anch.x - boxW / 2));
+  const by = anch.y - boxH - 14;
+  c.fillStyle = "rgba(7,11,17,0.92)"; rr(c, bx, by, boxW, boxH, 10); c.fill();
+  c.strokeStyle = "#2a3548"; c.lineWidth = 1; c.stroke();
+  c.fillStyle = "rgba(7,11,17,0.92)"; c.beginPath(); // tail down to the speaker
+  const tx0 = Math.max(bx + 12, Math.min(bx + boxW - 24, anch.x - 6));
+  c.moveTo(tx0, by + boxH); c.lineTo(tx0 + 12, by + boxH); c.lineTo(anch.x, anch.y - 2); c.closePath(); c.fill();
+  c.textAlign = "left";
+  c.font = "700 12px 'Chakra Petch',sans-serif"; c.fillStyle = "#62d27a"; c.fillText(banner.who, bx + pad, by + 16);
+  c.font = "14px 'IBM Plex Mono',monospace"; c.fillStyle = "#dbe6f2"; wrapText(c, banner.text, bx + pad, by + nameH + 15, maxW, lh);
+  if (clickable) { c.fillStyle = "#ffd43b"; c.textAlign = "right"; c.font = "11px 'IBM Plex Mono',monospace"; c.fillText("▸", bx + boxW - 8, by + boxH - 7); }
+}
 function wrapText(c, text, x, y, maxW, lh) { const words = String(text).split(" "); let line = "", yy = y; for (const w of words) { const t = line ? line + " " + w : w; if (c.measureText(t).width > maxW && line) { c.fillText(line, x, yy); line = w; yy += lh; } else line = t; } c.fillText(line, x, yy); }
 function countLines(c, text, maxW) { const words = String(text).split(" "); let line = "", n = 1; for (const w of words) { const t = line ? line + " " + w : w; if (c.measureText(t).width > maxW && line) { line = w; n++; } else line = t; } return n; }
 function drawHearts(c, W) {
