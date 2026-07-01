@@ -90,7 +90,7 @@ const STAND_BESIDE = { stranger: 1, smith: 1, castle: 1, craftsman: 1, forhire: 
 function goTo(name) { let tx = els.W * locFrac(name); const dir = Math.sign(tx - char.x) || 1; if (STAND_BESIDE[name]) tx -= dir * 46; return walkToX(tx); }
 async function autoWalk(name) { logCmd(`you.walk("${name}")`, false); await goTo(name); }
 function say(who, text) { return new Promise((res) => { char.bubble = null; char.bubbleT = 0; dialogue = { who, text }; lastSaid = { who, text }; awaitAdvance = res; }); } // one speaker at a time: a new line clears the player's bubble
-function speech(t) { char.bubble = String(t || "").trim().split("\n").filter(Boolean).slice(0, 1).join(" "); char.bubbleT = 3.4; return wait(0.4); }
+function speech(t) { const line = String(t || "").trim().split("\n").filter(Boolean).slice(0, 1).join(" "); char.bubble = line; char.bubbleT = 3.4; return wait(Math.min(2.6, 1.1 + line.length * 0.045)); } // hold long enough to read before anyone replies
 function advance() { if (awaitAdvance) { const r = awaitAdvance; awaitAdvance = null; dialogue = null; r(); } }
 
 // ===== DEV ONLY (remove this + the #devbar block in lesson1.html before shipping) =====
