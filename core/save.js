@@ -14,7 +14,7 @@
   function fresh() {
     const chapters = {};
     for (let i = 1; i <= 6; i++) chapters[i] = { unlocked: i === 1, scene: null, done: false };
-    return { v: 1, name: null, xp: 0, gold: 0, chapters, badges: [], concepts: {}, updated: Date.now() };
+    return { v: 1, name: null, xp: 0, gold: 0, chapters, badges: [], concepts: {}, trials: {}, updated: Date.now() };
   }
 
   let cache = null;
@@ -61,9 +61,18 @@
   function conceptUses(id) { return load().concepts[id] || 0; }
   function bumpConcept(id) { const s = load(); s.concepts[id] = (s.concepts[id] || 0) + 1; persist(); return s.concepts[id]; }
 
+  // trials: completing one awards XP exactly once; replays stay free
+  function isTrialDone(id) { return !!load().trials[id]; }
+  function completeTrial(id, xp) {
+    const s = load();
+    if (s.trials[id]) return false;
+    s.trials[id] = true; persist(); addXP(xp || 0);
+    return true;
+  }
+
   function hasSave() { try { return store.getItem(KEY) != null; } catch (e) { return false; } }
   function reset() { cache = fresh(); persist(); return cache; }
   function onChange(fn) { listeners.push(fn); }
 
-  root.Save = { load, write, addXP, level, levelProgress, checkpoint, completeChapter, conceptUses, bumpConcept, hasSave, reset, onChange, _fresh: fresh };
+  root.Save = { load, write, addXP, level, levelProgress, checkpoint, completeChapter, conceptUses, bumpConcept, isTrialDone, completeTrial, hasSave, reset, onChange, _fresh: fresh };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -36,9 +36,19 @@ eq(Save.conceptUses("print"), 0, "fresh concept");
 Save.bumpConcept("print"); Save.bumpConcept("print"); eq(Save.conceptUses("print"), 2, "bumped twice");
 eq(Save.conceptUses("walk"), 0, "other concept untouched");
 
+// trial completion: once-only XP, done flag
+eq(Save.isTrialDone("stock-quiver"), false, "trial not done");
+const beforeXP = Save.load().xp;
+eq(Save.completeTrial("stock-quiver", 25), true, "first completion counts");
+eq(Save.isTrialDone("stock-quiver"), true, "trial done");
+eq(Save.load().xp, beforeXP + 25, "xp awarded");
+eq(Save.completeTrial("stock-quiver", 25), false, "repeat does not count");
+eq(Save.load().xp, beforeXP + 25, "no double xp");
+
 // reset
 Save.reset(); eq(Save.load().xp, 0, "reset xp"); eq(Save.load().chapters[2].unlocked, false, "reset locks ch2");
 eq(Save.conceptUses("print"), 0, "reset clears concepts");
+eq(Save.isTrialDone("stock-quiver"), false, "reset clears trials");
 
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
