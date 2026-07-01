@@ -425,8 +425,22 @@ function setupTownsfolk() {
 }
 function townBody(c, x, y, w) {
   const sw = w.paused > 0 ? 0 : Math.sin(w.wphase) * 4;
+  const t = performance.now() / 1000, bob = w.paused > 0 ? Math.sin(t * 1.7 + w.wphase) * 0.7 : Math.abs(Math.cos(w.wphase)) * 1.1;
+  const ty = y - bob, f = w.dir || -1;
+  // legs + boots (step swing while walking)
   px(c, x - 4, y - 4 + sw, 4, 12, "#2a2018"); px(c, x + 1, y - 4 - sw, 4, 12, "#2a2018");
-  px(c, x - 6, y - 24, 12, 20, w.cloth); px(c, x - 5, y - 35, 11, 11, w.skin); px(c, x - 6, y - 37, 12, 4, w.hair);
+  px(c, x - 4, y + 5 + sw, 4, 3, "#100b08"); px(c, x + 1, y + 5 - sw, 4, 3, "#100b08");
+  // tunic with moonlit edge + belt
+  px(c, x - 6, ty - 24, 12, 20, w.cloth); px(c, x - 6, ty - 24, 3, 20, "rgba(255,255,255,0.14)");
+  px(c, x - 6, ty - 9, 12, 3, "#3a2c18");
+  // swinging arms with hands
+  const asw = w.paused > 0 ? 0 : Math.sin(w.wphase) * 3;
+  px(c, x - 8, ty - 22 + asw, 3, 11, w.cloth); px(c, x + 5, ty - 22 - asw, 3, 11, w.cloth);
+  px(c, x - 8, ty - 12 + asw, 3, 2, w.skin); px(c, x + 5, ty - 12 - asw, 3, 2, w.skin);
+  // head: fringe + eye toward walking direction
+  px(c, x - 5, ty - 35, 11, 11, w.skin); px(c, x - 6, ty - 37, 12, 4, w.hair);
+  px(c, x - 6 + (f > 0 ? 0 : 8), ty - 35, 4, 3, w.hair);
+  px(c, x + f * 2 - 1, ty - 31, 2, 2, "#1c1208");
 }
 function stallBody(c, x, y, type, now) {
   const cloth = { craftsman: "#8a6d3b", forhire: "#3d5a3d", blacksmith: "#3a3a42", armorsmith: "#5b626b" }[type];
@@ -946,13 +960,62 @@ function hero(c, x, y) {
   if (char.grabbing) px(c, x + char.facing * 6, ty - 14, char.facing * 5, 8, "#e0a070"); // reaching down to grab
   if (char.bubble) bubble(c, x, ty - 40, char.bubble);
 }
-function npc(c, x, y, cloth, skin, hair) { px(c, x - 4, y - 4, 4, 10, "#241018"); px(c, x + 1, y - 4, 4, 10, "#241018"); px(c, x - 6, y - 22, 12, 18, cloth); px(c, x - 5, y - 32, 11, 11, skin); px(c, x - 6, y - 34, 12, 4, hair); }
-function smith(c, x, y) { px(c, x - 5, y - 4, 4, 10, "#222"); px(c, x + 2, y - 4, 4, 10, "#222"); px(c, x - 7, y - 22, 14, 18, "#5b626b"); px(c, x - 6, y - 32, 12, 11, "#c89a72"); px(c, x - 8, y - 35, 16, 5, "#454c55"); px(c, x - 8, y - 28, 16, 3, "#454c55"); }
+function npc(c, x, y, cloth, skin, hair, f = -1) {
+  const t = performance.now() / 1000, bob = Math.sin(t * 1.7 + (cloth.charCodeAt(2) || 0)) * 0.7; // breathe, out of phase per outfit
+  const ty = y - bob;
+  // legs + boots
+  px(c, x - 4, y - 4, 4, 10, "#241018"); px(c, x + 1, y - 4, 4, 10, "#241018");
+  px(c, x - 4, y + 3, 4, 3, "#100b08"); px(c, x + 1, y + 3, 4, 3, "#100b08");
+  // tunic with moonlit edge + belt
+  px(c, x - 6, ty - 22, 12, 18, cloth); px(c, x - 6, ty - 22, 3, 18, "rgba(255,255,255,0.14)");
+  px(c, x - 6, ty - 8, 12, 3, "#3a2c18"); px(c, x - 1, ty - 8, 2, 3, "#c9a24a");
+  // thin arms with hands
+  px(c, x - 8, ty - 20, 3, 11, cloth); px(c, x + 5, ty - 20, 3, 11, cloth);
+  px(c, x - 8, ty - 10, 3, 2, skin); px(c, x + 5, ty - 10, 3, 2, skin);
+  // head: fringe over the brow + an eye toward whoever they face
+  px(c, x - 5, ty - 32, 11, 11, skin); px(c, x - 6, ty - 34, 12, 4, hair);
+  px(c, x - 6 + (f > 0 ? 0 : 8), ty - 32, 4, 3, hair);
+  px(c, x + f * 2 - 1, ty - 28, 2, 2, "#1c1208");
+}
+function smith(c, x, y) {
+  const t = performance.now() / 1000, ty = y - Math.sin(t * 1.5) * 0.6;
+  // legs + heavy boots
+  px(c, x - 5, y - 4, 4, 10, "#222"); px(c, x + 2, y - 4, 4, 10, "#222");
+  px(c, x - 5, y + 3, 5, 3, "#100b08"); px(c, x + 2, y + 3, 5, 3, "#100b08");
+  // mail shirt with a leather smith's apron
+  px(c, x - 7, ty - 22, 14, 18, "#5b626b"); px(c, x - 7, ty - 22, 3, 18, "rgba(255,255,255,0.13)");
+  px(c, x - 4, ty - 18, 8, 14, "#5a3a20"); px(c, x - 4, ty - 18, 8, 2, "#6e4a28");
+  // arms; one hand resting on a belt hammer
+  px(c, x - 9, ty - 20, 3, 11, "#5b626b"); px(c, x + 6, ty - 20, 3, 11, "#5b626b");
+  px(c, x + 6, ty - 10, 3, 2, "#c89a72");
+  px(c, x - 11, ty - 9, 3, 6, "#9c6b3f"); px(c, x - 12, ty - 11, 5, 3, "#7a828c"); // hammer at the hip
+  // head under an open helm
+  px(c, x - 6, ty - 32, 12, 11, "#c89a72");
+  px(c, x - 8, ty - 35, 16, 5, "#454c55"); px(c, x - 8, ty - 28, 16, 3, "#454c55");
+  px(c, x - 3, ty - 27, 2, 2, "#1c1208");
+}
 function zombie(c, x, y, sw = 0) {
-  px(c, x - 6, y - 5, 13, 16, "#10200c"); px(c, x - 5, y - 16, 11, 11, "#10200c");
-  px(c, x - 5, y - 4, 11, 14, "#8a9a6a"); px(c, x - 4, y - 15, 9, 10, "#aab98a");
-  px(c, x - 2, y - 12, 2, 2, "#ff3b3b"); px(c, x + 1, y - 12, 2, 2, "#ff3b3b");
-  px(c, x - 4, y + 8 - Math.max(0, sw) * 2, 3, 9, "#2a2014"); px(c, x + 2, y + 8 - Math.max(0, -sw) * 2, 3, 9, "#2a2014"); px(c, x + 5, y - 6, 6, 2, "#aab98a");
+  const f = -1; // always shambling toward the player
+  // legs: rotten trousers with a stagger, torn at the knee
+  px(c, x - 4, y + 8 - Math.max(0, sw) * 2, 3, 9, "#2a2014");
+  px(c, x + 2, y + 8 - Math.max(0, -sw) * 2, 3, 9, "#241c10");
+  px(c, x - 4, y + 13 - Math.max(0, sw) * 2, 1, 2, "#8a9a6a");
+  // dark undercoat so it reads on grass
+  px(c, x - 7 + f * 2, y - 6, 15, 17, "#10200c"); px(c, x - 5 + f * 4, y - 16, 12, 11, "#10200c");
+  // hunched torso: shoulder hump, tattered shirt scrap, old wound
+  px(c, x - 5 + f * 2, y - 4, 11, 13, "#7a8a5c"); px(c, x - 5 + f * 2, y - 4, 3, 13, "rgba(255,255,255,0.10)");
+  px(c, x - 3 + f * 2, y - 6, 9, 4, "#7a8a5c");
+  px(c, x + 1 + f * 2, y - 2, 5, 6, "#4a4438");
+  px(c, x - 2 + f * 2, y + 3, 3, 3, "#5c1f1f");
+  // head drooped forward: matted scalp, glowing eyes, slack jaw with one tooth
+  px(c, x - 4 + f * 4, y - 15, 10, 10, "#9aab7a"); px(c, x - 4 + f * 4, y - 15, 10, 3, "#6b7a4c");
+  c.shadowColor = "#ff3b3b"; c.shadowBlur = 5;
+  px(c, x - 3 + f * 4, y - 11, 2, 2, "#ff3b3b"); px(c, x + 1 + f * 4, y - 11, 2, 2, "#ff3b3b");
+  c.shadowBlur = 0;
+  px(c, x - 3 + f * 4, y - 7, 5, 2, "#241206"); px(c, x - 2 + f * 4, y - 7, 1, 1, "#e8dcc0");
+  // arms: one reaching hungrily ahead, one dangling
+  px(c, x + f * 2 - 12, y - 4, 8, 3, "#8a9a6a"); px(c, x + f * 2 - 13, y - 3, 2, 4, "#9aab7a");
+  px(c, x - f * 3, y - 2, 3, 8, "#7a8a5c");
 }
 function drawTree(c, x, gy, now, items, scl = 1) {
   // trunk: shaded bark with a moonlit edge and a root flare
@@ -968,7 +1031,7 @@ function drawTree(c, x, gy, now, items, scl = 1) {
   }
   if (items) { c.strokeStyle = "#9c6b3f"; c.lineWidth = 3; for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(x + 18 + i * 6, gy + 2); c.lineTo(x + 26 + i * 6, gy - 8); c.stroke(); } c.strokeStyle = "#e9dcc0"; c.lineWidth = 2; c.beginPath(); c.arc(x + 32, gy + 4, 5, 0, Math.PI * 2); c.stroke(); if (pickupFx > 0) sparkle(c, x + 24, gy - 4, pickupFx, "#fff"); }
 }
-function drawHut(c, x, gy) {
+function drawHut(c, x, gy, now) {
   // survivor barricade — rough sharpened logs lashed together, ringing the hut on both flanks (drawn behind so door + smith stay in front)
   const bx0 = x - 92, bx1 = x + 92, hts = [30, 22, 34, 20, 28, 24, 32, 21, 29, 23, 31, 26, 33];
   px(c, bx0, gy - 13, bx1 - bx0, 4, "#4a3a22"); // lashing rail
