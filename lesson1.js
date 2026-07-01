@@ -544,6 +544,23 @@ function drawCargo(c, rx, y, cargo = raftCargo) {
   let i = 0; const cols = { armor: "#7a828c", food: "#c2410c", water: "#1971c2" };
   for (const k of ["armor", "food", "water"]) for (let n = 0; n < cargo[k]; n++) { px(c, rx - 15 + (i % 3) * 10, y - 8 - Math.floor(i / 3) * 8, 8, 7, cols[k]); px(c, rx - 15 + (i % 3) * 10, y - 8 - Math.floor(i / 3) * 8, 8, 2, "rgba(255,255,255,0.25)"); i++; }
 }
+// where the hero's feet sit: flat ground everywhere except the storage room,
+// where he climbs the steps onto the raised dock and back down onto the raft
+function heroGroundY(gy) {
+  if (scene !== "storage") return gy;
+  const fx = char.x / els.W;
+  if (fx >= 0.865) return gy + 2;                                  // standing on the raft
+  if (fx >= 0.695) return gy - 12;                                 // up on the dock
+  if (fx >= 0.655) return gy - 12 * ((fx - 0.655) / 0.04);         // climbing the steps
+  return gy;
+}
+// a lashed-log raft (docked, beached, or crossing)
+function raftBody(c, x, y) {
+  for (let i = 0; i < 6; i++) { const lx = x - 36 + i * 12; px(c, lx, y, 11, 9, i % 2 ? "#6b4f2a" : "#5a4424"); px(c, lx, y, 11, 2, "#7f6132"); px(c, lx + 4, y + 9, 3, 2, "#553f22"); } // logs, lit tops, rounded ends
+  px(c, x - 34, y - 2, 70, 3, "#4a3a22"); px(c, x - 34, y + 7, 70, 2, "#3a2c18"); // cross-beams
+  c.strokeStyle = "#2f2415"; c.lineWidth = 1.5; // rope lashings
+  for (const bx of [x - 28, x + 24]) { c.beginPath(); c.moveTo(bx - 3, y - 2); c.lineTo(bx + 3, y + 9); c.moveTo(bx + 3, y - 2); c.lineTo(bx - 3, y + 9); c.stroke(); }
+}
 // warehouse props (shared by the storage room, reusable elsewhere)
 function drawCrate(c, x, y, w, h, col = "#7a5a30") {
   px(c, x, y, w, h, col); px(c, x, y, w, 3, "#8a6d3b"); px(c, x, y, 2, h, "#8a6d3b");
@@ -606,16 +623,28 @@ function drawStorage(c, W, gy, now) {
   c.fillStyle = "#16344e"; c.fillRect(W * 0.78, gy, W * 0.22, H - gy);
   for (let i = 0; i < 6; i++) { c.strokeStyle = "rgba(120,180,225,0.3)"; c.lineWidth = 1; const yy = gy + 12 + i * 12; c.beginPath(); c.moveTo(W * 0.78, yy + Math.sin(now * 3 + i) * 2); c.lineTo(W, yy + Math.sin(now * 3 + i + 2) * 2); c.stroke(); }
   for (let i = 0; i < 3; i++) { c.globalAlpha = 0.4 + 0.5 * Math.abs(Math.sin(now * 2.2 + i * 2.1)); px(c, W * (0.81 + i * 0.05), gy + 16 + (i * 23) % 34, 7, 2, "#bfe0ff"); } c.globalAlpha = 1;
-  // pier on pilings, mooring post, rope down to the raft
-  px(c, W * 0.78, gy + 14, 4, H - gy - 14, "#3a2c18"); px(c, W * 0.86, gy + 14, 4, H - gy - 14, "#3a2c18");
-  for (let x = W * 0.7; x < W * 0.92; x += 12) px(c, x, gy, 11, 9, ((x / 12) | 0) % 2 ? "#6b4f2a" : "#5a4424");
-  px(c, W * 0.7, gy + 9, W * 0.22, 3, "#3a2c18");
-  px(c, W * 0.925, gy - 14, 5, 16, "#4a3a22"); px(c, W * 0.925, gy - 14, 5, 3, "#5f4a2c"); // mooring post
-  c.strokeStyle = "#8a7448"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(W * 0.9275, gy - 10); c.quadraticCurveTo(W * 0.915, gy + 6, W * 0.9, gy + 4); c.stroke();
-  // the docked raft (with anything already loaded)
+  // a raised loading dock on pilings, with steps up from the warehouse floor
+  const deckY = gy - 12, d0 = W * 0.695, d1 = W * 0.955;
+  for (const pf of [0.73, 0.79, 0.85, 0.91]) { px(c, W * pf - 2, deckY + 8, 5, gy - deckY + (H - gy) * 0.5, "#33271a"); px(c, W * pf - 2, deckY + 8, 2, gy - deckY + (H - gy) * 0.5, "#45321f"); } // pilings
+  // back railing so the dock reads as a structure
+  for (let x = d0 + 8; x < d1; x += 42) px(c, x, deckY - 22, 4, 22, "#4a3a22");
+  px(c, d0 + 6, deckY - 24, d1 - d0 - 12, 3, "#5f4a2c");
+  // deck planks with a lit edge + seams
+  for (let x = d0; x < d1; x += 14) px(c, x, deckY, 13, 10, ((x / 14) | 0) % 2 ? "#6b4f2a" : "#5f4526");
+  px(c, d0, deckY, d1 - d0, 2, "#8a6d3b"); px(c, d0, deckY + 10, d1 - d0, 3, "#3a2c18");
+  // two steps up from the floor
+  px(c, W * 0.655, gy - 4, W * 0.04, 4, "#5f4526"); px(c, W * 0.655, gy - 4, W * 0.04, 1, "#7a5a30");
+  px(c, W * 0.675, gy - 8, W * 0.02, 8, "#6b4f2a"); px(c, W * 0.675, gy - 8, W * 0.02, 1, "#8a6d3b");
+  // cleat with a coiled line, and a lantern on a post at the dock's end
+  px(c, W * 0.875, deckY - 4, 10, 4, "#3a3a42"); c.strokeStyle = "#8a7448"; c.lineWidth = 1.5; c.beginPath(); c.arc(W * 0.88, deckY - 6, 4, 0, Math.PI * 2); c.stroke();
+  { const lx = W * 0.945, fl2 = 0.7 + 0.3 * Math.sin(now * 8);
+    px(c, lx - 1, deckY - 26, 3, 26, "#4a3a22"); px(c, lx - 5, deckY - 34, 11, 10, "#2a2014"); px(c, lx - 5, deckY - 34, 11, 2, "#4a3a22");
+    c.shadowColor = "#ffb14d"; c.shadowBlur = 14 * fl2; px(c, lx - 3, deckY - 32, 7, 6, "#ffb14d"); c.shadowBlur = 0; }
+  // mooring rope from the cleat down to the raft below
+  c.strokeStyle = "#8a7448"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(W * 0.88, deckY - 2); c.quadraticCurveTo(W * 0.895, gy + 4, W * 0.9 - 20, gy + 2); c.stroke();
+  // the docked raft (with anything already loaded), floating below the dock
   const rx = W * 0.9;
-  for (let i = 0; i < 6; i++) px(c, rx - 34 + i * 12, gy + 2, 10, 9, i % 2 ? "#6b4f2a" : "#5a4424");
-  px(c, rx - 34, gy + 11, 70, 3, "#3a2c18");
+  raftBody(c, rx, gy + 2);
   drawCargo(c, rx, gy + 2);
   // supply bays: raised pallets, hanging signs, and goods that look like what they are
   for (const [label, f, col] of [["armour", 0.16, "#7a828c"], ["food", 0.28, "#c2410c"], ["water", 0.40, "#1971c2"]]) {
@@ -628,6 +657,20 @@ function drawStorage(c, W, gy, now) {
     else if (label === "food") { drawSack(c, x - 7, gy - 3, "#b0541e"); drawSack(c, x + 7, gy - 3, "#c2410c"); }
     else { drawBarrel(c, x - 8, gy - 3, 16, 20, "#4f6a8a", "#1971c2"); drawBarrel(c, x + 8, gy - 3, 16, 24, "#4f6a8a", "#1971c2"); }
   }
+}
+// a uniformed trooper: steel cap, jerkin, spear; sw swings the legs, f faces
+function soldier(c, x, y, f = -1, sw = 0) {
+  px(c, x - 4, y - 4 + sw, 4, 11, "#2f3a2a"); px(c, x + 1, y - 4 - sw, 4, 11, "#2f3a2a");
+  px(c, x - 4, y + 4 + sw, 4, 3, "#100b08"); px(c, x + 1, y + 4 - sw, 4, 3, "#100b08");
+  px(c, x - 6, y - 22, 12, 18, "#4a5568"); px(c, x - 6, y - 22, 3, 18, "rgba(255,255,255,0.13)");
+  px(c, x - 6, y - 8, 12, 3, "#3a2c18"); px(c, x - 1, y - 8, 2, 3, "#c9a24a");
+  px(c, x - 8, y - 20, 3, 11, "#4a5568"); px(c, x - 8, y - 10, 3, 2, "#c89a72");
+  px(c, x - 5, y - 32, 11, 11, "#c89a72");
+  px(c, x - 6, y - 35, 13, 5, "#7a828c"); px(c, x - 6, y - 30, 13, 2, "#6a727c"); // steel cap
+  px(c, x + f * 2, y - 28, 2, 2, "#1c1208");
+  px(c, x + f * 8, y - 38, 2, 36, "#8a6d3b"); // spear
+  c.fillStyle = "#9aa3ad"; c.beginPath(); c.moveTo(x + f * 8 - 2, y - 38); c.lineTo(x + f * 8 + 1, y - 45); c.lineTo(x + f * 8 + 4, y - 38); c.closePath(); c.fill();
+  px(c, x + f * 5, y - 16, f * 4, 3, "#c89a72"); // hand on the shaft
 }
 function drawCamp(c, W, gy, now) {
   const H = els.H;
@@ -657,14 +700,56 @@ function drawCamp(c, W, gy, now) {
     for (let i = 0; i < 4; i++) { const t = (now * 0.8 + i * 0.31) % 1; c.globalAlpha = 1 - t; px(c, fx2 + Math.sin(now * 2.2 + i * 7) * 8, gy - 18 - t * 44, 2, 2, "#ffb056"); } c.globalAlpha = 1;
     const glow = c.createRadialGradient(fx2, gy - 6, 6, fx2, gy - 6, 120); glow.addColorStop(0, `rgba(255,159,67,${0.14 * fl})`); glow.addColorStop(1, "rgba(255,159,67,0)"); c.fillStyle = glow; c.fillRect(fx2 - 120, gy - 126, 240, 240);
   }
+  // camp gate: two heavy posts + crossbeam over the sentry's post, torchlit
+  { const gx2 = W * 0.5;
+    px(c, gx2 - 34, gy - 62, 8, 62, "#4a3a22"); px(c, gx2 + 26, gy - 62, 8, 62, "#4a3a22");
+    px(c, gx2 - 34, gy - 62, 3, 62, "#5f4a2c"); px(c, gx2 + 26, gy - 62, 3, 62, "#5f4a2c");
+    px(c, gx2 - 40, gy - 70, 80, 10, "#54422a"); px(c, gx2 - 40, gy - 70, 80, 3, "#6b5636");
+    c.fillStyle = "#e8dcc0"; c.font = "8px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText("NORTH WATCH", gx2, gy - 63);
+    for (const s of [-1, 1]) { const tx2 = gx2 + s * 30 + (s > 0 ? 4 : 4); const fl2 = 0.65 + 0.35 * Math.sin(now * 10 + s * 3);
+      c.shadowColor = "#ffb14d"; c.shadowBlur = 12 * fl2; circ(c, tx2, gy - 74, 4 * fl2, "#ff9f43"); circ(c, tx2, gy - 75, 2.5 * fl2, "#ffe066"); c.shadowBlur = 0; }
+  }
+  // watchtower rising behind the palisade, with a lookout on the platform
+  { const wx2 = W * 0.94, py2 = gy - 78;
+    px(c, wx2 - 18, py2 + 12, 5, gy - py2 - 12, "#3f3220"); px(c, wx2 + 13, py2 + 12, 5, gy - py2 - 12, "#3f3220");
+    c.strokeStyle = "#3f3220"; c.lineWidth = 3; c.beginPath(); c.moveTo(wx2 - 16, gy - 8); c.lineTo(wx2 + 16, py2 + 16); c.moveTo(wx2 + 16, gy - 8); c.lineTo(wx2 - 16, py2 + 16); c.stroke();
+    px(c, wx2 - 24, py2, 48, 8, "#54422a"); px(c, wx2 - 24, py2, 48, 2, "#6b5636"); // platform
+    for (let rx2 = wx2 - 22; rx2 <= wx2 + 18; rx2 += 10) px(c, rx2, py2 - 12, 3, 12, "#4a3a22");
+    px(c, wx2 - 24, py2 - 14, 48, 3, "#5f4a2c"); // railing
+    P(c, wx2, py2, (cc) => soldier(cc, 0, 0, -1)); // the lookout
+  }
+  // troops: a marching patrol, two sparring recruits, one warming his hands
+  { const pw = Math.sin(now * 0.45), pd = Math.sign(Math.cos(now * 0.45)) || 1, px2 = W * (0.36 + 0.05 * pw);
+    P(c, px2, gy, (cc) => soldier(cc, 0, 0, pd, Math.sin(now * 7) * 3));
+    P(c, px2 - 26 * pd, gy, (cc) => soldier(cc, 0, 0, pd, Math.sin(now * 7 + 2.4) * 3));
+  }
+  for (const [sx2, sf] of [[W * 0.2, 1], [W * 0.25, -1]]) { // sparring pair with waster swords
+    P(c, sx2, gy, (cc) => { soldier(cc, 0, 0, sf); const sww = Math.sin(now * 5 + sf) * 0.5;
+      cc.save(); cc.translate(sf * 6, -16); cc.rotate(sf * (0.7 + sww)); px(cc, 0, -14, 2, 14, "#8a6d3b"); cc.restore(); });
+  }
+  P(c, W * 0.475, gy, (cc) => { // trooper warming his hands at the fire
+    px(cc, -6, -18, 12, 12, "#4a5568"); px(cc, -6, -7, 14, 4, "#4a5568"); px(cc, 6, -7, 4, 7, "#2f3a2a");
+    px(cc, -5, -27, 10, 10, "#c89a72"); px(cc, -6, -30, 12, 5, "#7a828c");
+    px(cc, -9, -14, 4, 3, "#c89a72");
+  });
+  // weapon rack + training dummy
+  { const rx2 = W * 0.575;
+    px(c, rx2 - 14, gy - 26, 28, 3, "#4a3a22"); px(c, rx2 - 14, gy - 4, 28, 4, "#4a3a22");
+    for (let i = 0; i < 3; i++) { const sx3 = rx2 - 8 + i * 8; c.save(); c.translate(sx3, gy); c.rotate(0.12 - i * 0.12); px(c, -1, -34, 2, 34, "#8a6d3b"); c.fillStyle = "#9aa3ad"; c.beginPath(); c.moveTo(-3, -34); c.lineTo(0, -41); c.lineTo(3, -34); c.closePath(); c.fill(); c.restore(); }
+  }
+  { const dx2 = W * 0.855;
+    px(c, dx2 - 2, gy - 34, 4, 34, "#5a4424"); px(c, dx2 - 10, gy - 28, 20, 4, "#5a4424");
+    circ(c, dx2, gy - 34, 6, "#a9844a"); px(c, dx2 - 7, gy - 26, 14, 12, "#8a6d3b");
+    px(c, dx2 - 4, gy - 32, 2, 2, "#3a2c18"); px(c, dx2 + 2, gy - 32, 2, 2, "#3a2c18");
+  }
   // supply crates stacked by the captain's post
   drawCrate(c, W * 0.74, gy - 14, 22, 16); drawCrate(c, W * 0.755, gy - 28, 18, 14);
+  drawBarrel(c, W * 0.785, gy, 16, 20);
   // shoreline: dark water, beached raft with anything not yet carried up
   c.fillStyle = "#16344e"; c.fillRect(0, gy + 14, W * 0.13, H - gy - 14);
   px(c, 0, gy + 14, W * 0.13, 3, "#0f2739");
   for (let i = 0; i < 2; i++) { c.globalAlpha = 0.4 + 0.5 * Math.abs(Math.sin(now * 2.2 + i * 2.4)); px(c, W * (0.02 + i * 0.05), gy + 24 + i * 16, 7, 2, "#bfe0ff"); } c.globalAlpha = 1;
-  for (let i = 0; i < 6; i++) px(c, W * 0.02 + i * 12, gy + 4, 10, 9, i % 2 ? "#6b4f2a" : "#5a4424");
-  px(c, W * 0.02, gy + 13, 72, 3, "#3a2c18");
+  raftBody(c, W * 0.02 + 36, gy + 4);
   drawCargo(c, W * 0.1, gy + 4, raftCargo);
   drawCargo(c, W * 0.66, gy + 4, campSupplies);   // supplies dropped at the captain's feet
   P(c, W * 0.5, gy, (cc) => npc(cc, 0, 0, "#495057", "#c89a72", "#23262b")); // sentry
@@ -682,11 +767,8 @@ function drawRaft(c, W, gy, now) {
   const rx = W * (0.08 + 0.84 * raftP), ry = gy + Math.sin(now * 2) * 4;
   // wake ripples trailing the raft
   for (let i = 0; i < 4; i++) { const t = (now * 0.7 + i * 0.26) % 1; c.globalAlpha = 0.4 * (1 - t); c.strokeStyle = "#bfd9f5"; c.lineWidth = 1.5; c.beginPath(); c.arc(rx - 40 - t * 46, ry + 10, 4 + t * 9, -0.6, 0.6); c.stroke(); } c.globalAlpha = 1;
-  // the raft: bound logs, deck edge, push pole working the water
-  for (let i = 0; i < 6; i++) px(c, rx - 36 + i * 13, ry, 11, 9, i % 2 ? "#6b4f2a" : "#5a4424");
-  px(c, rx - 36, ry + 9, 74, 3, "#3a2c18");
-  px(c, rx - 36, ry - 2, 74, 3, "#7a5a30"); // moonlit deck edge
-  px(c, rx - 30, ry, 2, 9, "#2f2415"); px(c, rx + 28, ry, 2, 9, "#2f2415"); // rope bindings
+  // the raft: lashed logs with a push pole working the water
+  raftBody(c, rx, ry);
   { const lean = 0.5 + Math.sin(now * 1.6) * 0.14; // the hero poles the raft along
     c.strokeStyle = "#8a6d3b"; c.lineWidth = 2.5; c.beginPath();
     c.moveTo(rx + 14 - Math.cos(lean) * 30, ry - 4 - Math.sin(lean) * 34); c.lineTo(rx + 14 + Math.cos(lean) * 14, ry + 12); c.stroke();
@@ -895,7 +977,7 @@ function draw(now) {
   // (skip in the raft scene — drawRaft draws the hero on the moving raft itself)
   if (scene !== "raft" && !(invinc > 0 && Math.floor(now * 12) % 2)) {
     const vs = scene === "wildwood" ? 0.32 + 0.68 * char.rise : 1;
-    c.save(); c.translate(char.x, gy); c.scale(CH, CH * vs); hero(c, 0, 0); c.restore();
+    c.save(); c.translate(char.x, heroGroundY(gy)); c.scale(CH, CH * vs); hero(c, 0, 0); c.restore();
   }
   // bestow glow
   if (bowFx > 0) sparkle(c, char.x, gy - 34, bowFx, "#9be7ff");
