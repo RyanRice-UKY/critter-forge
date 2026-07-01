@@ -103,7 +103,7 @@ function wireDevBar() {
 // ===== end DEV ONLY =====
 const nonEmptyOut = (r) => (r.stdout.trim() ? null : "Put some words between the quotes.");
 const firstLine = (s) => s.trim().split("\n")[0];
-const prog = (s) => (els.prog.textContent = "· " + s);
+const prog = (s) => (els.prog.textContent = ""); // progress suffix hidden; lesson number shown in the top-left label instead
 
 function ask(opts, onCode) {
   return new Promise((res) => {
@@ -739,7 +739,18 @@ function drawTree(c, x, gy, now, items, scl = 1) {
   if (items) { c.strokeStyle = "#9c6b3f"; c.lineWidth = 3; for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(x + 18 + i * 6, gy + 2); c.lineTo(x + 26 + i * 6, gy - 8); c.stroke(); } c.strokeStyle = "#e9dcc0"; c.lineWidth = 2; c.beginPath(); c.arc(x + 32, gy + 4, 5, 0, Math.PI * 2); c.stroke(); if (pickupFx > 0) sparkle(c, x + 24, gy - 4, pickupFx, "#fff"); }
 }
 function drawHut(c, x, gy) {
-  for (let i = -3; i <= 4; i++) { px(c, x - 70 + i * 18, gy - 12, 6, 24, "#6b4f2a"); px(c, x - 70 + i * 18, gy - 12, 6, 4, "#8a6d3b"); }
+  // survivor barricade — rough sharpened logs lashed together, ringing the hut on both flanks (drawn behind so door + smith stay in front)
+  const bx0 = x - 92, bx1 = x + 92, hts = [30, 22, 34, 20, 28, 24, 32, 21, 29, 23, 31, 26, 33];
+  px(c, bx0, gy - 13, bx1 - bx0, 4, "#4a3a22"); // lashing rail
+  let k = 0;
+  for (let p = bx0; p < bx1; p += 13) {
+    const h = hts[k % hts.length], col = (k % 2) ? "#6b4f2a" : "#5a4424";
+    px(c, p, gy - h, 9, h + 2, col); px(c, p, gy - h, 9, 2, "#8a6d3b"); // log + lit top edge
+    c.fillStyle = col; c.beginPath(); c.moveTo(p, gy - h); c.lineTo(p + 4.5, gy - h - 9); c.lineTo(p + 9, gy - h); c.closePath(); c.fill(); // sharpened point
+    k++;
+  }
+  c.strokeStyle = "#3a2c18"; c.lineWidth = 2; // lashed cross-sticks on the flanks
+  c.beginPath(); c.moveTo(bx0 + 4, gy - 2); c.lineTo(bx0 + 40, gy - 26); c.moveTo(bx1 - 40, gy - 24); c.lineTo(bx1 - 4, gy - 2); c.stroke();
   px(c, x - 34, gy - 50, 68, 50, "#7a5a30"); for (let i = 0; i < 5; i++) px(c, x - 34, gy - 50 + i * 11, 68, 1, "#5a4424");
   c.fillStyle = "#8a2f1f"; c.beginPath(); c.moveTo(x - 42, gy - 50); c.lineTo(x, gy - 78); c.lineTo(x + 42, gy - 50); c.closePath(); c.fill();
   px(c, x - 10, gy - 30, 20, 30, "#3a2c18");
