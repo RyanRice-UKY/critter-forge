@@ -127,6 +127,19 @@ export const JOURNAL_SECTIONS = [
         tryCode: "print(7 % 2)",
       },
       {
+        id: "float", label: "floats  (1.75)", section: "Math & variables",
+        match: /\d+\.\d+/,
+        summary: "A number with a decimal point. Coins smaller than a whole gold need one.",
+        syntax: "gold = 2.55",
+        parts: [
+          ["2", "the whole part"],
+          [".", "the decimal point"],
+          ["55", "the fraction part"],
+        ],
+        usage: ["gold = gold + 1.75", "price = 0.5"],
+        tryCode: "print(1.75 + 0.25)",
+      },
+      {
         id: "plusassign", label: "+=  add to", section: "Math & variables",
         match: /\+=/,
         summary: "Shorthand: add a value straight into an existing variable.",

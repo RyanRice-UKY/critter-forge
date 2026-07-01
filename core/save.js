@@ -14,7 +14,7 @@
   function fresh() {
     const chapters = {};
     for (let i = 1; i <= 6; i++) chapters[i] = { unlocked: i === 1, scene: null, done: false };
-    return { v: 1, name: null, xp: 0, gold: 0, chapters, badges: [], concepts: [], updated: Date.now() };
+    return { v: 1, name: null, xp: 0, gold: 0, chapters, badges: [], concepts: {}, updated: Date.now() };
   }
 
   let cache = null;
@@ -24,6 +24,7 @@
     if (cache) return cache;
     try { const raw = store.getItem(KEY); cache = raw ? Object.assign(fresh(), JSON.parse(raw)) : fresh(); }
     catch (e) { cache = fresh(); }
+    if (Array.isArray(cache.concepts)) cache.concepts = {}; // migrate pre-curriculum saves
     return cache;
   }
   function persist() { cache.updated = Date.now(); try { store.setItem(KEY, JSON.stringify(cache)); } catch (e) {} for (const fn of listeners) fn(cache); }
@@ -56,9 +57,13 @@
     if (s.chapters[ch + 1]) s.chapters[ch + 1].unlocked = true;
     persist();
   }
+  // concept familiarity: how many times the player has successfully used a concept
+  function conceptUses(id) { return load().concepts[id] || 0; }
+  function bumpConcept(id) { const s = load(); s.concepts[id] = (s.concepts[id] || 0) + 1; persist(); return s.concepts[id]; }
+
   function hasSave() { try { return store.getItem(KEY) != null; } catch (e) { return false; } }
   function reset() { cache = fresh(); persist(); return cache; }
   function onChange(fn) { listeners.push(fn); }
 
-  root.Save = { load, write, addXP, level, levelProgress, checkpoint, completeChapter, hasSave, reset, onChange, _fresh: fresh };
+  root.Save = { load, write, addXP, level, levelProgress, checkpoint, completeChapter, conceptUses, bumpConcept, hasSave, reset, onChange, _fresh: fresh };
 })(typeof window !== "undefined" ? window : globalThis);

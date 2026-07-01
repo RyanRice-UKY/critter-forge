@@ -31,8 +31,14 @@ Save.completeChapter(1); eq(Save.load().chapters[1].done, true, "ch1 done"); eq(
 // onChange fires
 let fired = 0; Save.onChange(() => fired++); Save.addXP(5); eq(fired, 1, "onChange");
 
+// concept familiarity
+eq(Save.conceptUses("print"), 0, "fresh concept");
+Save.bumpConcept("print"); Save.bumpConcept("print"); eq(Save.conceptUses("print"), 2, "bumped twice");
+eq(Save.conceptUses("walk"), 0, "other concept untouched");
+
 // reset
 Save.reset(); eq(Save.load().xp, 0, "reset xp"); eq(Save.load().chapters[2].unlocked, false, "reset locks ch2");
+eq(Save.conceptUses("print"), 0, "reset clears concepts");
 
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

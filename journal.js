@@ -69,6 +69,7 @@ window.Journal = {
   _getPyodide() { return pyodide; },
   has: (id) => store.has(id),
   open() { el.journalIcon.classList.remove("has-new"); el.journalBook.hidden = false; renderList(); renderDetail(); },
+  openTo(id) { if (store && !store.has(id)) store.unlock(id); selectedId = id; this.open(); }, // jump straight to one entry (unlocking it if new)
   close() { el.journalBook.hidden = true; },
   noticeLine(line) {
     if (!store) return; // init() may not have run yet (play() logs before Pyodide loads)
