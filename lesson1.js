@@ -254,10 +254,11 @@ function finish(name) { dialogue = { who: "", text: `Lesson 1 complete. ${name} 
 async function play() {
   const start = (location.hash || "").slice(1);
   let name = "survivor";
-  const skip = start === "clearing" || start === "castle" || start === "keep" || start === "storage";
+  const skip = start === "clearing" || start === "castle" || start === "keep" || start === "storage" || start === "camp";
   if (!skip) name = await playWildwood();
   else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; }
   if (start === "storage") { scene = "storage"; questStep = 1; char.gold = 2.05; char.x = els.W * 0.06; await playBeat1(name); await playKeep(name); return; } // DEV jump into Beat 1
+  if (start === "camp") { scene = "camp"; questStep = 1; char.gold = 2.05; raftCargo = { armor: 1, food: 2, water: 1 }; giveItem(ORDERS_NOTE); await playBeat2(name); await playKeep(name); return; } // DEV jump into Beat 2 (raft already loaded, orders in pack)
   if (start === "keep") { char.gold = 2.05; await playKeep(name); return; }
   if (start !== "castle") name = await playClearing(name);
   else char.gold = 2.55;
