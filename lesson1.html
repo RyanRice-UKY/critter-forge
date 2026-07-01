@@ -146,11 +146,29 @@ button#run:hover { filter:brightness(1.08); }
 .hintbtn:hover { filter:brightness(1.12); }
 .hintbtn[hidden] { display:none; }
 .editor .CodeMirror-placeholder { color:#6a6552; font-style:italic; }
+/* XP pill + map link (top-right) */
+.topright { margin-left:auto; display:flex; align-items:center; gap:14px; }
+#xpwrap { display:flex; align-items:center; gap:8px; }
+#xplv { font-family:"Chakra Petch",sans-serif; font-size:12px; letter-spacing:1px; color:#e7c878; }
+.xpbar { width:110px; height:8px; background:#111825; border:1px solid #232c3a; border-radius:4px; overflow:hidden; }
+#xpfill { height:100%; width:0; background:#62d27a; transition:width 0.4s; }
+#mapBtn { font-family:"Chakra Petch",sans-serif; font-size:12px; letter-spacing:1px; color:#a08a5e; text-decoration:none; border:1px solid #3a2c14; border-radius:6px; padding:4px 10px; }
+#mapBtn:hover { color:#e7c878; border-color:#6b4f25; }
+/* floating XP toast over the stage */
+.xp-toast { position:absolute; left:50%; top:18%; transform:translateX(-50%); font-family:"Chakra Petch",sans-serif; font-weight:700; color:#62d27a; text-shadow:0 2px 8px #000; pointer-events:none; animation:xpfloat 1.4s ease-out forwards; z-index:8; }
+.xp-toast.lvl { color:#ffd43b; font-size:22px; }
+@keyframes xpfloat { 0% { opacity:0; margin-top:14px; } 15% { opacity:1; } 100% { opacity:0; margin-top:-34px; } }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <div class="top"><span class="k">Survive the Stack · Lesson 1.2</span><h1>The Wildwood <b id="prog"></b></h1></div>
+      <div class="top">
+        <span class="k">Survive the Stack · Lesson 1.2</span><h1>The Wildwood <b id="prog"></b></h1>
+        <div class="topright">
+          <div id="xpwrap" title="Experience"><span id="xplv">Lv 1</span><div class="xpbar"><div id="xpfill"></div></div></div>
+          <a id="mapBtn" href="survive.html#map" title="World map">⌂ Map</a>
+        </div>
+      </div>
       <div class="game">
         <div class="stagewrap">
           <canvas id="stage"></canvas>
@@ -200,6 +218,7 @@ button#run:hover { filter:brightness(1.08); }
       <button class="devbtn" data-scene="keep">1.3</button>
       <button id="devClose" class="devbtn">✕</button>
     </div>
+    <script src="core/save.js"></script>
     <script type="module" src="./lesson1.js"></script>
   </body>
 </html>

@@ -134,6 +134,7 @@ async function submit() {
   logCmd(src, true);
   Editor.setEnabled(false); els.run.disabled = true; Editor.setValue(""); els.lesson.style.display = "none";
   els.prompt.textContent = "Watch…"; setStatus("✓", "ok");
+  awardXP(opts.xp || 10);
   currentInput = null;
   if (onCode) await onCode(r);
   res(r);
@@ -146,6 +147,17 @@ function renderInventory() {
 function logCmd(line, mine) { for (const ln of String(line).split("\n")) { if (!ln.trim()) continue; const d = document.createElement("div"); d.className = mine ? "mine" : "auto"; d.textContent = ln; els.log.appendChild(d); if (window.Journal) window.Journal.noticeLine(ln); } els.log.scrollTop = els.log.scrollHeight; }
 function setLocations(names) { if (!els.locations) return; els.locations.innerHTML = names.map((n) => `<div>you.walk("${n}")</div>`).join(""); }
 function setStatus(m, k) { els.status.textContent = m; els.status.className = `status ${k}`; }
+
+// ---------- XP / save (core/save.js, plain script loaded before this module) ----------
+const Sv = window.Save || null;
+function xpPill() { if (!Sv) return; const s = Sv.load(), lv = document.getElementById("xplv"), f = document.getElementById("xpfill"); if (lv) lv.textContent = "Lv " + Sv.level(s.xp); if (f) f.style.width = (Sv.levelProgress(s.xp) * 100).toFixed(0) + "%"; }
+function awardXP(n) {
+  if (!Sv) return; const r = Sv.addXP(n); xpPill();
+  const wrap = document.querySelector(".stagewrap"); if (!wrap) return;
+  const t = document.createElement("div"); t.className = "xp-toast"; t.textContent = `+${n} XP`; wrap.appendChild(t); setTimeout(() => t.remove(), 1450);
+  if (r.leveled) { const l = document.createElement("div"); l.className = "xp-toast lvl"; l.style.top = "27%"; l.textContent = `LEVEL UP! Survivor Lv ${r.level}`; wrap.appendChild(l); setTimeout(() => l.remove(), 1600); }
+}
+xpPill();
 function translate(err) {
   const m = err.match(/name '(\w+)' is not defined/);
   if (m) return `Python doesn't know “${m[1]}”. Strings need quotes (e.g. you.walk("tree")) and variables must be set first.`;
@@ -189,7 +201,7 @@ async function rescueSurvivor() {
 }
 
 // quick scene change
-async function fadeTo(name) { await anim(0.4, (p) => (fadeAmt = p)); scene = name; ARROWS = []; await anim(0.4, (p) => (fadeAmt = 1 - p)); }
+async function fadeTo(name) { await anim(0.4, (p) => (fadeAmt = p)); scene = name; ARROWS = []; if (Sv) { Sv.checkpoint(1, name); Sv.write({ gold: char.gold }); } await anim(0.4, (p) => (fadeAmt = 1 - p)); }
 let fadeAmt = 0;
 
 // item / craft FX
@@ -578,6 +590,7 @@ async function playBeat4(name) {
   await say("Armorsmith", "Three plates, and a quarter-gold back. You're kitted, scout.");
   await say("Knight-Captain", "The keep is yours now: the traders, the king's hall, all of it. Well earned.");
   questStep = 5; lesson1Done = true;
+  if (Sv) { Sv.completeChapter(1); Sv.write({ gold: char.gold }); awardXP(40); } // chapter clear bonus; unlocks The Keep on the map
   await say("", "Lesson 1.3 complete. The stalls are open for trade and the king's chamber doors are unlocked.");
 }
 
