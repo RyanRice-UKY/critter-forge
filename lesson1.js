@@ -42,6 +42,7 @@ const els = {}, tweens = [];
 let lastMs = performance.now();
 const char = { x: 0, rise: 0, walk: 0, walking: false, target: 0, onArrive: null, facing: 1, bubble: null, bubbleT: 0, hasBow: false, items: { sticks: 0, string: 0 }, gold: 0, hearts: 5 };
 let zoms = [], ARROWS = [], zombiesApproach = false;
+let FX = [], shootT = 0; // impact debris particles + how long the hero holds the draw pose
 let invinc = 0, dmgFlash = 0, dying = false;
 let townsfolk = [];
 let lesson1Done = false; // the king's chamber stays sealed until Lesson 1 is complete
@@ -217,7 +218,7 @@ async function freeRoam(locs, exitName, hint) {
 // ---------- combat ----------
 const mkZom = (f) => ({ x: els.W * f, alive: true, dying: 0, doomed: false, wphase: Math.random() * 6 });
 // fire an arrow that actually flies to the nearest un-doomed zombie and kills it on impact
-function fireAtNearest() { let best = null, bd = Infinity; for (const z of zoms) { if (!z.alive || z.doomed) continue; const d = Math.abs(z.x - char.x); if (d < bd) { bd = d; best = z; } } if (best) { best.doomed = true; ARROWS.push({ x: char.x + char.facing * 18, target: best }); } }
+function fireAtNearest() { let best = null, bd = Infinity; for (const z of zoms) { if (!z.alive || z.doomed) continue; const d = Math.abs(z.x - char.x); if (d < bd) { bd = d; best = z; } } if (best) { best.doomed = true; const sx = char.x + char.facing * 18; ARROWS.push({ x: sx, sx, target: best }); shootT = 0.38; } }
 function waitForImpact() { return new Promise((res) => { const chk = () => { if (ARROWS.length === 0) res(); else setTimeout(chk, 40); }; setTimeout(chk, 80); }); }
 async function clearingCombat() {
   let first = true;
@@ -230,7 +231,7 @@ async function clearingCombat() {
   }
   zombiesApproach = false;
 }
-async function volley(n) { let i = 0; for (const z of zoms) { if (i >= n) break; i++; if (z.alive) { z.doomed = true; ARROWS.push({ x: char.x + char.facing * 18, target: z }); await wait(0.24); } } await waitForImpact(); }
+async function volley(n) { let i = 0; for (const z of zoms) { if (i >= n) break; i++; if (z.alive) { z.doomed = true; const sx = char.x + char.facing * 18; ARROWS.push({ x: sx, sx, target: z }); shootT = 0.3; await wait(0.24); } } await waitForImpact(); }
 async function rescueSurvivor() {
   survivor.state = "falling";
   await anim(0.55, (p) => (survivor.y = -46 * (1 - p) - Math.sin(p * Math.PI) * 8)); // jump down with an arc
@@ -369,10 +370,19 @@ function update(dt) {
   if (char.walking) { const dx = char.target - char.x, step = 160 * dt; if (Math.abs(dx) <= step) { char.x = char.target; char.walking = false; char.walk = 0; const r = char.onArrive; char.onArrive = null; if (r) r(); } else { char.x += Math.sign(dx) * step; char.walk += dt * 9; char.facing = Math.sign(dx); } }
   if (char.bubbleT > 0) { char.bubbleT -= dt; if (char.bubbleT <= 0) char.bubble = null; }
   // arrows fly to their target and kill on impact
-  for (const a of ARROWS) { const dir = Math.sign(a.target.x - a.x) || 1; a.x += dir * 320 * dt; if (Math.abs(a.x - a.target.x) < 10) { a.hit = true; a.target.alive = false; a.target.dying = 1; } }
+  for (const a of ARROWS) {
+    const dir = Math.sign(a.target.x - a.x) || 1; a.x += dir * 320 * dt;
+    if (Math.abs(a.x - a.target.x) < 10) {
+      a.hit = true; a.target.alive = false; a.target.dying = 1; a.target.fall = dir; // fall away from the shot
+      for (let i = 0; i < 9; i++) FX.push({ x: a.target.x, y: els.H * 0.74 - 16 - Math.random() * 14, vx: dir * (20 + Math.random() * 70) * (Math.random() < 0.3 ? -0.4 : 1), vy: -40 - Math.random() * 80, t: 0.55 + Math.random() * 0.3, col: Math.random() < 0.5 ? "#8a9a6a" : "#5c6b44" });
+    }
+  }
   ARROWS = ARROWS.filter((a) => !a.hit);
+  shootT = Math.max(0, shootT - dt);
+  for (const p of FX) { p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 380 * dt; }
+  FX = FX.filter((p) => p.t > 0);
   for (const z of zoms) {
-    if (!z.alive && z.dying > 0) z.dying = Math.max(0, z.dying - dt * 1.4);
+    if (!z.alive && z.dying > 0) z.dying = Math.max(0, z.dying - dt * 1.1);
     if (z.alive && zombiesApproach) { z.x += Math.sign(char.x - z.x) * 24 * dt; z.wphase += dt * 7; } // slow shamble toward you
   }
   // survivor jump-down + walk-over (or walk back to hide)
@@ -421,14 +431,38 @@ function townBody(c, x, y, w) {
 function stallBody(c, x, y, type, now) {
   const cloth = { craftsman: "#8a6d3b", forhire: "#3d5a3d", blacksmith: "#3a3a42", armorsmith: "#5b626b" }[type];
   const awn = { craftsman: "#2f9e44", forhire: "#1971c2", blacksmith: "#e03131", armorsmith: "#9c36b5" }[type];
-  for (let s = -20; s < 20; s += 6) px(c, x + s, y - 40, 6, 9, ((s / 6) | 0) % 2 ? awn : "#f1f3f5");
-  px(c, x - 22, y - 31, 44, 3, "#5a4424");
-  px(c, x - 4, y - 22, 8, 14, cloth); px(c, x - 3, y - 29, 7, 7, "#d8a878"); px(c, x - 4, y - 31, 8, 3, "#3a2c18");
-  px(c, x - 18, y - 8, 36, 9, "#6b4f2a"); px(c, x - 18, y - 10, 36, 3, "#8a6d3b");
-  if (type === "blacksmith") { px(c, x - 2, y - 5, 11, 5, "#2b2b30"); const fl = 0.6 + 0.4 * Math.sin(now * 12); c.shadowColor = "#ff6b3d"; c.shadowBlur = 10 * fl; circ(c, x - 14, y - 2, 4 * fl, "#ff6b3d"); c.shadowBlur = 0; }
-  else if (type === "armorsmith") { px(c, x + 9, y - 26, 3, 18, "#4a4a4a"); px(c, x + 5, y - 24, 9, 8, "#9aa3ad"); px(c, x + 6, y - 32, 7, 6, "#9aa3ad"); }
-  else if (type === "forhire") { px(c, x + 10, y - 26, 2, 18, "#5a4424"); px(c, x + 5, y - 29, 12, 8, "#caa24a"); }
-  else { px(c, x - 13, y - 14, 4, 5, "#9c6b3f"); }
+  const idle = Math.sin(now * 1.6 + x * 3) * 0.8; // vendor sways gently
+  // back panel + corner posts holding the awning up
+  px(c, x - 21, y - 38, 42, 28, "#241c11"); px(c, x - 21, y - 38, 42, 2, "#3a2c18");
+  px(c, x - 23, y - 40, 4, 40, "#5a4424"); px(c, x + 19, y - 40, 4, 40, "#5a4424");
+  px(c, x - 23, y - 40, 2, 40, "#7a5a30"); px(c, x + 19, y - 40, 2, 40, "#7a5a30");
+  // striped awning with a scalloped hem
+  for (let s = -24; s < 24; s += 6) px(c, x + s, y - 46, 6, 8, ((s / 6) | 0) % 2 ? awn : "#f1f3f5");
+  for (let s = -24; s < 24; s += 6) { c.fillStyle = ((s / 6) | 0) % 2 ? awn : "#f1f3f5"; c.beginPath(); c.arc(x + s + 3, y - 38, 3, 0, Math.PI); c.fill(); }
+  px(c, x - 25, y - 47, 50, 2, "#8a6d3b"); // awning ridge
+  // hanging sign under the hem
+  px(c, x - 6, y - 34, 12, 9, "#6b4f2a"); px(c, x - 6, y - 34, 12, 2, "#8a6d3b"); px(c, x - 1, y - 36, 2, 3, "#3a2c18");
+  px(c, x - 4, y - 31, 8, 4, awn);
+  // the vendor behind the counter (bobbing)
+  px(c, x - 4, y - 22 + idle, 8, 14, cloth); px(c, x - 3, y - 29 + idle, 7, 7, "#d8a878"); px(c, x - 4, y - 31 + idle, 8, 3, "#3a2c18");
+  // counter: top + front planks + shadow
+  px(c, x - 18, y - 8, 36, 3, "#8a6d3b"); px(c, x - 18, y - 5, 36, 6, "#6b4f2a");
+  for (let s = -18; s < 18; s += 9) px(c, x + s, y - 5, 1, 6, "#4a3a22");
+  px(c, x - 18, y + 1, 36, 2, "rgba(0,0,0,0.35)");
+  // wares per trade
+  if (type === "blacksmith") {
+    px(c, x - 14, y - 12, 8, 4, "#2b2b30"); px(c, x - 12, y - 14, 4, 2, "#3a3a42"); // anvil on the counter
+    const fl = 0.6 + 0.4 * Math.sin(now * 12); c.shadowColor = "#ff6b3d"; c.shadowBlur = 12 * fl; circ(c, x + 12, y - 12, 4 * fl, "#ff6b3d"); circ(c, x + 12, y - 13, 2.5 * fl, "#ffe066"); c.shadowBlur = 0; // forge glow
+  } else if (type === "armorsmith") {
+    px(c, x + 12, y - 26, 3, 18, "#4a4a4a"); px(c, x + 8, y - 24, 9, 8, "#9aa3ad"); px(c, x + 9, y - 32, 7, 6, "#9aa3ad"); // armour stand
+    px(c, x - 15, y - 13, 8, 5, "#9aa3ad"); px(c, x - 13, y - 15, 4, 2, "#7a828c"); // helmet on the counter
+  } else if (type === "forhire") {
+    px(c, x - 15, y - 12, 9, 4, "#e8dcc0"); px(c, x - 15, y - 12, 9, 1, "#c9b89a"); // rolled scroll
+    px(c, x + 8, y - 12, 7, 4, "#caa24a"); circ(c, x + 11, y - 13, 2, "#ffd43b"); // coin pouch
+  } else {
+    px(c, x - 15, y - 13, 3, 5, "#9c6b3f"); px(c, x - 16, y - 15, 5, 2, "#7a828c"); // hammer
+    px(c, x + 7, y - 12, 9, 4, "#8a6d3b"); px(c, x + 7, y - 13, 9, 1, "#a9844a"); // planks
+  }
 }
 // the quest-giver: a knight in plate, standing watch
 function knight(c, x, y, now) {
@@ -722,7 +756,17 @@ function draw(now) {
   else drawCastle(c, W, gy, now);
 
   // arrows
-  for (const a of ARROWS) { if (a.dead) continue; c.strokeStyle = "#f1e3c0"; c.lineWidth = 2.5; c.beginPath(); c.moveTo(a.x, gy - 18); c.lineTo(a.x - 13, gy - 18); c.stroke(); c.fillStyle = "#d6dee8"; c.fillRect(a.x, gy - 20, 5, 3); }
+  for (const a of ARROWS) {
+    if (a.dead) continue;
+    const dist = Math.max(1, Math.abs(a.target.x - a.sx)), prog = Math.min(1, Math.abs(a.x - a.sx) / dist), dir = Math.sign(a.target.x - a.sx) || 1;
+    const arc = Math.min(16, dist * 0.08), ay = gy - 18 - Math.sin(prog * Math.PI) * arc;
+    const ang = -dir * Math.cos(prog * Math.PI) * Math.atan2(arc * Math.PI, dist); // points along the flight path
+    c.save(); c.translate(a.x, ay); c.rotate(ang); if (dir < 0) c.scale(-1, 1);
+    c.strokeStyle = "#c9a878"; c.lineWidth = 2; c.beginPath(); c.moveTo(-14, 0); c.lineTo(2, 0); c.stroke(); // shaft
+    c.fillStyle = "#d6dee8"; c.beginPath(); c.moveTo(7, 0); c.lineTo(1, -2.5); c.lineTo(1, 2.5); c.closePath(); c.fill(); // steel head
+    c.fillStyle = "#c23a3a"; c.beginPath(); c.moveTo(-14, 0); c.lineTo(-18, -3); c.lineTo(-12, 0); c.lineTo(-18, 3); c.closePath(); c.fill(); // fletching
+    c.restore();
+  }
   // hero — rises smoothly while waking; blinks briefly after taking a hit.
   // (skip in the raft scene — drawRaft draws the hero on the moving raft itself)
   if (scene !== "raft" && !(invinc > 0 && Math.floor(now * 12) % 2)) {
@@ -810,7 +854,7 @@ function drawClearing(c, W, gy, now) {
   // the survivor's tree
   drawTree(c, W * 0.72, gy, now, false, 1.5);
   // zombies (under the tree; shamble once roused)
-  for (const z of zoms) { if (z.dying <= 0 && !z.alive) continue; c.globalAlpha = z.alive ? 1 : Math.max(0, z.dying); const sw = (z.alive && zombiesApproach) ? Math.sin(z.wphase) : 0; P(c, z.x, gy, (cc) => zombie(cc, 0, 0, sw)); c.globalAlpha = 1; }
+  drawZoms(c, gy);
   // survivor
   if (survivor) P(c, survivor.x, gy + survivor.y, (cc) => npc(cc, 0, 0, "#37b24d", "#c89060", "#241018"));
 }
@@ -848,18 +892,59 @@ function drawCastle(c, W, gy, now) {
   px(c, gxp - 11, top - 20, 22, 20, "#565d66"); px(c, gxp - 7, top - 34, 14, 15, "#c89a72"); px(c, gxp - 8, top - 38, 16, 6, "#454c55");
   px(c, gxp - 5, top - 28, 3, 2, "#111"); px(c, gxp + 3, top - 28, 3, 2, "#111");
   if (survivor) P(c, survivor.x, gy, (cc) => npc(cc, 0, 0, "#37b24d", "#c89060", "#241018")); // the escorted survivor
-  for (const z of zoms) { if (z.dying <= 0 && !z.alive) continue; c.globalAlpha = z.alive ? 1 : Math.max(0, z.dying); const sw = (z.alive && zombiesApproach) ? Math.sin(z.wphase) : 0; P(c, z.x, gy, (cc) => zombie(cc, 0, 0, sw)); c.globalAlpha = 1; }
+  drawZoms(c, gy);
+}
+// zombies walk, then topple sideways when killed (fall direction = the arrow's) and fade at the end
+function drawZoms(c, gy) {
+  for (const z of zoms) {
+    if (z.dying <= 0 && !z.alive) continue;
+    const sw = (z.alive && zombiesApproach) ? Math.sin(z.wphase) : 0;
+    const p = z.alive ? 0 : 1 - z.dying; // 0 upright → 1 flat
+    c.save(); c.translate(z.x, gy);
+    if (p > 0) { c.globalAlpha = z.dying < 0.35 ? z.dying / 0.35 : 1; c.rotate((z.fall || 1) * Math.min(1, p * 1.5) * 1.45); c.translate(0, -Math.sin(Math.min(1, p * 1.5) * Math.PI) * 3); }
+    c.scale(CH, CH); zombie(c, 0, 0, sw); c.restore(); c.globalAlpha = 1;
+  }
+  for (const p of FX) { c.globalAlpha = Math.min(1, p.t * 2.5); px(c, p.x, p.y, 3, 3, p.col); } c.globalAlpha = 1; // impact debris
 }
 
 // sprites (drawn at local origin; P() scales/positions)
 function hero(c, x, y) {
-  const f = char.facing, sw = char.walking ? Math.sin(char.walk) * 4 : 0;
+  const f = char.facing, t = performance.now() / 1000;
+  const sw = char.walking ? Math.sin(char.walk) * 4 : 0;
+  const bob = char.walking ? Math.abs(Math.cos(char.walk)) * 1.3 : Math.sin(t * 1.8) * 0.7; // step bounce / breathing
+  const ty = y - bob; // torso and up ride the bob; feet stay planted
+  // legs with boots
   px(c, x - 4, y - 4 + sw, 4, 12, "#3f6b2a"); px(c, x + 1, y - 4 - sw, 4, 12, "#3f6b2a");
-  px(c, x - 6, y - 22, 12, 20, "#6b8e23"); px(c, x - 5, y - 33, 11, 11, "#e0a070"); px(c, x - 6, y - 35, 12, 4, "#3a2c18");
-  if (char.hasBow) { c.strokeStyle = "#9c6b3f"; c.lineWidth = 2.5; c.beginPath(); c.arc(x + f * 11, y - 16, 11, -1.1 * f, 1.1 * f); c.stroke(); c.strokeStyle = "#e9dcc0"; c.lineWidth = 1.4; c.beginPath(); c.moveTo(x + f * 11, y - 26); c.lineTo(x + f * 11, y - 6); c.stroke(); }
-  else px(c, x + f * 4, y - 18, f * 8, 3, "#e0a070");
-  if (char.grabbing) px(c, x + char.facing * 6, y - 14, char.facing * 5, 8, "#e0a070"); // reaching down to grab
-  if (char.bubble) bubble(c, x, y - 40, char.bubble);
+  px(c, x - 4, y + 5 + sw, 4, 3, "#241a10"); px(c, x + 1, y + 5 - sw, 4, 3, "#241a10");
+  // quiver on the back (only once armed)
+  if (char.hasBow) { c.save(); c.translate(x - f * 7, ty - 20); c.rotate(f * 0.35); px(c, -2, -6, 5, 13, "#5a3f22"); px(c, -2, -6, 5, 2, "#7a5a30"); px(c, -1, -10, 1, 5, "#e9dcc0"); px(c, 1, -11, 1, 6, "#e9dcc0"); c.restore(); }
+  // tunic + belt with buckle + collar
+  px(c, x - 6, ty - 22, 12, 20, "#6b8e23"); px(c, x - 6, ty - 22, 3, 20, "#7fa32e"); // moonlit edge
+  px(c, x - 6, ty - 8, 12, 3, "#3a2c18"); px(c, x - 1, ty - 8, 2, 3, "#c9a24a");
+  px(c, x - 4, ty - 23, 8, 2, "#4a5f18");
+  // head: skin, hair falling over the brow, eye toward facing
+  px(c, x - 5, ty - 33, 11, 11, "#e0a070"); px(c, x - 6, ty - 35, 12, 4, "#3a2c18"); px(c, x - 6 + (f > 0 ? 0 : 8), ty - 33, 4, 3, "#3a2c18");
+  px(c, x + f * 2, ty - 29, 2, 2, "#1c1208");
+  // arms + bow
+  const drawing = shootT > 0;
+  if (char.hasBow) {
+    const bx = x + f * 11;
+    c.strokeStyle = "#9c6b3f"; c.lineWidth = 2.5; c.beginPath(); c.arc(bx, ty - 16, 11, -1.1 * f, 1.1 * f); c.stroke();
+    if (drawing) {
+      const pull = x + f * 3; // string drawn back to the cheek, arrow nocked
+      c.strokeStyle = "#e9dcc0"; c.lineWidth = 1.4; c.beginPath(); c.moveTo(bx, ty - 26); c.lineTo(pull, ty - 18); c.lineTo(bx, ty - 6); c.stroke();
+      c.strokeStyle = "#c9a878"; c.lineWidth = 2; c.beginPath(); c.moveTo(pull, ty - 18); c.lineTo(bx + f * 8, ty - 18); c.stroke();
+      px(c, x + f * 1, ty - 20, f * 6, 3, "#e0a070"); // draw hand at the cheek
+    } else {
+      c.strokeStyle = "#e9dcc0"; c.lineWidth = 1.4; c.beginPath(); c.moveTo(bx, ty - 26); c.lineTo(bx, ty - 6); c.stroke();
+    }
+    px(c, x + f * 4, ty - 18, f * 7, 3, "#e0a070"); // bow arm
+  } else {
+    const armSw = char.walking ? Math.sin(char.walk) * 3 : 0;
+    px(c, x + f * 4, ty - 18 + armSw, f * 8, 3, "#e0a070");
+  }
+  if (char.grabbing) px(c, x + char.facing * 6, ty - 14, char.facing * 5, 8, "#e0a070"); // reaching down to grab
+  if (char.bubble) bubble(c, x, ty - 40, char.bubble);
 }
 function npc(c, x, y, cloth, skin, hair) { px(c, x - 4, y - 4, 4, 10, "#241018"); px(c, x + 1, y - 4, 4, 10, "#241018"); px(c, x - 6, y - 22, 12, 18, cloth); px(c, x - 5, y - 32, 11, 11, skin); px(c, x - 6, y - 34, 12, 4, hair); }
 function smith(c, x, y) { px(c, x - 5, y - 4, 4, 10, "#222"); px(c, x + 2, y - 4, 4, 10, "#222"); px(c, x - 7, y - 22, 14, 18, "#5b626b"); px(c, x - 6, y - 32, 12, 11, "#c89a72"); px(c, x - 8, y - 35, 16, 5, "#454c55"); px(c, x - 8, y - 28, 16, 3, "#454c55"); }
