@@ -631,14 +631,40 @@ function drawStorage(c, W, gy, now) {
 }
 function drawCamp(c, W, gy, now) {
   const H = els.H;
-  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#1a2438"); g.addColorStop(0.55, "#22303c"); g.addColorStop(0.62, "#2b4a2f"); c.fillStyle = g; c.fillRect(0, 0, W, H);
-  for (let i = 0; i < 40; i++) { const sx = (i * 89) % W, sy = (i * 53) % (H * 0.4); c.globalAlpha = 0.3; px(c, sx, sy, 2, 2, "#cfe0f5"); } c.globalAlpha = 1;
-  for (let x = 0; x < W; x += 26) px(c, x, gy, 26, H - gy, (x / 26 | 0) % 2 ? "#2c6b3a" : "#347a42");
-  for (const tx of [W * 0.28, W * 0.64, W * 0.82]) { c.fillStyle = "#6b5638"; c.beginPath(); c.moveTo(tx - 26, gy); c.lineTo(tx, gy - 42); c.lineTo(tx + 26, gy); c.closePath(); c.fill(); px(c, tx - 14, gy - 18, 28, 18, "#15100a"); }
-  const fl = 0.6 + 0.4 * Math.sin(now * 13); circ(c, W * 0.44, gy + 4, 8 * fl, "#ff6b3d"); circ(c, W * 0.44, gy + 4, 4.5 * fl, "#ffd43b");
-  // the raft you arrived on, beached at the shore (left), holding anything not yet carried up
+  // sharpened palisade wall guards the camp's east side
+  for (let p = W * 0.9; p < W; p += 13) { const h = 34 + ((p * 7) % 8); px(c, p, gy - h, 11, h + 2, ((p / 13 | 0) % 2) ? "#4a3a22" : "#54422a"); c.fillStyle = ((p / 13 | 0) % 2) ? "#4a3a22" : "#54422a"; c.beginPath(); c.moveTo(p, gy - h); c.lineTo(p + 5.5, gy - h - 8); c.lineTo(p + 11, gy - h); c.closePath(); c.fill(); }
+  px(c, W * 0.9, gy - 16, W * 0.1, 3, "#2f2415");
+  // ridge tents: shaded canvas, entrance flap, guy ropes
+  for (const [tx, s] of [[W * 0.28, 1], [W * 0.64, 1.1], [W * 0.82, 0.9]]) {
+    c.fillStyle = "#77603c"; c.beginPath(); c.moveTo(tx - 28 * s, gy); c.lineTo(tx, gy - 44 * s); c.lineTo(tx + 28 * s, gy); c.closePath(); c.fill();
+    c.fillStyle = "#8a7148"; c.beginPath(); c.moveTo(tx - 28 * s, gy); c.lineTo(tx, gy - 44 * s); c.lineTo(tx - 6 * s, gy); c.closePath(); c.fill(); // moonlit face
+    px(c, tx - 1, gy - 46 * s, 2, 6, "#3a2c18"); // ridge pole tip
+    c.fillStyle = "#191308"; c.beginPath(); c.moveTo(tx - 11 * s, gy); c.lineTo(tx, gy - 22 * s); c.lineTo(tx + 11 * s, gy); c.closePath(); c.fill(); // entrance
+    c.strokeStyle = "#3a2c18"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(tx + 28 * s, gy - 2); c.lineTo(tx + 36 * s, gy + 4); c.moveTo(tx - 28 * s, gy - 2); c.lineTo(tx - 36 * s, gy + 4); c.stroke(); // guy ropes
+  }
+  // the company standard beside the gate
+  px(c, W * 0.56 - 2, gy - 58, 3, 58, "#3a2c18");
+  c.fillStyle = "#7a1f1f"; c.beginPath(); const fw = 5 * Math.sin(now * 2.6);
+  c.moveTo(W * 0.56 + 1, gy - 58); c.quadraticCurveTo(W * 0.56 + 20 + fw, gy - 54, W * 0.56 + 26 + fw, gy - 48); c.lineTo(W * 0.56 + 1, gy - 44); c.closePath(); c.fill();
+  // proper campfire: stones, logs, layered flame, sparks, glow
+  { const fx2 = W * 0.44, fl = 0.72 + 0.28 * Math.sin(now * 11) + 0.08 * Math.sin(now * 23);
+    for (let i = 0; i < 5; i++) px(c, fx2 - 14 + i * 6, gy + 6, 5, 4, "#4e555e");
+    px(c, fx2 - 12, gy + 1, 24, 4, "#3a2c18"); px(c, fx2 - 8, gy - 2, 16, 4, "#4a3a22");
+    c.shadowColor = "#ff9f43"; c.shadowBlur = 30 * fl;
+    c.fillStyle = "#ff6b3d"; c.beginPath(); c.moveTo(fx2 - 8, gy - 1); c.quadraticCurveTo(fx2 - 10, gy - 16 * fl, fx2, gy - 26 * fl); c.quadraticCurveTo(fx2 + 10, gy - 16 * fl, fx2 + 8, gy - 1); c.closePath(); c.fill();
+    c.fillStyle = "#ffd43b"; c.beginPath(); c.moveTo(fx2 - 4, gy - 1); c.quadraticCurveTo(fx2 - 5, gy - 10 * fl, fx2, gy - 16 * fl); c.quadraticCurveTo(fx2 + 5, gy - 10 * fl, fx2 + 4, gy - 1); c.closePath(); c.fill();
+    c.shadowBlur = 0;
+    for (let i = 0; i < 4; i++) { const t = (now * 0.8 + i * 0.31) % 1; c.globalAlpha = 1 - t; px(c, fx2 + Math.sin(now * 2.2 + i * 7) * 8, gy - 18 - t * 44, 2, 2, "#ffb056"); } c.globalAlpha = 1;
+    const glow = c.createRadialGradient(fx2, gy - 6, 6, fx2, gy - 6, 120); glow.addColorStop(0, `rgba(255,159,67,${0.14 * fl})`); glow.addColorStop(1, "rgba(255,159,67,0)"); c.fillStyle = glow; c.fillRect(fx2 - 120, gy - 126, 240, 240);
+  }
+  // supply crates stacked by the captain's post
+  drawCrate(c, W * 0.74, gy - 14, 22, 16); drawCrate(c, W * 0.755, gy - 28, 18, 14);
+  // shoreline: dark water, beached raft with anything not yet carried up
   c.fillStyle = "#16344e"; c.fillRect(0, gy + 14, W * 0.13, H - gy - 14);
+  px(c, 0, gy + 14, W * 0.13, 3, "#0f2739");
+  for (let i = 0; i < 2; i++) { c.globalAlpha = 0.4 + 0.5 * Math.abs(Math.sin(now * 2.2 + i * 2.4)); px(c, W * (0.02 + i * 0.05), gy + 24 + i * 16, 7, 2, "#bfe0ff"); } c.globalAlpha = 1;
   for (let i = 0; i < 6; i++) px(c, W * 0.02 + i * 12, gy + 4, 10, 9, i % 2 ? "#6b4f2a" : "#5a4424");
+  px(c, W * 0.02, gy + 13, 72, 3, "#3a2c18");
   drawCargo(c, W * 0.1, gy + 4, raftCargo);
   drawCargo(c, W * 0.66, gy + 4, campSupplies);   // supplies dropped at the captain's feet
   P(c, W * 0.5, gy, (cc) => npc(cc, 0, 0, "#495057", "#c89a72", "#23262b")); // sentry
@@ -646,13 +672,29 @@ function drawCamp(c, W, gy, now) {
 }
 function drawRaft(c, W, gy, now) {
   const H = els.H;
-  c.fillStyle = "#16344e"; c.fillRect(0, 0, W, H);
-  for (let i = 0; i < 12; i++) { c.strokeStyle = "rgba(120,180,225,0.3)"; c.lineWidth = 1; const yy = H * 0.25 + i * 22; c.beginPath(); c.moveTo(0, yy + Math.sin(now * 3 + i) * 3); c.lineTo(W, yy + Math.sin(now * 3 + i + 2) * 3); c.stroke(); }
+  // open water from the far bank down; the shell's treeline above reads as the far shore
+  c.fillStyle = "#16344e"; c.fillRect(0, gy, W, H - gy);
+  px(c, 0, gy, W, 3, "#0f2739"); // dark waterline against the far bank
+  for (let i = 0; i < 8; i++) { c.strokeStyle = "rgba(120,180,225,0.28)"; c.lineWidth = 1; const yy = gy + 14 + i * 16; c.beginPath(); c.moveTo(0, yy + Math.sin(now * 3 + i) * 3); c.lineTo(W, yy + Math.sin(now * 3 + i + 2) * 3); c.stroke(); }
+  // the moon lays a broken silver path on the water
+  for (let i = 0; i < 7; i++) { const my2 = gy + 10 + i * 14; c.globalAlpha = (0.32 - i * 0.035) * (0.6 + 0.4 * Math.sin(now * 2.4 + i * 1.7)); px(c, W * 0.13 - 14 + Math.sin(now * 1.3 + i * 2) * 8, my2, 24 - i * 2, 3, "#bfd9f5"); } c.globalAlpha = 1;
+  for (let i = 0; i < 4; i++) { c.globalAlpha = 0.35 + 0.45 * Math.abs(Math.sin(now * 2 + i * 1.9)); px(c, ((i * 271 + 90) % W), gy + 22 + (i * 47) % Math.max(20, H - gy - 40), 8, 2, "#9fc4e8"); } c.globalAlpha = 1;
   const rx = W * (0.08 + 0.84 * raftP), ry = gy + Math.sin(now * 2) * 4;
+  // wake ripples trailing the raft
+  for (let i = 0; i < 4; i++) { const t = (now * 0.7 + i * 0.26) % 1; c.globalAlpha = 0.4 * (1 - t); c.strokeStyle = "#bfd9f5"; c.lineWidth = 1.5; c.beginPath(); c.arc(rx - 40 - t * 46, ry + 10, 4 + t * 9, -0.6, 0.6); c.stroke(); } c.globalAlpha = 1;
+  // the raft: bound logs, deck edge, push pole working the water
   for (let i = 0; i < 6; i++) px(c, rx - 36 + i * 13, ry, 11, 9, i % 2 ? "#6b4f2a" : "#5a4424");
   px(c, rx - 36, ry + 9, 74, 3, "#3a2c18");
+  px(c, rx - 36, ry - 2, 74, 3, "#7a5a30"); // moonlit deck edge
+  px(c, rx - 30, ry, 2, 9, "#2f2415"); px(c, rx + 28, ry, 2, 9, "#2f2415"); // rope bindings
+  { const lean = 0.5 + Math.sin(now * 1.6) * 0.14; // the hero poles the raft along
+    c.strokeStyle = "#8a6d3b"; c.lineWidth = 2.5; c.beginPath();
+    c.moveTo(rx + 14 - Math.cos(lean) * 30, ry - 4 - Math.sin(lean) * 34); c.lineTo(rx + 14 + Math.cos(lean) * 14, ry + 12); c.stroke();
+    c.globalAlpha = 0.5; c.strokeStyle = "#bfd9f5"; c.lineWidth = 1.5; c.beginPath(); c.arc(rx + 14 + Math.cos(lean) * 14, ry + 12, 5 + Math.sin(now * 4) * 2, -0.7, 0.7); c.stroke(); c.globalAlpha = 1; }
   drawCargo(c, rx + 18, ry);   // the supplies you loaded, riding along
   P(c, rx, ry, hero);
+  // thin drifting mist over the water
+  for (let i = 0; i < 3; i++) { const mx2 = ((now * (7 + i * 4) + i * 420) % (W + 260)) - 130; c.fillStyle = "rgba(190,210,232,0.05)"; c.beginPath(); c.ellipse(mx2, gy + 34 + i * 26, 90, 9, 0, 0, Math.PI * 2); c.fill(); }
 }
 async function raftTransition() { scene = "raft"; raftP = 0; await anim(2.6, (p) => (raftP = p)); }
 // grab each supply pile, carry the whole armful to the pier, drop it all on the raft, then board
@@ -800,7 +842,7 @@ function draw(now) {
   // night palette matched to the title screen (survive.js): deeper sky, silhouette treeline, darker grass
   const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#0d1626"); g.addColorStop(0.5, "#16243c"); g.addColorStop(0.74, "#21303c"); c.fillStyle = g; c.fillRect(0, 0, W, H);
   for (let i = 0; i < 70; i++) { const sx = (i * 89) % W, sy = (i * 53) % (H * 0.55); c.globalAlpha = 0.2 + 0.45 * Math.abs(Math.sin(now * 0.5 + i)); px(c, sx, sy, 2, 2, "#cfe0f5"); } c.globalAlpha = 1;
-  const outdoors = scene === "wildwood" || scene === "clearing" || scene === "castle";
+  const outdoors = scene === "wildwood" || scene === "clearing" || scene === "castle" || scene === "camp" || scene === "raft"; // raft: the treeline reads as the far bank
   if (outdoors) {
     // moon with glow + craters (the scene's light source, upper left)
     const mx = W * 0.13, my = H * 0.15;
