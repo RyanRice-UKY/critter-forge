@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Survive the Stack — Trial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <style>
+      :root { --bg:#0b0e14; --glass:#0d1320; --line:#3b4a63; --line2:#22304a; --ink:#dbe6f2; --muted:#8a94a3; --green:#62d27a; --red:#ff6b6b; --amber:#ffd43b; }
+      * { box-sizing:border-box; } html,body{margin:0;height:100%;}
+      body { background:radial-gradient(ellipse at 50% 30%, #101a2e, var(--bg)); color:var(--ink); font-family:"IBM Plex Mono",monospace; }
+      .top { display:flex; align-items:center; gap:14px; padding:14px 20px; }
+      .top a { font:700 12px "Chakra Petch",sans-serif; letter-spacing:1px; color:#a08a5e; text-decoration:none; border:1px solid #3a2c14; border-radius:8px; padding:7px 12px; }
+      .top a:hover { color:#ffe066; border-color:#6b4f25; }
+      .top .t { font:700 16px "Chakra Petch",sans-serif; color:var(--amber); letter-spacing:.6px; }
+      .top .done { color:var(--green); font:700 12px "Chakra Petch",sans-serif; letter-spacing:1px; }
+      .wrap { display:grid; grid-template-columns: 5fr 6fr; gap:16px; padding:0 20px 20px; height:calc(100% - 64px); }
+      @media (max-width:900px){ .wrap{grid-template-columns:1fr; height:auto;} }
+      .panel { background:#0d1320f2; border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; min-height:0; }
+      .p-head { padding:12px 18px; background:linear-gradient(180deg,#141d30,#0d1320); border-bottom:1px solid var(--line2); display:flex; justify-content:space-between; align-items:baseline; }
+      .p-head .n { font:700 15px "Chakra Petch",sans-serif; color:var(--amber); }
+      .p-head .xp { font-size:12px; color:var(--green); }
+      .p-body { padding:14px 18px; overflow-y:auto; font-size:13.5px; line-height:1.65; color:#aab6c6; }
+      .chip { display:inline-block; font:700 10.5px "Chakra Petch",sans-serif; letter-spacing:1px; color:#7ec9ff; border:1px solid #234; border-radius:6px; padding:3px 8px; margin-bottom:10px; text-transform:uppercase; }
+      table.ex { width:100%; border-collapse:collapse; margin-top:12px; font-size:12.5px; }
+      table.ex th { text-align:left; color:var(--muted); font-weight:500; border-bottom:1px solid var(--line2); padding:4px 8px; font-size:11px; letter-spacing:1px; text-transform:uppercase; }
+      table.ex td { padding:6px 8px; border-bottom:1px solid #16203a; vertical-align:top; }
+      table.ex code { color:#dcd8c8; white-space:pre; }
+      .hintbox { margin-top:12px; border-left:3px solid var(--amber); background:rgba(255,212,59,.05); padding:8px 12px; font-size:12.5px; color:#e7c878; display:none; }
+      .hintbox button { margin-top:6px; background:none; border:1px solid #6b4f25; color:#e7c878; border-radius:6px; padding:4px 10px; cursor:pointer; font-family:"Chakra Petch",sans-serif; font-size:11px; letter-spacing:1px; }
+      /* IDE side */
+      .titlebar { display:flex; align-items:center; background:#0a0e17; border-bottom:1px solid var(--line2); flex:none; }
+      .filetab { display:flex; align-items:center; gap:8px; font-size:12.5px; padding:8px 16px; background:#111726; border-right:1px solid var(--line2); border-top:2px solid var(--amber); }
+      .filetab .dot { width:7px; height:7px; border-radius:50%; background:var(--green); }
+      .filetab .dot.err { background:var(--red); }
+      .editor { flex:none; }
+      .editor .CodeMirror { height:auto; min-height:120px; max-height:38vh; font-family:"IBM Plex Mono",monospace; font-size:14.5px; background:transparent; color:#e9f0f8; }
+      .editor .CodeMirror-gutters { background:#0a0e17; border-right:1px solid #161e2e; }
+      .editor .CodeMirror-linenumber { color:#3d4757; }
+      .editor .CodeMirror-cursor { border-left:2px solid var(--amber); }
+      .cm-s-default .cm-keyword{color:#7ec9ff;} .cm-s-default .cm-builtin{color:#e7c878;} .cm-s-default .cm-string{color:#a3d977;} .cm-s-default .cm-comment{color:#5a6273;} .cm-s-default .cm-number{color:#cf8a6a;} .cm-s-default .cm-operator{color:#c9b89a;}
+      .statusbar { display:flex; align-items:center; gap:14px; font-size:11.5px; color:#5d6a7d; background:#0a0e17; border-top:1px solid var(--line2); padding:7px 12px; flex:none; }
+      #pystat.ok { color:var(--green); }
+      button#run { margin-left:auto; background:var(--amber); color:#0b0e14; border:0; font-weight:700; padding:7px 18px; border-radius:7px; cursor:pointer; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; font-size:12.5px; }
+      button#run:disabled { opacity:.4; cursor:not-allowed; }
+      /* results */
+      #results { flex:1; overflow-y:auto; padding:10px 14px; min-height:0; }
+      .case { display:flex; gap:10px; align-items:baseline; padding:7px 10px; border-bottom:1px solid #131c30; font-size:12.5px; }
+      .case .st { font-weight:700; width:16px; }
+      .case.ok .st { color:var(--green); } .case.bad .st { color:var(--red); }
+      .case .lbl { color:#cdd8e6; min-width:110px; }
+      .case .det { color:var(--muted); white-space:pre-wrap; }
+      .case.bad .det { color:#ffb3b3; }
+      #victory { display:none; margin:12px 14px; padding:14px 16px; border:1px solid #2f5a3a; border-radius:10px; background:rgba(98,210,122,.08); color:var(--green); font:700 14px "Chakra Petch",sans-serif; }
+      #victory a { color:var(--amber); }
+    </style>
+  </head>
+  <body>
+    <div class="top">
+      <a id="back" href="lesson1.html#keep">◂ The Keep</a>
+      <span class="t" id="tTitle">Trial</span>
+      <span class="done" id="tDone" hidden>✓ COMPLETED</span>
+    </div>
+    <div class="wrap">
+      <div class="panel">
+        <div class="p-head"><span class="n" id="tName"></span><span class="xp" id="tXp"></span></div>
+        <div class="p-body">
+          <span class="chip" id="tConcept"></span>
+          <div id="tBrief"></div>
+          <table class="ex"><thead><tr><th>given</th><th>expected</th></tr></thead><tbody id="tExamples"></tbody></table>
+          <div class="hintbox" id="hintbox"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="titlebar"><div class="filetab"><span class="dot" id="dot"></span><span id="fileName">trial.py</span></div></div>
+        <div class="editor"><textarea id="code" spellcheck="false"></textarea></div>
+        <div class="statusbar"><span id="pystat">● loading python…</span><span id="status"></span><button id="run" disabled>▸ Run</button></div>
+        <div id="victory"></div>
+        <div id="results"></div>
+      </div>
+    </div>
+    <script src="core/save.js"></script>
+    <script type="module" src="./trial.js"></script>
+  </body>
+</html>
