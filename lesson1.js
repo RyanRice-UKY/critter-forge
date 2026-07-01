@@ -6,6 +6,7 @@
 import "./journal.js"; // defines window.Journal
 import { Editor } from "./editor.js";
 import { CONCEPTS, skeletonize, buildLessonHTML } from "./curriculum.js";
+import { TRIALS } from "./trials/trials-data.js";
 
 const HARNESS = `
 import json, sys, io
@@ -32,7 +33,7 @@ const SCENES = {
   wildwood: { stranger: 0.31, tree: 0.56, smith: 0.76 },
   clearing: { center: 0.42, tree: 0.72, bridge: 0.9 },
   castle: { castle: 0.74 },
-  keep: { craftsman: 0.2, forhire: 0.4, chamber: 0.5, blacksmith: 0.6, armorsmith: 0.8, knight: 0.92 },
+  keep: { craftsman: 0.2, proving: 0.3, forhire: 0.4, chamber: 0.5, blacksmith: 0.6, armorsmith: 0.8, knight: 0.92 },
   storage: { cart: 0.5 },
   camp: { gate: 0.5 },
 };
@@ -177,6 +178,21 @@ async function submit() {
   ideClose();
   if (onCode) await onCode(r);
   res(r);
+}
+// the Proving Grounds board: 8 trials, done-state from the save, Begin links
+function openTrialBoard() {
+  const board = document.getElementById("trialBoard"), rows = document.getElementById("tboardRows");
+  const done = TRIALS.filter((t) => Sv && Sv.isTrialDone(t.id));
+  document.getElementById("tboardSub").textContent = `${done.length} / ${TRIALS.length} trials · ${done.reduce((a, t) => a + t.xp, 0)} XP earned`;
+  rows.innerHTML = TRIALS.map((t) => {
+    const d = Sv && Sv.isTrialDone(t.id);
+    return `<div class="trow ${d ? "done" : ""}"><span class="st">${d ? "✓" : "○"}</span>` +
+      `<span class="nm">${t.n}. ${t.title}<small>${(CONCEPTS[t.concept] && CONCEPTS[t.concept].link) || t.concept}</small></span>` +
+      `<span class="xp">+${t.xp} XP</span><a href="trial.html?t=${t.id}">${d ? "Replay" : "Begin"}</a></div>`;
+  }).join("");
+  board.hidden = false;
+  document.getElementById("tboardClose").onclick = () => (board.hidden = true);
+  board.onclick = (e) => { if (e.target === board) board.hidden = true; };
 }
 function giveItem(item) { inventory.push(item); renderInventory(); els.inventory.hidden = false; }
 function renderInventory() {
@@ -517,8 +533,17 @@ function drawKeep(c, W, gy, now) {
     c.font = "11px 'IBM Plex Mono',monospace"; const cmd = 'you.walk("chamber")', cw = c.measureText(cmd).width, cy = topY - 64;
     c.fillStyle = "rgba(8,12,18,0.8)"; rr(c, sx - cw / 2 - 7, cy - 12, cw + 14, 18, 5); c.fill(); c.strokeStyle = "#3a3018"; c.stroke(); c.fillStyle = "#9fd9ff"; c.textAlign = "center"; c.fillText(cmd, sx, cy + 1);
   }
+  // the drillmaster of the proving grounds (red-plumed trooper, front floor)
+  { const dx = W * SCENES.keep.proving;
+    P(c, dx, gy, (cc) => { soldier(cc, 0, 0, 1); px(cc, -2, -40, 4, 6, "#c2352e"); px(cc, -1, -44, 2, 5, "#c2352e"); }); // plume
+    c.font = "11px 'IBM Plex Mono',monospace"; c.textAlign = "center";
+    const cmd = 'you.walk("proving")', cw2 = c.measureText(cmd).width, cy2 = gy - 49 * CH - 8;
+    c.fillStyle = "rgba(8,12,18,0.8)"; rr(c, dx - cw2 / 2 - 7, cy2 - 12, cw2 + 14, 18, 5); c.fill(); c.strokeStyle = "#2a3a4a"; c.stroke(); c.fillStyle = "#9fd9ff"; c.fillText(cmd, dx, cy2 + 1);
+    c.fillStyle = "#cdd8e6"; c.font = "10px 'IBM Plex Mono',monospace"; c.fillText("PROVING GROUNDS", dx, gy + 18);
+    if (lesson1Done) { c.fillStyle = "#7ec9ff"; c.font = "bold 20px 'Chakra Petch',sans-serif"; c.fillText("⚔", dx, cy2 - 20 + Math.sin(now * 3 + 1) * 3); }
+  }
   for (const [name, frac] of Object.entries(SCENES.keep)) {
-    if (name === "knight" || name === "chamber") continue; // drawn separately
+    if (name === "knight" || name === "chamber" || name === "proving") continue; // drawn separately
     const x = W * frac;
     P(c, x, gy, (cc) => stallBody(cc, 0, 0, name, now));
     // command hint above the stall — teaches how to walk there
@@ -889,17 +914,24 @@ async function playBeat4(name) {
 }
 
 async function playKeep(name) {
-  await fadeTo("keep"); char.x = els.W * 0.06; char.facing = 1; zoms = []; ARROWS = []; setupTownsfolk(); prog(name + " · 1.3"); setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber"]);
+  await fadeTo("keep"); char.x = els.W * 0.06; char.facing = 1; zoms = []; ARROWS = []; setupTownsfolk(); prog(name + " · 1.3"); setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber", "proving"]);
   if (survivorFollow) { survivor = { x: char.x + 36, y: 0, state: "beside", wphase: 0 }; await say("Survivor", "You've brought me to safety. I won't forget it. Thank you, friend."); survivor = null; survivorFollow = false; }
   else survivor = null;
   await say("", "Inside the keep at last. Townsfolk mill about; four traders keep stalls along the back wall.");
   await say("", "A red carpet runs up the centre to a grand staircase, and the sealed doors of the king's chamber above it.");
   await say("", 'An armoured knight stands watch to the east, a quest-marker above him. Wander: walk to a stall, the knight, or the chamber, e.g. you.walk("knight").');
   while (true) {
-    const r = await ask({ prompt: 'Explore the keep, e.g. you.walk("knight") or you.walk("chamber"):', placeholder: 'you.walk("knight")', validate: (rr) => { if (!rr.walk) return 'Type a you.walk("...") command.'; if (!SCENES.keep[rr.walk]) return "Walk to: craftsman, forhire, blacksmith, armorsmith, knight, or chamber."; return null; } }, null);
+    const r = await ask({ prompt: 'Explore the keep, e.g. you.walk("knight") or you.walk("proving"):', placeholder: 'you.walk("knight")', concept: "walk", validate: (rr) => { if (!rr.walk) return 'Type a you.walk("...") command.'; if (!SCENES.keep[rr.walk]) return "Walk to: craftsman, forhire, blacksmith, armorsmith, knight, chamber, or proving."; return null; } }, null);
     logCmd(`you.walk("${r.walk}")`, true);
     await goTo(r.walk);
-    if (r.walk === "chamber") {
+    if (r.walk === "proving") {
+      if (!lesson1Done) await say("Drillmaster", "The proving grounds are for keep scouts. Prove yourself to the knight-captain first, recruit.");
+      else {
+        const done = TRIALS.filter((tt) => Sv && Sv.isTrialDone(tt.id)).length;
+        await say("Drillmaster", done === 0 ? "So the captain vouches for you. Eight trials, real puzzles, no hand-holding. Show me what you can build." : done >= TRIALS.length ? "Every trial bested. There's nothing left I can teach you, scout." : `${done} of ${TRIALS.length} trials down. Back for more? Good.`);
+        openTrialBoard();
+      }
+    } else if (r.walk === "chamber") {
       if (lesson1Done) await say("", "The great doors swing open onto the king's chamber…");
       else { await say("", "You climb the stairs. The king's chamber doors are bound shut with a heavy gold lock."); await say("Guard", "None pass to the king until you've proven yourself. Finish your business in the keep, survivor."); }
     } else if (r.walk === "knight") {
