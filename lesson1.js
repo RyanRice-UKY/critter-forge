@@ -331,11 +331,11 @@ async function play() {
   let name = "survivor";
   const skip = start === "clearing" || start === "castle" || start === "keep" || start === "storage" || start === "camp" || start === "1.3c";
   if (!skip) name = await playWildwood();
-  else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; scene = start === "1.3c" ? "keep" : start; } // hash names match scene names; set sync so the scene shows before the first fade
-  if (start === "1.3c") { // DEV: right after the report is delivered — pay, then the armory
-    questStep = 2; char.gold = 2.05; char.x = els.W * 0.8; char.facing = 1; setupTownsfolk();
+  else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; scene = start === "1.3c" ? "armory" : start; } // hash names match scene names; set sync so the scene shows before the first fade
+  if (start === "1.3c") { // DEV: straight into the armory booth, paid up and cleared to shop
+    questStep = 3; armoryOpen = true; char.gold = 3.8; char.x = els.W * 0.8; char.facing = 1; setupTownsfolk();
     setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber", "proving"]);
-    await playBeat3Pay(name); await playKeep(name); return;
+    await playBeat4(name); await playKeep(name); return;
   }
   if (start === "storage") { scene = "storage"; questStep = 1; char.gold = 2.05; char.x = els.W * 0.06; await playBeat1(name); await playKeep(name); return; } // DEV jump into Beat 1
   if (start === "camp") { scene = "camp"; questStep = 1; char.gold = 2.05; raftCargo = { armor: 1, food: 2, water: 1 }; giveItem(ORDERS_NOTE); await playBeat2(name); await playKeep(name); return; } // DEV jump into Beat 2 (raft already loaded, orders in pack)
@@ -640,7 +640,10 @@ function drawKeep(c, W, gy, now) {
   { const kx = W * SCENES.keep.knight; P(c, kx, gy, (cc) => knight(cc, 0, 0, now));
     c.font = "11px 'IBM Plex Mono',monospace"; c.textAlign = "center"; const cmd = 'you.walk("knight")', cw = c.measureText(cmd).width, cy = gy - 49 * CH - 8;
     c.fillStyle = "rgba(8,12,18,0.8)"; rr(c, kx - cw / 2 - 7, cy - 12, cw + 14, 18, 5); c.fill(); c.strokeStyle = "#5a4a18"; c.stroke(); c.fillStyle = "#ffd98a"; c.fillText(cmd, kx, cy + 1);
-    c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", kx, cy - 18 + Math.sin(now * 3) * 3); }
+    // quest marker only when the knight actually has something for you
+    if (questStep === 0 || questStep === 2 || questStep === 4) { c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", kx, cy - 18 + Math.sin(now * 3) * 3); }
+    // and it moves to the armorsmith while the shopping task is his
+    if (armoryOpen && questStep === 3) { const ax2 = W * SCENES.keep.armorsmith; c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", ax2, gy - 44 * CH + Math.sin(now * 3) * 3); } }
   if (survivor) P(c, survivor.x, gy, (cc) => npc(cc, 0, 0, "#37b24d", "#c89060", "#241018")); // the escorted survivor saying goodbye
 }
 // ---- the armory booth scene ----
