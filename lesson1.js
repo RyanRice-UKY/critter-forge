@@ -42,9 +42,13 @@ let scene = "wildwood";
 let pyodide = null, runUser = null, pyReady = false, lastSrc = "";
 const els = {}, tweens = [];
 let lastMs = performance.now();
-const char = { x: 0, rise: 0, walk: 0, walking: false, target: 0, onArrive: null, facing: 1, bubble: null, bubbleT: 0, hasBow: false, items: { sticks: 0, string: 0 }, gold: 0, hearts: 5 };
+const char = { x: 0, rise: 0, walk: 0, walking: false, target: 0, onArrive: null, facing: 1, bubble: null, bubbleT: 0, hasBow: false, items: { sticks: 0, string: 0 }, gold: 0, hearts: 5, maxHearts: 5, kit: {} };
 let zoms = [], ARROWS = [], zombiesApproach = false;
 let FX = [], shootT = 0; // impact debris particles + how long the hero holds the draw pose
+// ---- the armory booth (shop scene) ----
+const KIT_PIECES = ["boots", "helmet", "gauntlets", "leggings", "chestplate"];
+let armoryRects = null; // clickable rack items, set by drawArmory
+let armoryPicked = { boots: false, helmet: false, gauntlets: false, leggings: false, chestplate: false };
 let manifestRect = null; // clickable wall note in the storage room (set by drawStorage)
 const MANIFEST_CODE =
   "plate_weight = 10\ncrate_weight = 4\nbarrel_weight = 3\n\ncorrect_items = 0\nif armor * plate_weight == 10:\n    correct_items = correct_items + 1\nif food * crate_weight == 8:\n    correct_items = correct_items + 1\nif water * barrel_weight == 3:\n    correct_items = correct_items + 1\n\n# she sails only when correct_items == 3";
@@ -94,6 +98,17 @@ async function boot() {
   els.noteModal.onclick = (e) => { if (e.target === els.noteModal) els.noteModal.hidden = true; };
   fit(); window.addEventListener("resize", fit);
   els.stage.onclick = async (e) => {
+    // the armory rack: clicking a piece toggles it onto the order slip
+    if (scene === "armory" && armoryRects) {
+      const r2 = els.stage.getBoundingClientRect(), mx2 = e.clientX - r2.left, my2 = e.clientY - r2.top;
+      for (const kind of KIT_PIECES) {
+        const rc = armoryRects[kind];
+        if (rc && mx2 >= rc.x && mx2 <= rc.x + rc.w && my2 >= rc.y && my2 <= rc.y + rc.h) {
+          if (!char.kit[kind]) armoryPicked[kind] = !armoryPicked[kind];
+          return;
+        }
+      }
+    }
     // the storage room's wall note: first read gets a guided line-by-line
     // walkthrough of the if statements, then the note pins beside the IDE
     if (scene === "storage" && manifestRect) {
@@ -606,6 +621,116 @@ function drawKeep(c, W, gy, now) {
     c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", kx, cy - 18 + Math.sin(now * 3) * 3); }
   if (survivor) P(c, survivor.x, gy, (cc) => npc(cc, 0, 0, "#37b24d", "#c89060", "#241018")); // the escorted survivor saying goodbye
 }
+// ---- the armory booth scene ----
+function armorIcon(c, kind, s) {
+  const S = (x, y, w, h, col) => px(c, x * s, y * s, w * s, h * s, col);
+  const steel = "#9aa3ad", dark = "#6a727c", trim = "#c9a24a";
+  if (kind === "helmet") { S(3, 2, 6, 2, steel); S(2, 4, 8, 3, steel); S(3, 7, 2, 2, steel); S(7, 7, 2, 2, steel); S(5, 5, 2, 2, "#1a140d"); S(3, 2, 6, 1, trim); }
+  else if (kind === "chestplate") { S(3, 2, 6, 1, trim); S(2, 3, 8, 5, steel); S(3, 8, 6, 2, dark); S(5, 3, 2, 7, dark); S(2, 3, 2, 2, dark); S(8, 3, 2, 2, dark); }
+  else if (kind === "gauntlets") { S(2, 3, 3, 5, steel); S(7, 3, 3, 5, steel); S(2, 8, 3, 2, dark); S(7, 8, 3, 2, dark); S(2, 3, 3, 1, trim); S(7, 3, 3, 1, trim); }
+  else if (kind === "leggings") { S(3, 2, 6, 2, steel); S(3, 4, 2, 6, steel); S(7, 4, 2, 6, steel); S(3, 9, 2, 1, dark); S(7, 9, 2, 1, dark); S(3, 2, 6, 1, trim); }
+  else { S(3, 3, 2, 5, steel); S(7, 3, 2, 5, steel); S(2, 8, 4, 2, dark); S(6, 8, 4, 2, dark); S(2, 8, 4, 1, trim); S(6, 8, 4, 1, trim); } // boots
+}
+function drawArmory(c, W, gy, now) {
+  const H = els.H;
+  // the keep, dimmed behind the booth
+  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#171a24"); g.addColorStop(1, "#1f2330"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  px(c, 0, H * 0.1, W, 5, "#a8832a"); px(c, 0, H * 0.1 + 5, W, 2, "#ffd43b");
+  for (let i = 0; i < 6; i++) { const cx = W * (0.08 + i * 0.17); px(c, cx - 11, 0, 22, H, "#2c303b"); }
+  const floorY = H * 0.8;
+  for (let x = 0; x < W; x += 30) px(c, x, floorY, 30, H - floorY, (x / 30 | 0) % 2 ? "#2a2d36" : "#262931");
+  c.fillStyle = "rgba(4,6,10,.5)"; c.fillRect(0, 0, W, H);
+  // booth geometry
+  const bx = W / 2, bw = Math.min(860, W * 0.68), half = bw / 2, top = H * 0.09, counterY = floorY - 44;
+  px(c, bx - half - 16, top + 40, 18, counterY - top - 8, "#5a4424"); px(c, bx + half - 2, top + 40, 18, counterY - top - 8, "#5a4424");
+  px(c, bx - half - 16, top + 40, 6, counterY - top - 8, "#7a5a30"); px(c, bx + half - 2, top + 40, 6, counterY - top - 8, "#7a5a30");
+  px(c, bx - half, top + 48, bw, counterY - top - 52, "#241c11");
+  for (let y = top + 48; y < counterY - 6; y += 20) px(c, bx - half, y, bw, 2, "#1a140c");
+  // deep scalloped awning
+  for (let s = -half - 30; s < half + 30; s += 52) px(c, bx + s, top, 52, 46, ((s / 52) | 0) % 2 ? "#9c36b5" : "#f1f3f5");
+  for (let s = -half - 30; s < half + 30; s += 52) { c.fillStyle = ((s / 52) | 0) % 2 ? "#9c36b5" : "#f1f3f5"; c.beginPath(); c.arc(bx + s + 26, top + 46, 26, 0, Math.PI); c.fill(); }
+  px(c, bx - half - 36, top - 6, bw + 72, 8, "#8a6d3b"); px(c, bx - half - 36, top - 6, bw + 72, 3, "#a9844a");
+  px(c, bx - 92, top + 66, 184, 40, "#6b4f2a"); px(c, bx - 92, top + 66, 184, 4, "#8a6d3b");
+  c.fillStyle = "#e8dcc0"; c.font = "bold 19px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("ARMORSMITH", bx, top + 92);
+  // the rack: five pieces, clickable; picked = gold frame + check; owned = SOLD
+  armoryRects = {};
+  for (let i = 0; i < 5; i++) {
+    const kind = KIT_PIECES[i], ix = bx - half + bw * (0.1 + i * 0.2), iy = top + (counterY - top) * 0.36, s2 = Math.max(5, Math.min(7, W / 190));
+    const rx0 = ix - 6 * s2 - 6, ry0 = iy - 6, rs = 12 * s2 + 12;
+    px(c, rx0, ry0, rs, rs, "#1a140c");
+    const owned = char.kit[kind];
+    if (owned) c.globalAlpha = 0.35;
+    c.save(); c.translate(ix - 6 * s2, iy); armorIcon(c, kind, s2); c.restore(); c.globalAlpha = 1;
+    if (!owned && armoryPicked[kind]) { c.strokeStyle = "#ffd43b"; c.lineWidth = 3; c.strokeRect(rx0, ry0, rs, rs); c.fillStyle = "#62d27a"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("✓", ix + 6 * s2 - 6, iy + 12); }
+    px(c, ix - 62, iy + 12 * s2 + 10, 124, 40, owned ? "#b9a97f" : "#e8dcc0"); px(c, ix - 62, iy + 12 * s2 + 10, 124, 3, "#c9b98a");
+    c.fillStyle = owned ? "#8a7c52" : "#6b3f16"; c.font = "bold 11.5px 'IBM Plex Mono',monospace";
+    c.fillText(owned ? "SOLD" : `CONST_${kind.toUpperCase()}`, ix, iy + 12 * s2 + 26); if (!owned) c.fillText("= 0.50", ix, iy + 12 * s2 + 42);
+    armoryRects[kind] = { x: rx0, y: ry0, w: rs, h: rs + 44 };
+  }
+  // counter
+  px(c, bx - half - 28, counterY, bw + 56, 14, "#8a6d3b"); px(c, bx - half - 28, counterY, bw + 56, 4, "#a9844a");
+  px(c, bx - half - 28, counterY + 14, bw + 56, 34, "#6b4f2a");
+  for (let x = bx - half - 28; x < bx + half + 28; x += 52) px(c, x, counterY + 14, 3, 34, "#4a3a22");
+  // the smith, broad and aproned, arms on the counter, gentle idle bob
+  { const sc = 5, bob = Math.sin(now * 1.5) * 0.5; c.save(); c.translate(bx + half * 0.42, counterY + 2 - bob); c.scale(sc, sc);
+    px(c, -8, -26, 16, 18, "#5b626b"); px(c, -8, -26, 3, 18, "rgba(255,255,255,.14)");
+    px(c, -5, -21, 10, 13, "#5a3a20"); px(c, -5, -21, 10, 2, "#6e4a28");
+    px(c, -8, -27, 16, 3, "#454c55");
+    px(c, -11, -24, 3, 14, "#5b626b"); px(c, 8, -24, 3, 14, "#5b626b");
+    px(c, -13, -11, 6, 4, "#d8a878"); px(c, 8, -11, 6, 4, "#d8a878");
+    px(c, -6, -38, 12, 12, "#d8a878");
+    px(c, -8, -41, 16, 6, "#454c55"); px(c, -8, -31, 16, 3, "#454c55");
+    px(c, -3, -34, 2, 2, "#1c1208"); px(c, 2, -34, 2, 2, "#1c1208");
+    px(c, -4, -28.5, 8, 1.5, "#8a6242");
+    c.restore(); }
+  // the crafting annex, chained and locked (future blueprint system)
+  { const ax = bx - half - 26, aw = Math.min(190, W * 0.17), ax0 = ax - aw;
+    px(c, ax0, top + 70, aw, counterY - top - 74, "#1f1810");
+    for (let y = top + 70; y < counterY - 6; y += 18) px(c, ax0, y, aw, 2, "#171208");
+    px(c, ax0 - 8, top + 62, aw + 16, 10, "#54422a"); px(c, ax0 - 8, top + 62, aw + 16, 3, "#6b5636");
+    px(c, ax0 - 6, counterY, aw + 12, 8, "#8a6d3b"); px(c, ax0 - 6, counterY + 8, aw + 12, 20, "#6b4f2a");
+    px(c, ax0 + aw / 2 - 44, top + 80, 88, 24, "#6b4f2a"); px(c, ax0 + aw / 2 - 44, top + 80, 88, 2, "#8a6d3b");
+    c.fillStyle = "#e8dcc0"; c.font = "bold 11px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("CRAFTING", ax0 + aw / 2, top + 96);
+    const dx = ax0 + aw / 2, dy = top + 120, slotH = (counterY - dy - 40) / 5;
+    c.setLineDash([3, 3]); c.strokeStyle = "#5a4a30"; c.lineWidth = 1.5;
+    const slots = [[dx - 14, dy, 28, slotH - 6], [dx - 22, dy + slotH, 44, slotH + 8], [dx - 30, dy + slotH * 2 + 8, 60, slotH - 10], [dx - 18, dy + slotH * 3 + 4, 36, slotH + 6], [dx - 20, dy + slotH * 4 + 8, 40, slotH - 8]];
+    for (const [sx, sy, sw2, sh2] of slots) c.strokeRect(sx, sy, sw2, sh2);
+    c.setLineDash([]);
+    c.fillStyle = "#5a4a30"; c.font = "9px 'IBM Plex Mono',monospace";
+    ["helmet", "chest", "hands", "legs", "boots"].forEach((n, i) => c.fillText(n, dx, slots[i][1] + slots[i][3] / 2 + 3));
+    c.strokeStyle = "#6a727c"; c.lineWidth = 4; c.setLineDash([8, 6]);
+    c.beginPath(); c.moveTo(ax0 - 8, top + 74); c.lineTo(ax + 6, counterY + 18); c.moveTo(ax + 6, top + 74); c.lineTo(ax0 - 8, counterY + 18); c.stroke(); c.setLineDash([]);
+    const lx = ax0 + aw / 2, ly = top + (counterY - top) * 0.55;
+    c.fillStyle = "#caa000"; c.fillRect(lx - 13, ly - 4, 26, 22);
+    c.strokeStyle = "#caa000"; c.lineWidth = 5; c.beginPath(); c.arc(lx, ly - 6, 9, Math.PI, 0); c.stroke();
+    px(c, lx - 2, ly + 3, 4, 8, "#3a2c10");
+    c.fillStyle = "#ff9a9a"; c.font = "bold 10px 'IBM Plex Mono',monospace"; c.fillText("LOCKED", lx, ly + 34);
+    c.fillStyle = "#8a7c52"; c.font = "9px 'IBM Plex Mono',monospace"; c.fillText("earn the smith's trust", lx, ly + 48);
+  }
+  // the order slip pinned to the right post
+  { const ox = bx + half + 34, ow = Math.min(230, W - ox - 20);
+    if (ow > 150) {
+      px(c, ox, top + 90, ow, 260, "#e8dcc0"); px(c, ox, top + 90, ow, 4, "#c9b98a");
+      circ(c, ox + ow / 2, top + 96, 4, "#b34a3a");
+      c.fillStyle = "#6b3f16"; c.font = "bold 13px 'Chakra Petch',sans-serif"; c.textAlign = "left"; c.fillText("ORDER SLIP", ox + 14, top + 116);
+      let yy = top + 142;
+      for (const kind of KIT_PIECES) {
+        const owned = char.kit[kind], on = armoryPicked[kind] && !owned;
+        c.font = "12.5px 'IBM Plex Mono',monospace"; c.fillStyle = owned ? "#b0a077" : on ? "#1f7a38" : "#8a7c52";
+        c.fillText(`${owned ? "✔" : on ? "☑" : "☐"} ${kind}${owned ? " (worn)" : ""}`, ox + 14, yy); yy += 19;
+        if (on) { c.font = "11px 'IBM Plex Mono',monospace"; c.fillStyle = "#7a3a9e"; c.fillText(`  CONST_${kind.toUpperCase()} = 0.50`, ox + 14, yy); yy += 19; }
+      }
+      c.font = "11.5px 'IBM Plex Mono',monospace"; c.fillStyle = "#6b3f16"; c.fillText("wear the full kit:", ox + 14, top + 316);
+      c.fillStyle = "#b3261e"; c.font = "bold 13px 'IBM Plex Mono',monospace"; c.fillText("+1 ♥ heart", ox + 14, top + 334);
+    } }
+  // your hero at the counter (armored pieces show as you buy them)
+  { const sc = 4.4; c.save(); c.translate(bx - half * 0.62, floorY + 30); c.scale(sc, sc);
+    px(c, -4, -4, 4, 12, char.kit.leggings ? "#7a828c" : "#3f6b2a"); px(c, 1, -4, 4, 12, char.kit.leggings ? "#7a828c" : "#3f6b2a");
+    px(c, -4, 5, 4, 3, char.kit.boots ? "#9aa3ad" : "#241a10"); px(c, 1, 5, 4, 3, char.kit.boots ? "#9aa3ad" : "#241a10");
+    px(c, -6, -22, 12, 20, char.kit.chestplate ? "#8a939e" : "#6b8e23"); px(c, -6, -8, 12, 3, "#3a2c18");
+    px(c, -5, -33, 11, 11, "#e0a070"); px(c, -6, -35, 12, 5, char.kit.helmet ? "#7a828c" : "#3a2c18");
+    c.restore(); }
+}
 // ---- Lesson 1.3 questline scenes + beats ----
 function drawCargo(c, rx, y, cargo = raftCargo) {
   let i = 0; const cols = { armor: "#7a828c", food: "#c2410c", water: "#1971c2" };
@@ -970,22 +1095,59 @@ async function playBeat3(name) {
   await say("Knight-Captain", "The armoury's unlocked. See the armorsmith and kit yourself out before the scouting run.");
   armoryOpen = true; questStep = 3;
 }
-async function playBeat4(name) {
-  await say("Armorsmith", "Scout armour: light plates, easy to run in. Half a gold each: 0.50 a piece.");
-  await say("Armorsmith", "Spend that 1.75 stipend the captain paid you. Work out how many plates it buys and what change you get.");
-  await ask({
-    prompt: "Work out the plates and your change",
-    placeholder: "pieces = reward // price\nchange = reward % price", rows: 2,
-    seed: "reward=1.75\nprice=0.5", requireOp: "%",
-    concept: "intdiv", task: "Set one variable for the plates your coin buys and one for the change.",
-    validate: (r) => { if (Number(r.vars.pieces) !== 3) return "pieces should be  reward // price  = 3."; if (Math.abs(Number(r.vars.change) - 0.25) > 0.001) return "change should be  reward % price  = 0.25."; return null; },
+// one round of shopping at the booth: pick pieces, tally with the constants, pay.
+// allowExit lets return visitors leave empty-handed by running total = 0.
+async function shopRound(allowExit) {
+  const seed = `gold=${char.gold}\n` + KIT_PIECES.map((k) => `CONST_${k.toUpperCase()}=0.50`).join("\n");
+  const r = await ask({
+    prompt: "Click the gear you want on the rack, then tally your order and pay",
+    placeholder: "total = CONST_HELMET + CONST_BOOTS\ngold = gold - total", rows: 2, seed,
+    concept: ["constant", "add"],
+    task: "Each piece you click lands on your order slip as a constant. Add YOUR picked constants into total, then pay: gold = gold - total." + (allowExit ? " To leave empty handed, run  total = 0." : ""),
+    validate: (rr) => {
+      const picked = KIT_PIECES.filter((k) => armoryPicked[k] && !char.kit[k]);
+      if (allowExit && Number(rr.vars.total) === 0 && picked.length === 0) return null;
+      if (!picked.length) return "Click at least one piece on the rack first. Your slip is empty.";
+      for (const p of picked) if (!lastSrc.includes("CONST_" + p.toUpperCase())) return `Your slip lists CONST_${p.toUpperCase()}. Use it in the tally.`;
+      const want = 0.5 * picked.length;
+      if (want > char.gold + 1e-9) return "You cannot afford that many pieces. Unclick some.";
+      if (Math.abs(Number(rr.vars.total) - want) > 0.001) return `total should come to ${want.toFixed(2)}.`;
+      if (Math.abs(Number(rr.vars.gold) - (char.gold - want)) > 0.001) return `Now pay: gold = gold - total (should leave ${(char.gold - want).toFixed(2)}).`;
+      return null;
+    },
   }, null);
-  char.gold = char.gold - 1.5; char.hasArmor = true; logCmd(`gold = ${char.gold.toFixed(2)}  # bought 3 plates`, true);
-  await say("Armorsmith", "Three plates, and a quarter-gold back. You're kitted, scout.");
+  const bought = KIT_PIECES.filter((k) => armoryPicked[k] && !char.kit[k]);
+  if (!bought.length) return false; // left empty handed
+  for (const p of bought) { char.kit[p] = true; armoryPicked[p] = false; }
+  char.gold = +(char.gold - 0.5 * bought.length).toFixed(2);
+  if (Sv) Sv.write({ gold: char.gold });
+  logCmd(`gold = ${char.gold.toFixed(2)}  # bought: ${bought.join(", ")}`, true);
+  await say("Armorsmith", bought.length === 1 ? "One piece, fitted and yours." : `${bought.length} pieces, fitted and yours.`);
+  if (KIT_PIECES.every((k) => char.kit[k]) && char.maxHearts === 5) {
+    char.maxHearts = 6; char.hearts = Math.min(char.maxHearts, char.hearts + 1);
+    await say("", "The full kit settles onto your shoulders. You stand sturdier: +1 heart.");
+  }
+  return true;
+}
+async function playBeat4(name) {
+  await say("Armorsmith", "So the captain's paying for kit now? Step up to the booth, scout. Half a gold a piece, any of the five.");
+  await fadeTo("armory");
+  await say("", "The rack holds five pieces. Click what you want and it lands on your order slip. Buy all five and the full kit grants an extra heart.");
+  await shopRound(false);
+  char.hasArmor = true;
+  await fadeTo("keep");
   await say("Knight-Captain", "The keep is yours now: the traders, the king's hall, all of it. Well earned.");
   questStep = 5; lesson1Done = true;
   if (Sv) { Sv.completeChapter(1); Sv.write({ gold: char.gold }); awardXP(40); } // chapter clear bonus; unlocks The Keep on the map
   await say("", "Lesson 1.3 complete. The stalls are open for trade and the king's chamber doors are unlocked.");
+}
+// return visits to the armorsmith reopen the booth for the remaining pieces
+async function shopVisit() {
+  if (KIT_PIECES.every((k) => char.kit[k])) { await say("Armorsmith", "Full kit and well worn. Nothing left on my rack for you, scout."); return; }
+  await say("Armorsmith", "Back for the rest of the kit? Step up.");
+  await fadeTo("armory");
+  await shopRound(true);
+  await fadeTo("keep");
 }
 
 async function playKeep(name) {
@@ -1017,6 +1179,7 @@ async function playKeep(name) {
       else await say("Knight-Captain", "The cart won't pack itself. Off with you.");
     } else {
       if (r.walk === "armorsmith" && armoryOpen && questStep < 5) await playBeat4(name);
+      else if (r.walk === "armorsmith" && questStep >= 5) await shopVisit();
       else if (questStep >= 5 || (r.walk === "armorsmith" && armoryOpen)) { const v = KEEP_VENDOR[r.walk]; await say(v[0], v[1]); }
       else await say(KEEP_VENDOR[r.walk][0], "The captain hasn't cleared you to trade yet. See the knight.");
     }
@@ -1066,6 +1229,7 @@ function draw(now) {
   else if (scene === "storage") drawStorage(c, W, gy, now);
   else if (scene === "camp") drawCamp(c, W, gy, now);
   else if (scene === "raft") drawRaft(c, W, gy, now);
+  else if (scene === "armory") drawArmory(c, W, gy, now);
   else drawCastle(c, W, gy, now);
 
   // arrows
@@ -1081,8 +1245,8 @@ function draw(now) {
     c.restore();
   }
   // hero — rises smoothly while waking; blinks briefly after taking a hit.
-  // (skip in the raft scene — drawRaft draws the hero on the moving raft itself)
-  if (scene !== "raft" && !(invinc > 0 && Math.floor(now * 12) % 2)) {
+  // (skip in raft/armory — those scenes draw their own posed hero)
+  if (scene !== "raft" && scene !== "armory" && !(invinc > 0 && Math.floor(now * 12) % 2)) {
     const vs = scene === "wildwood" ? 0.32 + 0.68 * char.rise : 1;
     c.save(); c.translate(char.x, heroGroundY(gy)); c.scale(CH, CH * vs); hero(c, 0, 0); c.restore();
   }
@@ -1419,6 +1583,7 @@ function speakerAnchor(who, W, gy) {
   const w = who.toLowerCase();
   if (w === "survivor") return survivor ? { x: survivor.x, y: gy + (survivor.y || 0) - 36 * CH } : null;
   if (w === "gatekeeper" && scene === "castle") return { x: W * 0.78 - 118 + 50, y: gy - 168 - 20 - 44 }; // peeking over the battlements
+  if (w === "armorsmith" && scene === "armory") { const half = Math.min(860, W * 0.68) / 2; return { x: W / 2 + half * 0.42, y: els.H * 0.8 - 44 - 200 }; } // behind his counter
   const key = SPEAKER_KEY[w];
   if (!key || !SCENES[scene] || SCENES[scene][key] == null) return null;
   return { x: W * SCENES[scene][key], y: gy - 36 * CH };
@@ -1446,7 +1611,7 @@ function drawSpeechBubble(c, W, anch, banner, clickable) {
 function wrapText(c, text, x, y, maxW, lh) { const words = String(text).split(" "); let line = "", yy = y; for (const w of words) { const t = line ? line + " " + w : w; if (c.measureText(t).width > maxW && line) { c.fillText(line, x, yy); line = w; yy += lh; } else line = t; } c.fillText(line, x, yy); }
 function countLines(c, text, maxW) { const words = String(text).split(" "); let line = "", n = 1; for (const w of words) { const t = line ? line + " " + w : w; if (c.measureText(t).width > maxW && line) { line = w; n++; } else line = t; } return n; }
 function drawHearts(c, W) {
-  const n = 5, sp = 26, x0 = W / 2 - (n * sp) / 2 + sp / 2, y = 24;
+  const n = char.maxHearts || 5, sp = 26, x0 = W / 2 - (n * sp) / 2 + sp / 2, y = 24;
   c.fillStyle = "rgba(7,11,17,0.55)"; rr(c, x0 - 18, 10, n * sp + 8, 28, 8); c.fill();
   for (let i = 0; i < n; i++) heart(c, x0 + i * sp, y, i < char.hearts);
 }
