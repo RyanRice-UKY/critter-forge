@@ -88,19 +88,21 @@
   <canvas id="boothF" style="position:fixed;inset:0;width:100%;height:100%;"></canvas>
   <div style="position:fixed;top:14px;left:16px;z-index:12;font:700 12px 'Chakra Petch',sans-serif;letter-spacing:1px;color:#e7c878;background:rgba(7,10,16,.78);border:1px solid #3a2c14;border-radius:8px;padding:7px 12px;">🪙 3.80</div>
   <div style="position:fixed;top:14px;right:16px;z-index:12;font:700 12px 'Chakra Petch',sans-serif;letter-spacing:1px;color:#a08a5e;background:rgba(7,10,16,.78);border:1px solid #3a2c14;border-radius:8px;padding:7px 12px;cursor:pointer;">◂ step back</div>
-  <div style="position:fixed;left:50%;transform:translateX(-50%);bottom:18px;width:min(840px,94vw);z-index:12;background:rgba(8,11,18,.92);border:1px solid #2a3548;border-radius:12px;backdrop-filter:blur(8px);box-shadow:0 18px 60px rgba(0,0,0,.6);overflow:hidden;">
+  <div style="position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:min(1000px,96vw);z-index:12;background:rgba(8,11,18,.94);border:1px solid #2a3548;border-radius:14px;backdrop-filter:blur(8px);box-shadow:0 18px 60px rgba(0,0,0,.6);overflow:hidden;">
     <div style="display:flex;align-items:center;background:#0a0e17;border-bottom:1px solid #1b2533;">
-      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;padding:8px 16px;background:#111726;border-right:1px solid #1b2533;border-top:2px solid #ffd43b;"><span style="width:7px;height:7px;border-radius:50%;background:#62d27a;"></span> armory.py</div>
-      <div style="flex:1;padding:0 14px;font:700 12.5px 'Chakra Petch',sans-serif;color:#62d27a;">◈ Kit yourself out: tally your order, pay the smith</div>
+      <div style="display:flex;align-items:center;gap:9px;font-size:14px;padding:11px 20px;background:#111726;border-right:1px solid #1b2533;border-top:3px solid #ffd43b;"><span style="width:8px;height:8px;border-radius:50%;background:#62d27a;"></span> armory.py</div>
+      <div style="flex:1;padding:0 18px;font:700 14.5px 'Chakra Petch',sans-serif;color:#62d27a;">◈ Click the gear you want, then tally your order and pay the smith</div>
     </div>
-    <div style="padding:12px 16px;font-size:14px;line-height:1.6;">
-      <span style="color:#5a6273"># BOOTS, HELMET, GAUNTLETS, LEGGINGS, CHESTPLATE = 0.50 each · gold = 3.80</span><br/>
-      total = <span style="color:#55627a;font-style:italic">HELMET + CHESTPLATE + BOOTS</span><br/>
+    <div style="padding:16px 22px;font-size:16px;line-height:1.75;">
+      <span style="color:#5a6273"># your order slip (click items on the rack to add them):</span><br/>
+      <span style="color:#7ec9ff">CONST_LEGGINGS</span> = <span style="color:#cf8a6a">0.50</span><br/>
+      <span style="color:#7ec9ff">CONST_CHESTPLATE</span> = <span style="color:#cf8a6a">0.50</span><br/>
+      total = <span style="color:#55627a;font-style:italic">CONST_LEGGINGS + CONST_CHESTPLATE</span><br/>
       <span style="color:#55627a;font-style:italic">gold = gold - total</span>
     </div>
-    <div style="display:flex;align-items:center;gap:14px;font-size:11.5px;color:#5d6a7d;background:#0a0e17;border-top:1px solid #1b2533;padding:6px 12px;">
-      <span style="color:#62d27a">● python ready</span><span>💡 hint</span><span style="margin-left:auto"></span>
-      <button style="background:#ffd43b;color:#0b0e14;border:0;font-weight:700;padding:7px 16px;border-radius:7px;font-family:'Chakra Petch',sans-serif;">▸ Run</button>
+    <div style="display:flex;align-items:center;gap:16px;font-size:13px;color:#5d6a7d;background:#0a0e17;border-top:1px solid #1b2533;padding:10px 18px;">
+      <span style="color:#62d27a">● python ready</span><span>🪙 gold = 3.80</span><span>💡 hint</span><span style="margin-left:auto"></span>
+      <button style="background:#ffd43b;color:#0b0e14;border:0;font-weight:700;padding:10px 24px;border-radius:8px;font-family:'Chakra Petch',sans-serif;font-size:14px;letter-spacing:1px;">▸ Run</button>
     </div>
   </div>
 </div>
@@ -326,47 +328,57 @@ function drawBoothF() {
   cv.width = W * dpr; cv.height = H * dpr;
   const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0);
   const S = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.ceil(w), Math.ceil(h)); };
-  // the keep behind, dimmed: wall, gold trim, columns, carpet, floor
+  // the keep behind, dimmed: wall, gold trim, columns, floor
   const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#171a24"); g.addColorStop(1, "#1f2330"); c.fillStyle = g; c.fillRect(0, 0, W, H);
-  S(0, H * 0.14, W, 5, "#a8832a"); S(0, H * 0.14 + 5, W, 2, "#ffd43b");
-  for (let i = 0; i < 6; i++) { const cx = W * (0.08 + i * 0.17); S(cx - 11, 0, 22, H * 0.74 + 30, "#2c303b"); S(cx - 14, 0, 28, 9, "#3a3f4b"); }
-  const floorY = H * 0.74;
+  S(0, H * 0.1, W, 5, "#a8832a"); S(0, H * 0.1 + 5, W, 2, "#ffd43b");
+  for (let i = 0; i < 6; i++) { const cx = W * (0.08 + i * 0.17); S(cx - 11, 0, 22, H, "#2c303b"); }
+  const floorY = H * 0.82;
   for (let x = 0; x < W; x += 30) S(x, floorY, 30, H - floorY, (x / 30 | 0) % 2 ? "#2a2d36" : "#262931");
-  c.fillStyle = "rgba(4,6,10,.45)"; c.fillRect(0, 0, W, H); // step-up dim
-  // ---- the booth, big in front of you ----
-  const bx = W / 2, bw = Math.min(620, W * 0.62), half = bw / 2, top = H * 0.16, counterY = floorY - 26;
+  c.fillStyle = "rgba(4,6,10,.5)"; c.fillRect(0, 0, W, H); // step-up dim
+  // ---- the booth, filling your view ----
+  const bx = W / 2, bw = Math.min(860, W * 0.68), half = bw / 2, top = H * 0.09, counterY = floorY - 44;
   // corner posts
-  S(bx - half - 12, top + 26, 14, counterY - top - 4, "#5a4424"); S(bx + half - 2, top + 26, 14, counterY - top - 4, "#5a4424");
-  S(bx - half - 12, top + 26, 5, counterY - top - 4, "#7a5a30"); S(bx + half - 2, top + 26, 5, counterY - top - 4, "#7a5a30");
+  S(bx - half - 16, top + 40, 18, counterY - top - 8, "#5a4424"); S(bx + half - 2, top + 40, 18, counterY - top - 8, "#5a4424");
+  S(bx - half - 16, top + 40, 6, counterY - top - 8, "#7a5a30"); S(bx + half - 2, top + 40, 6, counterY - top - 8, "#7a5a30");
   // back wall boards
-  S(bx - half, top + 34, bw, counterY - top - 38, "#241c11");
-  for (let y = top + 34; y < counterY - 6; y += 18) S(bx - half, y, bw, 2, "#1a140c");
-  // striped awning with scalloped hem (armorsmith purple)
-  for (let s = -half - 20; s < half + 20; s += 34) S(bx + s, top, 34, 30, ((s / 34) | 0) % 2 ? "#9c36b5" : "#f1f3f5");
-  for (let s = -half - 20; s < half + 20; s += 34) { c.fillStyle = ((s / 34) | 0) % 2 ? "#9c36b5" : "#f1f3f5"; c.beginPath(); c.arc(bx + s + 17, top + 30, 17, 0, Math.PI); c.fill(); }
-  S(bx - half - 24, top - 4, bw + 48, 6, "#8a6d3b");
+  S(bx - half, top + 48, bw, counterY - top - 52, "#241c11");
+  for (let y = top + 48; y < counterY - 6; y += 20) S(bx - half, y, bw, 2, "#1a140c");
+  // BIG striped awning with deep scallops (armorsmith purple)
+  for (let s = -half - 30; s < half + 30; s += 52) S(bx + s, top, 52, 46, ((s / 52) | 0) % 2 ? "#9c36b5" : "#f1f3f5");
+  for (let s = -half - 30; s < half + 30; s += 52) { c.fillStyle = ((s / 52) | 0) % 2 ? "#9c36b5" : "#f1f3f5"; c.beginPath(); c.arc(bx + s + 26, top + 46, 26, 0, Math.PI); c.fill(); }
+  S(bx - half - 36, top - 6, bw + 72, 8, "#8a6d3b"); S(bx - half - 36, top - 6, bw + 72, 3, "#a9844a");
   // hanging sign
-  S(bx - 60, top + 44, 120, 30, "#6b4f2a"); S(bx - 60, top + 44, 120, 3, "#8a6d3b");
-  c.fillStyle = "#e8dcc0"; c.font = "bold 13px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("ARMORSMITH", bx, top + 63);
-  // the five pieces on the back rack with tags
+  S(bx - 92, top + 66, 184, 40, "#6b4f2a"); S(bx - 92, top + 66, 184, 4, "#8a6d3b");
+  c.fillStyle = "#e8dcc0"; c.font = "bold 19px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("ARMORSMITH", bx, top + 92);
+  // the five pieces on the back rack, big, with tags; two are SELECTED (✓)
   const pieces = ["boots", "helmet", "gauntlets", "leggings", "chestplate"];
-  const names = ["BOOTS", "HELMET", "GAUNTLETS", "LEGGINGS", "CHESTPLATE"];
+  const names = ["CONST_BOOTS", "CONST_HELMET", "CONST_GAUNTLETS", "CONST_LEGGINGS", "CONST_CHESTPLATE"];
+  const picked = [false, false, false, true, true];
   for (let i = 0; i < 5; i++) {
-    const ix = bx - half + bw * (0.1 + i * 0.2), iy = top + (counterY - top) * 0.34, s2 = 5;
-    S(ix - 6 * s2 - 4, iy - 4, 12 * s2 + 8, 12 * s2 + 8, "#1a140c");
+    const ix = bx - half + bw * (0.1 + i * 0.2), iy = top + (counterY - top) * 0.36, s2 = 7;
+    S(ix - 6 * s2 - 6, iy - 6, 12 * s2 + 12, 12 * s2 + 12, "#1a140c");
+    if (picked[i]) { c.strokeStyle = "#ffd43b"; c.lineWidth = 3; c.strokeRect(ix - 6 * s2 - 6, iy - 6, 12 * s2 + 12, 12 * s2 + 12); }
     c.save(); c.translate(ix - 6 * s2, iy); drawIcon(pieces[i], c, s2); c.restore();
-    S(ix - 40, iy + 12 * s2 + 6, 80, 26, "#e8dcc0"); S(ix - 40, iy + 12 * s2 + 6, 80, 2, "#c9b98a");
-    c.fillStyle = "#6b3f16"; c.font = "bold 10px 'IBM Plex Mono',monospace"; c.textAlign = "center";
-    c.fillText(names[i], ix, iy + 12 * s2 + 17); c.fillText("= 0.50", ix, iy + 12 * s2 + 28);
+    if (picked[i]) { c.fillStyle = "#62d27a"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("✓", ix + 6 * s2 - 4, iy + 12); }
+    S(ix - 62, iy + 12 * s2 + 10, 124, 40, "#e8dcc0"); S(ix - 62, iy + 12 * s2 + 10, 124, 3, "#c9b98a");
+    c.fillStyle = "#6b3f16"; c.font = "bold 11.5px 'IBM Plex Mono',monospace"; c.textAlign = "center";
+    c.fillText(names[i], ix, iy + 12 * s2 + 26); c.fillText("= 0.50", ix, iy + 12 * s2 + 42);
   }
-  // counter with front planks
-  S(bx - half - 20, counterY, bw + 40, 8, "#8a6d3b"); S(bx - half - 20, counterY + 8, bw + 40, 20, "#6b4f2a");
-  for (let x = bx - half - 20; x < bx + half + 20; x += 46) S(x, counterY + 8, 2, 20, "#4a3a22");
-  // the vendor behind the counter (booth scale)
-  { const sc = 3.5; c.save(); c.translate(bx + half * 0.5, counterY); c.scale(sc, sc);
-    S(-4, -22, 8, 14, "#5b626b"); S(-4, -22, 2, 14, "rgba(255,255,255,.13)");
-    S(-6, -20, 3, 10, "#5b626b"); S(4, -20, 3, 10, "#5b626b"); S(4, -11, 3, 2, "#d8a878");
-    S(-3, -29, 7, 7, "#d8a878"); S(-4, -31, 8, 3, "#3a2c18"); S(0, -26, 2, 2, "#1c1208");
+  // thick counter with front planks
+  S(bx - half - 28, counterY, bw + 56, 14, "#8a6d3b"); S(bx - half - 28, counterY, bw + 56, 4, "#a9844a");
+  S(bx - half - 28, counterY + 14, bw + 56, 34, "#6b4f2a");
+  for (let x = bx - half - 28; x < bx + half + 28; x += 52) S(x, counterY + 14, 3, 34, "#4a3a22");
+  // the armorsmith: broad, aproned, arms resting on his counter
+  { const sc = 5; c.save(); c.translate(bx + half * 0.42, counterY + 2); c.scale(sc, sc);
+    S(-8, -26, 16, 18, "#5b626b"); S(-8, -26, 3, 18, "rgba(255,255,255,.14)"); // mail shirt
+    S(-5, -21, 10, 13, "#5a3a20"); S(-5, -21, 10, 2, "#6e4a28"); // apron
+    S(-8, -27, 16, 3, "#454c55"); // shoulder plate line
+    S(-11, -24, 3, 14, "#5b626b"); S(8, -24, 3, 14, "#5b626b"); // upper arms
+    S(-13, -11, 6, 4, "#d8a878"); S(8, -11, 6, 4, "#d8a878"); // forearms resting on the counter
+    S(-6, -38, 12, 12, "#d8a878"); // head
+    S(-8, -41, 16, 6, "#454c55"); S(-8, -31, 16, 3, "#454c55"); // open helm
+    S(-3, -34, 2, 2, "#1c1208"); S(2, -34, 2, 2, "#1c1208"); // eyes, on you
+    S(-4, -28.5, 8, 1.5, "#8a6242"); // beard line
     c.restore(); }
   // ---- the crafting annex: a tailor's station bolted to the booth's left, LOCKED for now ----
   { const ax = bx - half - 26, aw = Math.min(190, W * 0.17), ax0 = ax - aw;
@@ -399,8 +411,26 @@ function drawBoothF() {
     c.fillStyle = "#ff9a9a"; c.font = "bold 10px 'IBM Plex Mono',monospace"; c.fillText("LOCKED", lx, ly + 34);
     c.fillStyle = "#8a7c52"; c.font = "9px 'IBM Plex Mono',monospace"; c.fillText("earn the smith's trust", lx, ly + 48);
   }
+  // the order slip: a checklist pinned to the right post; clicked items land here with their code
+  { const ox = bx + half + 34, ow = Math.min(230, W - ox - 20);
+    if (ow > 150) {
+      S(ox, top + 90, ow, 250, "#e8dcc0"); S(ox, top + 90, ow, 4, "#c9b98a");
+      c.fillStyle = "#b34a3a"; c.beginPath(); c.arc(ox + ow / 2, top + 96, 4, 0, Math.PI * 2); c.fill();
+      c.fillStyle = "#6b3f16"; c.font = "bold 13px 'Chakra Petch',sans-serif"; c.textAlign = "left";
+      c.fillText("ORDER SLIP", ox + 14, top + 116);
+      const rows = [["☐", "boots", false], ["☐", "helmet", false], ["☐", "gauntlets", false], ["☑", "leggings", true], ["☑", "chestplate", true]];
+      let yy = top + 142;
+      for (const [box, nm, on] of rows) {
+        c.font = "12.5px 'IBM Plex Mono',monospace"; c.fillStyle = on ? "#1f7a38" : "#8a7c52";
+        c.fillText(`${box} ${nm}`, ox + 14, yy); yy += 20;
+        if (on) { c.font = "11px 'IBM Plex Mono',monospace"; c.fillStyle = "#7a3a9e"; c.fillText(`  CONST_${nm.toUpperCase()} = 0.50`, ox + 14, yy); yy += 20; }
+      }
+      c.font = "11.5px 'IBM Plex Mono',monospace"; c.fillStyle = "#6b3f16";
+      c.fillText("wear the full kit:", ox + 14, top + 292);
+      c.fillStyle = "#b3261e"; c.font = "bold 13px 'IBM Plex Mono',monospace"; c.fillText("+1 ♥ heart", ox + 14, top + 310);
+    } }
   // your hero, this side of the counter at its left end
-  { const sc = 3.4; c.save(); c.translate(bx - half * 0.62, floorY + 22); c.scale(sc, sc);
+  { const sc = 4.4; c.save(); c.translate(bx - half * 0.62, floorY + 30); c.scale(sc, sc);
     S(-4, -4, 4, 12, "#3f6b2a"); S(1, -4, 4, 12, "#3f6b2a"); S(-4, 5, 4, 3, "#241a10"); S(1, 5, 4, 3, "#241a10");
     S(-6, -22, 12, 20, "#6b8e23"); S(-6, -8, 12, 3, "#3a2c18");
     S(-5, -33, 11, 11, "#e0a070"); S(-6, -35, 12, 5, "#3a2c18");
