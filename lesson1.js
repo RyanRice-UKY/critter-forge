@@ -200,7 +200,8 @@ function ask(opts, onCode) {
     els.prompt.textContent = opts.prompt;
     // adaptive lesson pane: first encounter teaches the concept, later ones just remind
     const usesOf = (id) => (Sv ? Sv.conceptUses(id) : 0);
-    const lessonHTML = opts.concept ? buildLessonHTML(opts.concept, usesOf, opts.task || opts.lesson) : (opts.lesson ? buildLessonHTML([], usesOf, opts.lesson) : "");
+    const bareTask = opts.task || opts.lesson; // task text shows with or without a concept attached
+    const lessonHTML = opts.concept ? buildLessonHTML(opts.concept, usesOf, bareTask) : (bareTask ? buildLessonHTML([], usesOf, bareTask) : "");
     if (lessonHTML) { els.lesson.innerHTML = lessonHTML; els.lesson.style.display = "block"; } else els.lesson.style.display = "none";
     Editor.setSingleLine((opts.rows || 1) < 2); Editor.setValue(opts.prefill || ""); Editor.clearHint(); Editor.setEnabled(true); Editor.setReadOnly(!!opts.readonly);
     // adaptive ghost text: full answer the first time a concept appears, a blanked
