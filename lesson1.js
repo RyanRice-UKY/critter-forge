@@ -98,13 +98,14 @@ async function boot() {
   els.noteModal.onclick = (e) => { if (e.target === els.noteModal) els.noteModal.hidden = true; };
   fit(); window.addEventListener("resize", fit);
   els.stage.onclick = async (e) => {
-    // the armory rack: clicking a piece toggles it onto the order slip
+    // the armory rack: clicking a piece toggles it onto the order slip AND
+    // declares its constant at the top of the code editor
     if (scene === "armory" && armoryRects) {
       const r2 = els.stage.getBoundingClientRect(), mx2 = e.clientX - r2.left, my2 = e.clientY - r2.top;
       for (const kind of KIT_PIECES) {
         const rc = armoryRects[kind];
         if (rc && mx2 >= rc.x && mx2 <= rc.x + rc.w && my2 >= rc.y && my2 <= rc.y + rc.h) {
-          if (!char.kit[kind]) armoryPicked[kind] = !armoryPicked[kind];
+          if (!char.kit[kind]) { armoryPicked[kind] = !armoryPicked[kind]; updateArmoryEditor(); }
           return;
         }
       }
@@ -326,9 +327,14 @@ function finish(name) { dialogue = { who: "", text: `Lesson 1 complete. ${name} 
 async function play() {
   const start = (location.hash || "").slice(1);
   let name = "survivor";
-  const skip = start === "clearing" || start === "castle" || start === "keep" || start === "storage" || start === "camp";
+  const skip = start === "clearing" || start === "castle" || start === "keep" || start === "storage" || start === "camp" || start === "1.3c";
   if (!skip) name = await playWildwood();
-  else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; scene = start; } // hash names match scene names; set sync so the scene shows before the first fade
+  else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; scene = start === "1.3c" ? "keep" : start; } // hash names match scene names; set sync so the scene shows before the first fade
+  if (start === "1.3c") { // DEV: right after the report is delivered — pay, then the armory
+    questStep = 2; char.gold = 2.05; char.x = els.W * 0.8; char.facing = 1; setupTownsfolk();
+    setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber", "proving"]);
+    await playBeat3Pay(name); await playKeep(name); return;
+  }
   if (start === "storage") { scene = "storage"; questStep = 1; char.gold = 2.05; char.x = els.W * 0.06; await playBeat1(name); await playKeep(name); return; } // DEV jump into Beat 1
   if (start === "camp") { scene = "camp"; questStep = 1; char.gold = 2.05; raftCargo = { armor: 1, food: 2, water: 1 }; giveItem(ORDERS_NOTE); await playBeat2(name); await playKeep(name); return; } // DEV jump into Beat 2 (raft already loaded, orders in pack)
   if (start === "keep") { char.gold = 2.05; await playKeep(name); return; }
@@ -1073,15 +1079,19 @@ async function playBeat2(name) {
 }
 async function playBeat3(name) {
   await say("Knight-Captain", "You crossed the water and came back whole? Then report, scout. The captain's words, exactly as he gave them.");
+  const ORDERS_LINE = 'army_orders = "Return to the knight. The city is being reclaimed, but something older stirs in the dark."';
   await ask({
     prompt: "Deliver the captain's report",
-    placeholder: "print(army_orders)",
-    seed: 'army_orders = "Return to the knight. The city is being reclaimed, but something older stirs in the dark."',
+    prefill: ORDERS_LINE + "\n",
+    placeholder: ORDERS_LINE + "\nprint(army_orders)", rows: 2,
     concept: "print-var",
-    task: "The captain's message rides in your pack as a variable: army_orders holds his exact words as a string. Print the variable and the message comes out word for word.",
-    validate: (r) => (/army_orders/.test(lastSrc) ? (r.stdout.toLowerCase().includes("knight") ? null : "Something garbled the message. Print army_orders untouched.") : "Print the army_orders variable itself, no quotes, so his exact words come out."),
+    task: "The captain's exact words already sit in the string variable army_orders, declared on line 1. Add a print statement under it that speaks the variable aloud.",
+    validate: (r) => (/print\s*\(\s*army_orders\s*\)/.test(lastSrc) && r.stdout.toLowerCase().includes("knight") ? null : "Add print(army_orders) under the declaration, so his exact words come out."),
   }, (r) => speech(r.stdout));
   await say("Knight-Captain", "Reclaimed... and something older stirring in the dark. Grim news carries best in careful words. Well delivered, scout.");
+  await playBeat3Pay(name);
+}
+async function playBeat3Pay(name) {
   await say("Knight-Captain", "Here's a scout's pay. One gold and seventy-five: 1.75. A coin with a decimal point is a float; add it to your purse.");
   const before = char.gold;
   await ask({
@@ -1095,6 +1105,16 @@ async function playBeat3(name) {
   await say("Knight-Captain", "The armoury's unlocked. See the armorsmith and kit yourself out before the scouting run.");
   armoryOpen = true; questStep = 3;
 }
+// keep the CONST declarations at the top of the editor in sync with the rack:
+// clicking a piece writes its line, unclicking removes it, the player's own
+// code below is preserved untouched
+function updateArmoryEditor() {
+  if (!currentInput) return;
+  const decls = KIT_PIECES.filter((k) => armoryPicked[k] && !char.kit[k]).map((k) => `CONST_${k.toUpperCase()} = 0.50`);
+  const rest = Editor.getValue().split("\n").filter((l) => !/^CONST_\w+\s*=\s*0\.50\s*$/.test(l.trim()));
+  while (rest.length && !rest[0].trim()) rest.shift();
+  Editor.setValue(decls.concat(decls.length && rest.length ? [""] : [], rest).join("\n"));
+}
 // one round of shopping at the booth: pick pieces, tally with the constants, pay.
 // allowExit lets return visitors leave empty-handed by running total = 0.
 async function shopRound(allowExit) {
@@ -1103,7 +1123,7 @@ async function shopRound(allowExit) {
     prompt: "Click the gear you want on the rack, then tally your order and pay",
     placeholder: "total = CONST_HELMET + CONST_BOOTS\ngold = gold - total", rows: 2, seed,
     concept: ["constant", "add"],
-    task: "Each piece you click lands on your order slip as a constant. Add YOUR picked constants into total, then pay: gold = gold - total." + (allowExit ? " To leave empty handed, run  total = 0." : ""),
+    task: "Click a piece and its constant is declared at the top of your code. Below those declarations, add YOUR constants into total, then pay: gold = gold - total." + (allowExit ? " To leave empty handed, run  total = 0." : ""),
     validate: (rr) => {
       const picked = KIT_PIECES.filter((k) => armoryPicked[k] && !char.kit[k]);
       if (allowExit && Number(rr.vars.total) === 0 && picked.length === 0) return null;
