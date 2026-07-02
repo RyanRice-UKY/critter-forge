@@ -1,0 +1,102 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Storehouse ruin templates</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#0b0e14; font-family:"IBM Plex Mono",monospace; color:#dbe6f2; padding:18px; }
+  h1 { font:700 20px "Chakra Petch",sans-serif; color:#ffd43b; text-align:center; margin-bottom:14px; }
+  .grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; max-width:1400px; margin:0 auto; }
+  .cell { background:#0f141d; border:1px solid #1b2533; border-radius:10px; padding:10px; }
+  .cell h3 { margin:0 0 8px; font:700 14px "Chakra Petch",sans-serif; color:#62d27a; }
+  .cell canvas { width:100%; display:block; border-radius:6px; }
+  .cell p { font-size:11.5px; color:#8a94a3; margin:8px 2px 0; line-height:1.5; }
+</style></head>
+<body>
+<h1>THE STOREHOUSE RUIN — pick a template</h1>
+<div class="grid" id="grid"></div>
+<script>
+const T = [
+  ["A — Collapsed longhouse", "Two stone gable ends still standing, the whole roof caved in between them. The widest footprint: reads as a large building that pancaked.", drawA],
+  ["B — Broken granary tower", "A tall round grain tower snapped at half height, its upper half lying smashed beside it. The tallest silhouette in the camp.", drawB],
+  ["C — Half-standing warehouse", "One full wall with window holes still upright, the roof leaning against it in a slab, the rest a deep mound. Feels freshly fallen.", drawC],
+  ["D — Mountain of rubble", "The building is simply GONE: a huge debris hill of stone, beams and grain sacks, with the doorframe still standing alone in front of it.", drawD],
+];
+function px(c, x, y, w, h, col) { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.ceil(w), Math.ceil(h)); }
+function camp(c, W, H) {
+  const gy = H * 0.78;
+  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#181f2c"); g.addColorStop(0.6, "#26303e"); g.addColorStop(0.85, "#37414a"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  c.fillStyle = "#131c16";
+  for (let i = 0; i < 13; i++) { const x = i * 60 + ((i * 37) % 22), h2 = 34 + ((i * 53) % 26); c.beginPath(); c.moveTo(x - 30, gy); c.lineTo(x, gy - h2); c.lineTo(x + 30, gy); c.closePath(); c.fill(); }
+  for (let i = 0; i * 26 < W; i++) px(c, i * 26, gy, 26, H - gy, i % 2 ? "#2c3a2c" : "#28342a");
+  for (let p = 0; p < W; p += 13) { const h2 = 24 + ((p * 7) % 6); px(c, p, gy - h2, 11, h2 + 2, ((p / 13 | 0) % 2) ? "#3f3220" : "#463928"); }
+}
+const S1 = "#454c55", S2 = "#4e555e", S3 = "#3f454e", HI = "#5d656f", B1 = "#33271a", B2 = "#3a2c1c";
+function mound(c, x, gy, w, h, n) {
+  for (let i = 0; i < n; i++) {
+    const t = i / n, rx = x - w / 2 + (i * 53) % w;
+    const maxh = h * (1 - Math.abs((rx - x) / (w / 2)) * 0.85);
+    const ry = gy - 6 - (i * 29) % Math.max(10, maxh);
+    px(c, rx, ry, 14 + (i % 4) * 7, 13, i % 3 === 0 ? S1 : i % 3 === 1 ? S2 : S3);
+    if (i % 5 === 0) px(c, rx + 2, ry - 3, 9, 3, HI);
+  }
+}
+function sackrow(c, x, gy) { c.fillStyle = "#8a6d3b"; c.beginPath(); c.ellipse(x, gy + 2, 10, 8, 0, 0, 7); c.fill(); c.fillStyle = "#7a5f36"; c.beginPath(); c.ellipse(x + 22, gy + 4, 9, 7, 0, 0, 7); c.fill(); px(c, x - 16, gy + 4, 18, 3, "#c9b89a"); }
+function beam(c, x, gy, rot, len) { c.save(); c.translate(x, gy); c.rotate(rot); px(c, -5, -len, 10, len, B1); px(c, -5, -len, 4, len, "#3f3220"); c.restore(); }
+function knuckle(c, x, y) { px(c, x, y, 4, 4, "#e8dcc0"); }
+function drawA(c, x, gy) { // collapsed longhouse: two gables, pancaked middle
+  const w = 300;
+  for (const s of [-1, 1]) { // stone gable ends
+    const gx = x + s * w / 2;
+    px(c, gx - 16, gy - 96, 32, 96, S1); px(c, gx - 16, gy - 96, 6, 96, HI);
+    c.fillStyle = S1; c.beginPath(); c.moveTo(gx - 16, gy - 96); c.lineTo(gx, gy - 128); c.lineTo(gx + 16, gy - 96); c.closePath(); c.fill();
+    px(c, gx - 6, gy - 80, 12, 16, "#1a2027");
+  }
+  mound(c, x, gy, w - 40, 74, 30);
+  beam(c, x - 60, gy, 0.6, 110); beam(c, x + 44, gy - 6, -0.7, 96);
+  c.save(); c.translate(x - 10, gy - 40); c.rotate(0.12); for (let i = 0; i < 6; i++) px(c, -52 + i * 18, -8, 16, 26, i % 2 ? "#4a3a26" : "#54422a"); c.restore();
+  sackrow(c, x - 30, gy); knuckle(c, x + 4, gy - 34);
+}
+function drawB(c, x, gy) { // broken granary tower
+  px(c, x - 36, gy - 150, 72, 150, S1); px(c, x - 36, gy - 150, 10, 150, HI); // standing half-tower
+  for (let y = gy - 150; y < gy; y += 20) px(c, x - 36, y, 72, 2, S3);
+  for (let i = 0; i < 5; i++) px(c, x - 36 + i * 15, gy - 150 - ((i * 7) % 16), 13, 16, S1); // ragged snap line
+  px(c, x - 10, gy - 120, 18, 22, "#1a2027"); // loading door up high
+  c.save(); c.translate(x + 92, gy - 22); c.rotate(0.28); // the fallen top half
+  px(c, -60, -34, 120, 56, S2); px(c, -60, -34, 120, 8, HI);
+  for (let i = 0; i < 5; i++) px(c, -60 + i * 26, -34, 2, 56, S3);
+  c.restore();
+  mound(c, x + 40, gy, 190, 52, 22);
+  beam(c, x + 10, gy, 0.5, 84);
+  sackrow(c, x + 120, gy); knuckle(c, x + 30, gy - 26);
+}
+function drawC(c, x, gy) { // half-standing warehouse w/ leaning roof slab
+  const w = 260;
+  px(c, x - w / 2, gy - 110, w, 110, S1); // the surviving wall
+  for (let x2 = x - w / 2; x2 < x + w / 2; x2 += 26) for (let y2 = gy - 110; y2 < gy; y2 += 18) px(c, x2 + 1, y2 + 1, 24, 16, ((x2 / 26 | 0) + (y2 / 18 | 0)) % 2 ? S3 : S2);
+  for (let x2 = x - w / 2; x2 < x + w / 2; x2 += 26) px(c, x2, gy - 110 - ((x2 * 7) % 18), 24, 18, S1); // ragged top
+  px(c, x - w / 2 + 30, gy - 84, 22, 26, "#1a2027"); px(c, x + w / 2 - 60, gy - 78, 22, 26, "#1a2027"); // window holes
+  c.save(); c.translate(x + w / 2 + 10, gy); c.rotate(-0.5); for (let i = 0; i < 7; i++) px(c, -i * 18 - 16, -130, 16, 130, i % 2 ? "#4a3a26" : "#54422a"); c.restore(); // roof leaning as one slab
+  mound(c, x - 20, gy, w - 30, 60, 26);
+  beam(c, x - 80, gy, 0.75, 92);
+  sackrow(c, x - 90, gy); knuckle(c, x - 6, gy - 30);
+}
+function drawD(c, x, gy) { // the mountain: building erased, doorframe survives
+  mound(c, x, gy, 360, 120, 60);
+  beam(c, x - 110, gy, 0.8, 120); beam(c, x + 90, gy - 10, -0.6, 104); beam(c, x + 10, gy - 50, 1.3, 90);
+  c.save(); c.translate(x - 30, gy - 66); c.rotate(-0.15); for (let i = 0; i < 5; i++) px(c, -40 + i * 17, -6, 15, 22, i % 2 ? "#4a3a26" : "#54422a"); c.restore();
+  sackrow(c, x - 150, gy); sackrow(c, x + 140, gy);
+  // the doorframe, still standing in front
+  px(c, x - 150, gy - 78, 12, 78, B2); px(c, x - 96, gy - 78, 12, 78, B2); px(c, x - 156, gy - 86, 78, 12, B1); px(c, x - 156, gy - 86, 78, 4, "#3f3220");
+  knuckle(c, x + 8, gy - 56);
+}
+// render last, after every const above exists
+const grid = document.getElementById("grid");
+for (const [name, desc, fn] of T) {
+  const cell = document.createElement("div"); cell.className = "cell";
+  const h = document.createElement("h3"); h.textContent = name; cell.appendChild(h);
+  const cv = document.createElement("canvas"); cv.width = 680; cv.height = 300; cell.appendChild(cv);
+  const p = document.createElement("p"); p.textContent = desc; cell.appendChild(p);
+  grid.appendChild(cell);
+  const c = cv.getContext("2d");
+  camp(c, 680, 300); fn(c, 340, 232, 680);
+}
+</script>
+</body></html>
