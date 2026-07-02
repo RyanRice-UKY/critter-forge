@@ -34,7 +34,8 @@ const SCENES = {
   wildwood: { stranger: 0.31, tree: 0.56, smith: 0.76 },
   clearing: { center: 0.42, tree: 0.72, bridge: 0.9 },
   castle: { castle: 0.74 },
-  keep: { craftsman: 0.2, proving: 0.3, forhire: 0.4, chamber: 0.5, blacksmith: 0.6, armorsmith: 0.8, knight: 0.92 },
+  keep: { road: 0.03, craftsman: 0.2, proving: 0.3, forhire: 0.4, chamber: 0.5, blacksmith: 0.6, armorsmith: 0.8, knight: 0.92 },
+  fallencamp: { gate: 0.1, bodies: 0.32, fire: 0.5, tent: 0.66, tower: 0.86 },
   storage: { cart: 0.5 },
   camp: { gate: 0.5 },
 };
@@ -329,9 +330,14 @@ function finish(name) { dialogue = { who: "", text: `Lesson 1 complete. ${name} 
 async function play() {
   const start = (location.hash || "").slice(1);
   let name = "survivor";
-  const skip = start === "clearing" || start === "castle" || start === "keep" || start === "storage" || start === "camp" || start === "1.3c";
+  const skip = start === "clearing" || start === "castle" || start === "keep" || start === "storage" || start === "camp" || start === "1.3c" || start === "1.4";
   if (!skip) name = await playWildwood();
-  else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; scene = start === "1.3c" ? "armory" : start; } // hash names match scene names; set sync so the scene shows before the first fade
+  else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; scene = start === "1.3c" ? "armory" : start === "1.4" ? "fallencamp" : start; } // hash names match scene names; set sync so the scene shows before the first fade
+  if (start === "1.4") { // DEV: the Iron Guard's forward camp, armored up, orders in hand
+    questStep = 5; lesson1Done = true; char.gold = 1.3; char.maxHearts = 6; char.hearts = 6;
+    for (const k of KIT_PIECES) char.kit[k] = true;
+    await playFallenCamp(name); return;
+  }
   if (start === "1.3c") { // DEV: straight into the armory booth, paid up and cleared to shop
     questStep = 3; armoryOpen = true; char.gold = 3.8; char.x = els.W * 0.8; char.facing = 1; setupTownsfolk();
     setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber", "proving"]);
@@ -620,8 +626,17 @@ function drawKeep(c, W, gy, now) {
     if (provingUnlocked) { c.fillStyle = "#7ec9ff"; c.font = "bold 20px 'Chakra Petch',sans-serif"; c.fillText("⚔", dx, cy2 - 20 + Math.sin(now * 3 + 1) * 3); }
     else lockBadge(c, dx + 26, gy - 30 * CH);
   }
+  // the road out, marked at the west door once your orders point there
+  if (questStep >= 5) {
+    const rx3 = W * SCENES.keep.road;
+    c.font = "11px 'IBM Plex Mono',monospace"; c.textAlign = "center";
+    const cmd3 = 'you.walk("road")', cw3 = c.measureText(cmd3).width;
+    c.fillStyle = "rgba(8,12,18,0.8)"; rr(c, rx3 + 30 - cw3 / 2 - 7, gy - 90, cw3 + 14, 18, 5); c.fill(); c.strokeStyle = "#2a3a4a"; c.stroke(); c.fillStyle = "#9fd9ff"; c.fillText(cmd3, rx3 + 30, gy - 77);
+    c.fillStyle = "#ffd43b"; c.font = "bold 20px 'Chakra Petch',sans-serif"; c.fillText("!", rx3 + 30, gy - 98 + Math.sin(now * 3) * 3);
+    c.fillStyle = "#cdd8e6"; c.font = "10px 'IBM Plex Mono',monospace"; c.fillText("THE ROAD", rx3 + 30, gy + 18);
+  }
   for (const [name, frac] of Object.entries(SCENES.keep)) {
-    if (name === "knight" || name === "chamber" || name === "proving") continue; // drawn separately
+    if (name === "knight" || name === "chamber" || name === "proving" || name === "road") continue; // drawn separately
     const x = W * frac;
     P(c, x, gy, (cc) => stallBody(cc, 0, 0, name, now));
     // command hint above the stall — teaches how to walk there
@@ -645,6 +660,125 @@ function drawKeep(c, W, gy, now) {
     // and it moves to the armorsmith while the shopping task is his
     if (armoryOpen && questStep === 3) { const ax2 = W * SCENES.keep.armorsmith; c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", ax2, gy - 44 * CH + Math.sin(now * 3) * 3); } }
   if (survivor) P(c, survivor.x, gy, (cc) => npc(cc, 0, 0, "#37b24d", "#c89060", "#241018")); // the escorted survivor saying goodbye
+}
+// ---- the Iron Guard's forward camp, destroyed (Lesson 1.4 investigation) ----
+function fallenGuard(c, x, y, f = 1) { // a guard where he fell
+  c.save(); c.translate(x, y); c.scale(f * 1.55, 1.55); // same scale as the living
+  px(c, -10, -5, 20, 5, "#4a5568"); px(c, -10, -5, 20, 2, "#525f73"); // torso, lying
+  px(c, -8, -8, 8, 4, "#4a5568"); // shoulder
+  px(c, -17, -4, 7, 3, "#c89a72"); // arm flung out
+  px(c, 10, -4, 8, 3, "#2f3a2a"); px(c, 16, -3, 4, 3, "#100b08"); // legs + boot
+  px(c, -15, -8, 6, 5, "#c89a72"); // head, turned away
+  px(c, -23, -7, 7, 5, "#7a828c"); px(c, -23, -7, 7, 2, "#9aa3ad"); // helm, rolled off
+  c.restore();
+}
+function drawFallenCamp(c, W, gy, now) {
+  const H = els.H;
+  // pre-dawn: cold grey light rising behind the treeline
+  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#181f2c"); g.addColorStop(0.55, "#26303e"); g.addColorStop(0.78, "#37414a"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  for (let i = 0; i < 24; i++) { c.globalAlpha = 0.15 + (i * 37 % 10) / 40; px(c, (i * 89) % W, (i * 53) % (H * 0.3), 2, 2, "#cfe0f5"); } c.globalAlpha = 1;
+  c.fillStyle = "#131c16"; // dark treeline
+  for (let i = 0; i < Math.ceil(W / 60) + 1; i++) { const x = i * 60 + ((i * 37) % 22), h = 42 + ((i * 53) % 34); c.beginPath(); c.moveTo(x - 34, gy); c.lineTo(x, gy - h); c.lineTo(x + 34, gy); c.closePath(); c.fill(); }
+  // dead grass
+  for (let i = 0; i * 26 < W; i++) px(c, i * 26, gy, 26, H - gy, i % 2 ? "#2c3a2c" : "#28342a");
+  px(c, 0, gy, W, 3, "#3a4a3a");
+  // palisade smashed INWARD at the gate; intact stretches either side
+  for (let p = 0; p < W; p += 13) {
+    const fx = p / W;
+    if (fx > 0.06 && fx < 0.17) continue; // the breach
+    const h = 30 + ((p * 7) % 7); px(c, p, gy - h, 11, h + 2, ((p / 13 | 0) % 2) ? "#3f3220" : "#463928");
+    c.fillStyle = ((p / 13 | 0) % 2) ? "#3f3220" : "#463928"; c.beginPath(); c.moveTo(p, gy - h); c.lineTo(p + 5.5, gy - h - 7); c.lineTo(p + 11, gy - h); c.closePath(); c.fill();
+  }
+  // splintered stakes thrown inward at the breach
+  for (const [sx2, rot] of [[W * 0.1, 0.9], [W * 0.13, -1.2], [W * 0.16, 0.5]]) { c.save(); c.translate(sx2, gy - 4); c.rotate(rot); px(c, -4, -20, 8, 24, "#3f3220"); c.fillStyle = "#3f3220"; c.beginPath(); c.moveTo(-4, -20); c.lineTo(0, -28); c.lineTo(4, -20); c.fill(); c.restore(); }
+  // collapsed watchtower: snapped legs, platform down in the grass
+  { const wx2 = W * 0.86;
+    px(c, wx2 - 20, gy - 40, 6, 40, "#33271a"); px(c, wx2 + 16, gy - 26, 6, 26, "#33271a"); // snapped stumps
+    c.save(); c.translate(wx2, gy - 6); c.rotate(0.22);
+    px(c, -30, -8, 60, 10, "#54422a"); for (let r = -28; r < 30; r += 11) px(c, r, -18, 3, 10, "#4a3a22");
+    c.restore();
+    c.save(); c.translate(wx2 - 34, gy - 30); c.rotate(-0.5); px(c, 0, 0, 5, 34, "#3f3220"); c.restore(); }
+  // burned tents: charred frames, canvas scraps
+  for (const [tx, s] of [[W * 0.26, 1], [W * 0.58, 0.9]]) {
+    c.strokeStyle = "#1c1812"; c.lineWidth = 4;
+    c.beginPath(); c.moveTo(tx - 24 * s, gy); c.lineTo(tx, gy - 38 * s); c.moveTo(tx + 24 * s, gy); c.lineTo(tx + 4 * s, gy - 32 * s); c.stroke();
+    c.fillStyle = "#241f18"; c.beginPath(); c.moveTo(tx - 20 * s, gy); c.lineTo(tx - 4 * s, gy - 22 * s); c.lineTo(tx + 8 * s, gy); c.closePath(); c.fill();
+    for (let i = 0; i < 3; i++) px(c, tx - 16 + i * 12, gy - 2, 8, 3, "#1c1812"); // ash
+  }
+  // the command tent, shredded but standing (clue point)
+  { const tx = W * 0.66;
+    c.fillStyle = "#5a4a34"; c.beginPath(); c.moveTo(tx - 34, gy); c.lineTo(tx, gy - 52); c.lineTo(tx + 34, gy); c.closePath(); c.fill();
+    c.fillStyle = "#4a3d2a"; c.beginPath(); c.moveTo(tx - 34, gy); c.lineTo(tx, gy - 52); c.lineTo(tx - 8, gy); c.closePath(); c.fill();
+    c.fillStyle = "#191308"; c.beginPath(); c.moveTo(tx - 10, gy); c.lineTo(tx, gy - 24); c.lineTo(tx + 10, gy); c.closePath(); c.fill();
+    c.strokeStyle = "#191308"; c.lineWidth = 2; // slash marks
+    c.beginPath(); c.moveTo(tx + 8, gy - 40); c.lineTo(tx + 20, gy - 14); c.moveTo(tx + 14, gy - 38); c.lineTo(tx + 26, gy - 16); c.stroke(); }
+  // overturned cart, spilled goods
+  { const cx2 = W * 0.44;
+    c.save(); c.translate(cx2, gy - 8); c.rotate(-0.35); px(c, -30, -14, 60, 20, "#4a3a26"); px(c, -30, -16, 60, 4, "#5d4a30"); c.restore();
+    c.strokeStyle = "#3a2c1c"; c.lineWidth = 4; c.beginPath(); c.arc(cx2 + 26, gy - 20, 12, 0, Math.PI * 2); c.stroke();
+    drawCrate(c, cx2 - 48, gy - 12, 20, 14); drawBarrel(c, cx2 - 62, gy, 15, 18); }
+  // the Iron Guard's standard, down in the mud, torn
+  { const bx2 = W * 0.5; c.save(); c.translate(bx2, gy - 2); c.rotate(1.25); px(c, -2, -46, 4, 46, "#3a2c18"); c.restore();
+    c.fillStyle = "#6e1d1d"; c.beginPath(); c.moveTo(bx2 + 28, gy - 16); c.lineTo(bx2 + 52, gy - 10); c.lineTo(bx2 + 46, gy - 2); c.lineTo(bx2 + 34, gy - 6); c.closePath(); c.fill(); }
+  // the dead fire, one thin wisp of smoke still rising (clue point)
+  { const fx2 = W * 0.5;
+    for (let i = 0; i < 5; i++) px(c, fx2 - 12 + i * 5, gy + 4, 4, 3, "#3a4048");
+    c.fillStyle = "#26201a"; c.beginPath(); c.arc(fx2, gy + 2, 6, 0, Math.PI * 2); c.fill();
+    const t = (now * 0.25) % 1; c.globalAlpha = 0.25 * (1 - t); circ(c, fx2 + Math.sin(now * 1.2) * 5, gy - 8 - t * 40, 4 + t * 6, "#aab6c4"); c.globalAlpha = 1; }
+  // body after body: the Iron Guard where they fell
+  fallenGuard(c, W * 0.2, gy + 6, 1); fallenGuard(c, W * 0.3, gy + 12, -1); fallenGuard(c, W * 0.36, gy + 4, 1);
+  fallenGuard(c, W * 0.55, gy + 8, -1); fallenGuard(c, W * 0.61, gy + 14, 1); fallenGuard(c, W * 0.74, gy + 6, 1); fallenGuard(c, W * 0.9, gy + 12, -1);
+  // dropped weapons
+  for (const [wx3, rot] of [[W * 0.24, 1.3], [W * 0.57, -1.1], [W * 0.78, 0.8]]) { c.save(); c.translate(wx3, gy + 8); c.rotate(rot); px(c, -1, -26, 2, 26, "#8a6d3b"); c.fillStyle = "#9aa3ad"; c.beginPath(); c.moveTo(-3, -26); c.lineTo(0, -32); c.lineTo(3, -26); c.fill(); c.restore(); }
+  px(c, W * 0.33, gy + 16, 16, 5, "#3a5a8a"); px(c, W * 0.33, gy + 16, 16, 2, "#5a7aaa"); // a shield, face down
+  // crows on the palisade, one flapping
+  for (const [cx3, fl] of [[W * 0.23, 0], [W * 0.7, 1]]) {
+    px(c, cx3 - 3, gy - 40, 7, 5, "#15151a"); px(c, cx3 + 3, gy - 42, 3, 3, "#15151a");
+    if (fl && Math.sin(now * 6) > 0.4) { px(c, cx3 - 8, gy - 44, 5, 2, "#15151a"); px(c, cx3 + 5, gy - 44, 5, 2, "#15151a"); }
+  }
+  // investigation markers over the clue points
+  c.font = "11px 'IBM Plex Mono',monospace"; c.textAlign = "center";
+  for (const [name2, frac2] of Object.entries(SCENES.fallencamp)) {
+    const x2 = W * frac2, cmd2 = `you.walk("${name2}")`, cw2 = c.measureText(cmd2).width;
+    c.fillStyle = "rgba(8,12,18,0.72)"; rr(c, x2 - cw2 / 2 - 7, gy - 92, cw2 + 14, 18, 5); c.fill();
+    c.strokeStyle = "#2a3a4a"; c.stroke(); c.fillStyle = "#9fd9ff"; c.fillText(cmd2, x2, gy - 79);
+  }
+  // ground fog drifting through it all
+  for (let i = 0; i < 3; i++) { const mx2 = ((now * (6 + i * 3) + i * 500) % (W + 300)) - 150; c.fillStyle = "rgba(190,200,215,0.05)"; c.beginPath(); c.ellipse(mx2, gy + 14 + i * 12, 130, 12, 0, 0, Math.PI * 2); c.fill(); }
+}
+// arrival + investigation. The clue EXERCISES are still to be designed; each
+// point currently logs its finding so the mystery reads end to end.
+const CAMP_CLUES = {
+  gate: ["The palisade is smashed INWARD at the gate. Splinters lie on the inside of the wall.", "clue: the wall was breached from outside... or opened and then broken for show."],
+  bodies: ["Seven of the Iron Guard, where they fell. Not one of them holds a drawn weapon.", "clue: they never fought back."],
+  fire: ["The cookfire is cold, but one ember still breathes a thread of smoke.", "clue: this happened hours ago, not days."],
+  tent: ["The command tent is shredded from the outside. The captain's strongbox lies open. Empty.", "clue: whatever came here TOOK something."],
+  tower: ["The watchtower is down, legs snapped. The lookout's horn lies in the grass, unblown.", "clue: no alarm was ever sounded."],
+};
+async function playFallenCamp(name) {
+  await fadeTo("fallencamp"); char.x = els.W * 0.02; char.facing = 1; zoms = []; ARROWS = []; prog(name + " · 1.4");
+  await say("", "Half a day on the road. The fog thins, and the Iron Guard's forward camp rises out of the grey... wrong. No smoke. No voices. No watch on the wall.");
+  await walkTo(0.08);
+  await say("", "The palisade is breached. Beyond it: body after body in the dead grass. The whole camp, gone.");
+  await walkTo(0.2);
+  await say("", "Someone has to work out what happened here. That someone is the scout the knight sent. Investigate everything.");
+  setLocations(Object.keys(SCENES.fallencamp));
+  const seen = {};
+  while (Object.keys(seen).length < Object.keys(CAMP_CLUES).length) {
+    const r = await ask({ prompt: `Investigate the camp (${Object.keys(seen).length}/${Object.keys(CAMP_CLUES).length} clues found)`, placeholder: 'you.walk("bodies")', concept: "walk", validate: (rr) => (rr.walk && SCENES.fallencamp[rr.walk] ? null : `Walk to: ${Object.keys(SCENES.fallencamp).map((l) => `"${l}"`).join(", ")}`) }, null);
+    logCmd(`you.walk("${r.walk}")`, true);
+    await goTo(r.walk);
+    const clue = CAMP_CLUES[r.walk];
+    await say("", clue[0]);
+    if (!seen[r.walk]) { seen[r.walk] = true; logCmd(`# ${clue[1]}`, false); }
+  }
+  await say("", "Five clues, and none of them sit right together. No alarm. No fight. Hours ago. Something taken.");
+  await say("", "The pieces are on the table, scout. Making sense of them comes next... (to be continued)");
+  while (true) { // linger at the scene; clues can be revisited
+    const r = await ask({ prompt: "Look over the camp again", placeholder: 'you.walk("bodies")', concept: "walk", validate: (rr) => (rr.walk && SCENES.fallencamp[rr.walk] ? null : `Walk to: ${Object.keys(SCENES.fallencamp).map((l) => `"${l}"`).join(", ")}`) }, null);
+    logCmd(`you.walk("${r.walk}")`, true); await goTo(r.walk);
+    await say("", CAMP_CLUES[r.walk][0]);
+  }
 }
 // ---- the armory booth scene ----
 function armorIcon(c, kind, s) {
@@ -1182,10 +1316,10 @@ async function playBeat4(name) {
 // the wrap-up: report back to the knight in your new steel
 async function playBeatWrap(name) {
   await say("Knight-Captain", "Look at you, scout. Steel where there was cloth this morning.");
-  await say("Knight-Captain", "At dawn you take the road to the city, to see what stirs in that dark. Rest while you can.");
+  await say("Knight-Captain", "Your orders: report to the Iron Guard's forward camp, half a day up the road toward the city. Their captain will want eyes on whatever stirs out there.");
   questStep = 5; lesson1Done = true;
   if (Sv) { Sv.completeChapter(1); Sv.write({ gold: char.gold }); awardXP(40); } // chapter clear bonus; unlocks The Keep on the map
-  await say("", "Lesson 1.3 complete. The rest of the keep unlocks as your story continues.");
+  await say("", 'Lesson 1.3 complete. When you are ready, take the road: you.walk("road").');
 }
 // return visits to the armorsmith reopen the booth for the remaining pieces
 async function shopVisit() {
@@ -1207,7 +1341,10 @@ async function playKeep(name) {
     const r = await ask({ prompt: 'Explore the keep, e.g. you.walk("knight") or you.walk("proving"):', placeholder: 'you.walk("knight")', concept: "walk", validate: (rr) => { if (!rr.walk) return 'Type a you.walk("...") command.'; if (!SCENES.keep[rr.walk]) return "Walk to: craftsman, forhire, blacksmith, armorsmith, knight, chamber, or proving."; return null; } }, null);
     logCmd(`you.walk("${r.walk}")`, true);
     await goTo(r.walk);
-    if (r.walk === "proving") {
+    if (r.walk === "road") {
+      if (questStep >= 5) { await playFallenCamp(name); continue; }
+      await say("", "The road waits, but your business in the keep is not done.");
+    } else if (r.walk === "proving") {
       if (!provingUnlocked) await say("Drillmaster", "The proving grounds open to seasoned scouts, not fresh ones. Your training here comes later.");
       else {
         const done = TRIALS.filter((tt) => Sv && Sv.isTrialDone(tt.id)).length;
@@ -1277,6 +1414,7 @@ function draw(now) {
   else if (scene === "camp") drawCamp(c, W, gy, now);
   else if (scene === "raft") drawRaft(c, W, gy, now);
   else if (scene === "armory") drawArmory(c, W, gy, now);
+  else if (scene === "fallencamp") drawFallenCamp(c, W, gy, now);
   else drawCastle(c, W, gy, now);
 
   // arrows
