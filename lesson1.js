@@ -7,6 +7,7 @@ import "./journal.js"; // defines window.Journal
 import { Editor } from "./editor.js";
 import { CONCEPTS, skeletonize, buildLessonHTML } from "./curriculum.js";
 import { TRIALS } from "./trials/trials-data.js";
+import { showWalkthrough, walkthroughsEnabled, walkthroughSeen } from "./walkthrough.js";
 
 const HARNESS = `
 import json, sys, io
@@ -45,8 +46,30 @@ const char = { x: 0, rise: 0, walk: 0, walking: false, target: 0, onArrive: null
 let zoms = [], ARROWS = [], zombiesApproach = false;
 let FX = [], shootT = 0; // impact debris particles + how long the hero holds the draw pose
 let manifestRect = null; // clickable wall note in the storage room (set by drawStorage)
-const MANIFEST_NOTE =
-  "NORTH WATCH: LOADING PROTOCOL\n\nplate_weight = 10\ncrate_weight = 4\nbarrel_weight = 3\n\ncorrect_items = 0\nif armor * plate_weight == 10:\n    correct_items = correct_items + 1\nif food * crate_weight == 8:\n    correct_items = correct_items + 1\nif water * barrel_weight == 3:\n    correct_items = correct_items + 1\n\n# she sails only when correct_items == 3";
+const MANIFEST_CODE =
+  "plate_weight = 10\ncrate_weight = 4\nbarrel_weight = 3\n\ncorrect_items = 0\nif armor * plate_weight == 10:\n    correct_items = correct_items + 1\nif food * crate_weight == 8:\n    correct_items = correct_items + 1\nif water * barrel_weight == 3:\n    correct_items = correct_items + 1\n\n# she sails only when correct_items == 3";
+const MANIFEST_NOTE = "NORTH WATCH: LOADING PROTOCOL\n\n" + MANIFEST_CODE;
+// guided line-by-line explainers (skipped in intermediate mode, shown once each)
+const WT_MANIFEST = {
+  id: "manifest-if", title: "Reading the manifest, line by line", code: MANIFEST_CODE,
+  steps: [
+    { lines: [1, 3], text: "Start at the top. These three lines are variables: labelled boxes that each hold a number. A plate weighs 10, a crate 4, a barrel 3. Whenever a line below uses one of these names, Python swaps in the number it holds." },
+    { lines: [5], text: "One more variable. correct_items starts at 0. This is the score keeper: the manifest will use it to count how much of your load is right." },
+    { lines: [6], text: "Your first if statement. Read it like a sentence: IF armor times plate_weight equals 10, then do the indented thing below. Everything between if and the colon is the condition, a yes or no question. The == asks 'are these two equal?'. It is a question, not an assignment." },
+    { lines: [7], text: "This line is indented under the if, so it belongs to it. It runs ONLY when the condition above is true, and it grows the counter by one. When the condition is false, Python skips this line as if it were never written." },
+    { lines: [8, 11], text: "Two more if statements with the exact same shape: a question, a colon, an indented line that runs only on yes. One checks food, one checks water. Ask yourself: what value of food makes food times 4 equal 8?" },
+    { lines: [13], text: "The bottom line starts with #, which makes it a comment: a note for humans that Python ignores. It tells you the rule. All three checks must come back true, so correct_items must reach 3. Set armor, food and water to make that happen." },
+  ],
+};
+const WT_FORLOOP = {
+  id: "for-loop", title: "Reading a for loop, piece by piece", code: "for i in range(4):\n    bow.fire()",
+  steps: [
+    { lines: [1], text: "for is the repeat keyword. It tells Python: run the block underneath me again and again, instead of making you write the same line over and over." },
+    { lines: [1], text: "range(4) deals out four numbers: 0, 1, 2, 3. The counter i takes each one in turn, so the loop makes exactly four passes. range(10) would make ten." },
+    { lines: [1], text: "The colon at the end opens the block. Whatever is indented underneath it belongs to the loop." },
+    { lines: [2], text: "The body. This indented line runs once per pass: four passes, four arrows loosed. One short loop instead of writing bow.fire() four times in a row." },
+  ],
+};
 let invinc = 0, dmgFlash = 0, dying = false;
 let townsfolk = [];
 let lesson1Done = false; // the king's chamber stays sealed until Lesson 1 is complete
@@ -70,12 +93,13 @@ async function boot() {
   document.getElementById("wallNoteClose").onclick = () => (document.getElementById("wallNote").hidden = true);
   els.noteModal.onclick = (e) => { if (e.target === els.noteModal) els.noteModal.hidden = true; };
   fit(); window.addEventListener("resize", fit);
-  els.stage.onclick = (e) => {
-    // the storage room's wall note opens the captain's manifest in a PINNED side
-    // panel (not a modal), so the player can read it while they type
+  els.stage.onclick = async (e) => {
+    // the storage room's wall note: first read gets a guided line-by-line
+    // walkthrough of the if statements, then the note pins beside the IDE
     if (scene === "storage" && manifestRect) {
       const r = els.stage.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
       if (mx >= manifestRect.x && mx <= manifestRect.x + manifestRect.w && my >= manifestRect.y && my <= manifestRect.y + manifestRect.h) {
+        if (walkthroughsEnabled() && !walkthroughSeen(WT_MANIFEST.id)) await showWalkthrough(WT_MANIFEST);
         document.getElementById("wallNoteText").textContent = MANIFEST_NOTE;
         document.getElementById("wallNote").hidden = false;
         return;
@@ -83,6 +107,7 @@ async function boot() {
     }
     advance();
   };
+  document.getElementById("wallNoteExplain").onclick = () => showWalkthrough(WT_MANIFEST); // ❓ replays the explainer any time
   els.run.onclick = submit;
   els.hint.onclick = () => { if (currentInput) Editor.toggleHint(currentInput.opts.placeholder || ""); };
   Editor.init({ onSubmit: submit, onChange: (lines) => els.ide.classList.toggle("wide", lines > 8) }); // grow wide before tall at the bottom dock
@@ -368,6 +393,7 @@ async function playCastle(name) {
   zoms = [mkZom(0.44), mkZom(0.51), mkZom(0.58), mkZom(0.65)];
   await say("", "Over the bridge, a great keep rises, and FOUR infected lock onto you at once.");
   await say("", "No time to fire them one by one. Repeat your shot with a loop.");
+  if (walkthroughsEnabled() && !walkthroughSeen(WT_FORLOOP.id)) await showWalkthrough(WT_FORLOOP); // in-depth for-loop explainer, once
   await ask({
     prompt: "Fire four arrows at once", placeholder: "for i in range(4):\n    bow.fire()", rows: 2,
     concept: "for-loop", task: "Four enemies, and repeating one line four times is tedious. Write a loop that fires exactly four arrows.",

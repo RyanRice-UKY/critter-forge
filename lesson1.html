@@ -153,6 +153,28 @@
       #journalToast { position:fixed; top:116px; right:16px; z-index:50; background:#2a2113; color:#ffe066; border:1px solid #7a5e2a; border-radius:8px; padding:7px 11px; font-size:12px; box-shadow:0 6px 18px #0009; opacity:0; transform:translateY(-6px); transition:opacity .25s, transform .25s; pointer-events:none; }
       #journalToast.show { opacity:1; transform:none; }
 
+      /* guided code walkthrough popup */
+      .wt-back { position:fixed; inset:0; z-index:48; background:rgba(4,7,12,.72); display:flex; align-items:center; justify-content:center; }
+      .wt { width:min(94%,600px); max-height:88vh; display:flex; flex-direction:column; background:#0d1320f8; border:1px solid #3b4a63; border-radius:14px; box-shadow:0 30px 90px rgba(0,0,0,.7); overflow:hidden; }
+      .wt-head { display:flex; justify-content:space-between; align-items:center; padding:12px 18px; background:linear-gradient(180deg,#141d30,#0d1320); border-bottom:1px solid #22304a; font:700 15px "Chakra Petch",sans-serif; color:var(--amber); letter-spacing:.5px; }
+      .wt-head .wt-x { background:none; border:1px solid #3b4a63; color:#8a94a3; border-radius:6px; width:26px; height:26px; cursor:pointer; }
+      .wt-code { background:#0a0f1a; border-bottom:1px solid #22304a; padding:10px 0; overflow-y:auto; font-size:14px; line-height:1.6; }
+      .wt-line { display:flex; gap:0; align-items:baseline; padding:0 14px 0 6px; }
+      .wt-line .wt-arrow { width:20px; color:var(--amber); visibility:hidden; font-size:12px; }
+      .wt-line .wt-num { width:26px; text-align:right; padding-right:12px; color:#3d4757; font-size:12px; }
+      .wt-line code { white-space:pre; color:#dcd8c8; }
+      .wt-line.hl { background:rgba(255,212,59,.10); }
+      .wt-line.hl .wt-arrow { visibility:visible; }
+      .wt-line.hl code { color:#fff; }
+      .wt-explain { min-height:84px; padding:12px 18px; border-left:3px solid var(--amber); margin:12px 18px 0; background:rgba(255,212,59,.04); color:#dbe6f2; font-size:13.5px; line-height:1.65; }
+      .wt-foot { display:flex; align-items:center; gap:12px; padding:12px 18px 16px; }
+      .wt-dots { display:flex; gap:6px; margin-right:auto; }
+      .wt-dots span { width:8px; height:8px; border-radius:50%; background:#22304a; }
+      .wt-dots span.on { background:var(--amber); }
+      .wt-foot button { font:700 12px "Chakra Petch",sans-serif; letter-spacing:1px; border-radius:7px; padding:7px 16px; cursor:pointer; }
+      .wt-prev { background:none; border:1px solid #3b4a63; color:#8a94a3; }
+      .wt-next { background:var(--amber); border:0; color:#0b0e14; }
+
       /* pinned wall note (readable while coding; sits clear of the bottom IDE) */
       .wallnote { position:fixed; left:16px; top:88px; width:310px; z-index:29; background:linear-gradient(175deg,#f2e3c2,#e7d3a8); color:#2a2014; border-radius:6px; box-shadow:0 14px 44px rgba(0,0,0,.55), inset 0 0 40px rgba(122,90,48,.18); transform:rotate(-.5deg); }
       .wallnote[hidden] { display:none; }
@@ -226,7 +248,7 @@
 
     <!-- pinned wall note: stays open beside the IDE while the player codes -->
     <div id="wallNote" class="wallnote" hidden>
-      <div class="wn-head"><span>📌 Pinned to the wall</span><button id="wallNoteClose">✕</button></div>
+      <div class="wn-head"><span>📌 Pinned to the wall</span><span><button id="wallNoteExplain" title="Explain this code again">❓</button> <button id="wallNoteClose">✕</button></span></div>
       <pre id="wallNoteText"></pre>
     </div>
 
