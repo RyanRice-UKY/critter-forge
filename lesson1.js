@@ -1086,9 +1086,9 @@ async function playBeat2(name) {
     readonly: true, rows: 2,
     concept: "input",
     task: "The captain speaks and input() catches his words. His message is already on your lips: accept it, or say it your own way.",
-    inputPrompt: "The captain, slow and clear. Carry this word for word:",
-    inputDefault: "Return to the knight. The city is being reclaimed, but something older stirs in the dark.",
-    validate: (r) => (String(r.vars.order || "").toLowerCase().includes("knight") ? null : 'The order must carry the word "knight", so there is no mistaking it.'),
+    inputPrompt: "The captain, slow and clear. Carry this to your knight-captain, word for word:",
+    inputDefault: "The city is being reclaimed, but something sinister stirs in the dark. We'll need someone to go scout ahead to see what we're up against.",
+    validate: (r) => (String(r.vars.order || "").toLowerCase().includes("scout") ? null : 'The order must carry the word "scout", so there is no mistaking what the army needs.'),
   }, null);
   await say("Captain", "Word for word. He'll want that quickly. Off you go.");
   questStep = 2;
@@ -1098,19 +1098,20 @@ async function playBeat2(name) {
 }
 async function playBeat3(name) {
   await say("Knight-Captain", "You crossed the water and came back whole? Then report, scout. The captain's words, exactly as he gave them.");
-  const ORDERS_LINE = 'army_orders = "Return to the knight. The city is being reclaimed, but something older stirs in the dark."';
+  const ORDERS_LINE = `army_orders = "The city is being reclaimed, but something sinister stirs in the dark. We'll need someone to go scout ahead to see what we're up against."`;
   await ask({
     prompt: "Deliver the captain's report",
     prefill: ORDERS_LINE + "\n",
     placeholder: ORDERS_LINE + "\nprint(army_orders)", rows: 2,
     concept: "print-var",
     task: "The captain's exact words already sit in the string variable army_orders, declared on line 1. Add a print statement under it that speaks the variable aloud.",
-    validate: (r) => (/print\s*\(\s*army_orders\s*\)/.test(lastSrc) && r.stdout.toLowerCase().includes("knight") ? null : "Add print(army_orders) under the declaration, so his exact words come out."),
+    validate: (r) => (/print\s*\(\s*army_orders\s*\)/.test(lastSrc) && r.stdout.toLowerCase().includes("sinister") ? null : "Add print(army_orders) under the declaration, so his exact words come out."),
   }, (r) => speech(r.stdout));
-  await say("Knight-Captain", "Reclaimed... and something older stirring in the dark. Grim news carries best in careful words. Well delivered, scout.");
+  await say("Knight-Captain", "Something sinister in the dark... and the captain wants a scout to go see what we're up against. That scout is you.");
   await playBeat3Pay(name);
 }
 async function playBeat3Pay(name) {
+  await say("Knight-Captain", "But no scout of mine walks the road to the city in cloth. You'll need armor for what's out there.");
   await say("Knight-Captain", "Here's a scout's pay. One gold and seventy-five: 1.75. A coin with a decimal point is a float; add it to your purse.");
   const before = char.gold;
   await ask({
@@ -1181,7 +1182,7 @@ async function playBeat4(name) {
 // the wrap-up: report back to the knight in your new steel
 async function playBeatWrap(name) {
   await say("Knight-Captain", "Look at you, scout. Steel where there was cloth this morning.");
-  await say("Knight-Captain", "The keep is yours to walk. Rest while you can; the north gate is tomorrow's worry.");
+  await say("Knight-Captain", "At dawn you take the road to the city, to see what stirs in that dark. Rest while you can.");
   questStep = 5; lesson1Done = true;
   if (Sv) { Sv.completeChapter(1); Sv.write({ gold: char.gold }); awardXP(40); } // chapter clear bonus; unlocks The Keep on the map
   await say("", "Lesson 1.3 complete. The rest of the keep unlocks as your story continues.");
