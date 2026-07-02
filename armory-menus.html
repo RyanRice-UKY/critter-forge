@@ -79,6 +79,30 @@
   <button data-v="b">B · Forge terminal</button>
   <button data-v="c">C · Display rack</button>
   <button data-v="d">D · Split counter</button>
+  <button data-v="e">E · Full shop scene</button>
+</div>
+
+<!-- E: full-bleed shop interior -->
+<div class="v ve hidden" style="display:block;">
+  <canvas id="shopE" style="position:fixed;inset:0;width:100%;height:100%;"></canvas>
+  <div style="position:fixed;top:14px;left:16px;z-index:12;font:700 12px 'Chakra Petch',sans-serif;letter-spacing:1px;color:#e7c878;background:rgba(7,10,16,.78);border:1px solid #3a2c14;border-radius:8px;padding:7px 12px;">🪙 3.80</div>
+  <div style="position:fixed;top:14px;right:16px;z-index:12;font:700 12px 'Chakra Petch',sans-serif;letter-spacing:1px;color:#a08a5e;background:rgba(7,10,16,.78);border:1px solid #3a2c14;border-radius:8px;padding:7px 12px;cursor:pointer;">◂ leave shop</div>
+  <div style="position:fixed;left:50%;transform:translateX(-50%);bottom:18px;width:min(840px,94vw);z-index:12;background:rgba(8,11,18,.92);border:1px solid #2a3548;border-radius:12px;backdrop-filter:blur(8px);box-shadow:0 18px 60px rgba(0,0,0,.6);overflow:hidden;">
+    <div style="display:flex;align-items:center;background:#0a0e17;border-bottom:1px solid #1b2533;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;padding:8px 16px;background:#111726;border-right:1px solid #1b2533;border-top:2px solid #ffd43b;"><span style="width:7px;height:7px;border-radius:50%;background:#62d27a;"></span> armory.py</div>
+      <div style="flex:1;padding:0 14px;font:700 12.5px 'Chakra Petch',sans-serif;color:#62d27a;">◈ Kit yourself out: tally your order, pay the smith</div>
+    </div>
+    <div style="padding:12px 16px;font-size:14px;line-height:1.6;">
+      <span style="color:#5a6273"># BOOTS, HELMET, GAUNTLETS, LEGGINGS, CHESTPLATE = 0.50 each · gold = 3.80</span><br/>
+      total = <span style="color:#55627a;font-style:italic">HELMET + CHESTPLATE + BOOTS</span><br/>
+      <span style="color:#55627a;font-style:italic">pieces = total // 0.50</span><br/>
+      <span style="color:#55627a;font-style:italic">gold = gold - total</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;font-size:11.5px;color:#5d6a7d;background:#0a0e17;border-top:1px solid #1b2533;padding:6px 12px;">
+      <span style="color:#62d27a">● python ready</span><span>💡 hint</span><span style="margin-left:auto"></span>
+      <button style="background:#ffd43b;color:#0b0e14;border:0;font-weight:700;padding:7px 16px;border-radius:7px;font-family:'Chakra Petch',sans-serif;">▸ Run</button>
+    </div>
+  </div>
 </div>
 
 <!-- A: parchment ledger -->
@@ -216,10 +240,67 @@ for (const [kind, CONST] of PIECES) {
 }
 { const c = document.getElementById("faceD").getContext("2d"); const S=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);};
   S(4,8,18,14,"#d8a878"); S(3,4,20,6,"#454c55"); S(3,14,20,3,"#454c55"); S(8,12,3,2,"#1c1208"); S(16,12,3,2,"#1c1208"); S(4,22,18,4,"#5b626b"); }
+// E: full-bleed shop interior scene
+function drawShopE() {
+  const cv = document.getElementById("shopE"); if (!cv) return;
+  const dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const S = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.ceil(w), Math.ceil(h)); };
+  const floorY = H * 0.72;
+  // stone wall + timber frame
+  for (let y = 0; y < floorY; y += 26) for (let x = ((y / 26 | 0) % 2) * 22; x < W; x += 44) S(x + 1, y + 1, 42, 24, ((x / 44 | 0) + (y / 26 | 0)) % 2 ? "#3a3f4b" : "#363b46");
+  const shade = c.createLinearGradient(0, 0, 0, floorY * 0.6); shade.addColorStop(0, "rgba(0,0,0,.5)"); shade.addColorStop(1, "rgba(0,0,0,0)"); c.fillStyle = shade; c.fillRect(0, 0, W, floorY * 0.6);
+  for (const fx of [0.05, 0.95]) S(W * fx - 7, 0, 14, floorY, "#241c11");
+  // plank floor
+  for (let x = 0; x < W; x += 34) S(x, floorY, 34, H - floorY, (x / 34 | 0) % 2 ? "#3a3225" : "#342c20");
+  S(0, floorY, W, 4, "#4a3a26");
+  // forge glow at the right
+  const fg = c.createRadialGradient(W * 0.9, floorY - 40, 20, W * 0.9, floorY - 40, 300); fg.addColorStop(0, "rgba(255,140,60,.22)"); fg.addColorStop(1, "rgba(255,140,60,0)"); c.fillStyle = fg; c.fillRect(W * 0.6, 0, W * 0.4, H);
+  S(W * 0.86, floorY - 66, 90, 66, "#2b2b30"); S(W * 0.875, floorY - 50, 60, 34, "#1a1a1e");
+  c.fillStyle = "#ff7b3d"; c.beginPath(); c.arc(W * 0.9, floorY - 32, 15, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#ffd43b"; c.beginPath(); c.arc(W * 0.9, floorY - 32, 8, 0, Math.PI * 2); c.fill();
+  // wall display: each piece on a wooden board with a hanging price tag
+  const pieces = ["boots", "helmet", "gauntlets", "leggings", "chestplate"];
+  const names = ["BOOTS", "HELMET", "GAUNTLETS", "LEGGINGS", "CHESTPLATE"];
+  for (let i = 0; i < 5; i++) {
+    const bx = W * (0.12 + i * 0.15), by = H * 0.2, bs = 9, half = 6 * bs;
+    S(bx - half - 10, by - 12, half * 2 + 20, 12 * bs + 44, "#2a2014");
+    S(bx - half - 6, by - 8, half * 2 + 12, 12 * bs + 36, "#4a3a22");
+    S(bx - half - 6, by - 8, half * 2 + 12, 4, "#5f4a2c");
+    c.save(); c.translate(bx - half, by); drawIcon(pieces[i], c, bs); c.restore();
+    // hanging tag
+    S(bx - 1, by + 12 * bs + 2, 2, 8, "#8a7448");
+    S(bx - 52, by + 12 * bs + 10, 104, 34, "#e8dcc0"); S(bx - 52, by + 12 * bs + 10, 104, 3, "#c9b98a");
+    c.fillStyle = "#6b3f16"; c.font = "bold 11px 'IBM Plex Mono',monospace"; c.textAlign = "center";
+    c.fillText(names[i], bx, by + 12 * bs + 25);
+    c.fillText("= 0.50", bx, by + 12 * bs + 39);
+  }
+  // long counter
+  S(W * 0.08, floorY - 34, W * 0.84, 12, "#8a6d3b"); S(W * 0.08, floorY - 22, W * 0.84, 22, "#6b4f2a");
+  for (let x = W * 0.08; x < W * 0.92; x += 60) S(x, floorY - 22, 2, 22, "#4a3a22");
+  // the armorsmith, large behind the counter
+  { const mx = W * 0.72, sc = 4.4; c.save(); c.translate(mx, floorY - 34); c.scale(sc, sc);
+    S(-5, -4, 4, 6, "#222"); S(2, -4, 4, 6, "#222");
+    S(-7, -22, 14, 18, "#5b626b"); S(-7, -22, 3, 18, "rgba(255,255,255,.13)");
+    S(-4, -18, 8, 14, "#5a3a20"); S(-4, -18, 8, 2, "#6e4a28");
+    S(-9, -20, 3, 11, "#5b626b"); S(6, -20, 3, 11, "#5b626b"); S(6, -10, 3, 2, "#c89a72");
+    S(-6, -32, 12, 11, "#c89a72"); S(-8, -35, 16, 5, "#454c55"); S(-8, -28, 16, 3, "#454c55"); S(-3, -27, 2, 2, "#1c1208");
+    c.restore(); }
+  // a mannequin at the left showing what you own so far
+  { const mx = W * 0.14, sc = 3.6; c.save(); c.translate(mx, floorY - 4); c.scale(sc, sc);
+    S(-1, -30, 2, 30, "#4a3a22"); S(-6, -2, 12, 3, "#4a3a22");
+    S(-4, -28, 8, 8, "#8a7448"); S(-6, -20, 12, 12, "#8a7448");
+    c.globalAlpha = 0.3; S(-6, -20, 12, 12, "#9aa3ad"); c.globalAlpha = 1;
+    c.restore();
+    c.fillStyle = "#8a94a3"; c.font = "11px 'IBM Plex Mono',monospace"; c.textAlign = "center";
+    c.fillText("your kit", mx, floorY + 16); }
+}
 // switcher
 const show = (v) => { document.querySelectorAll(".v").forEach((el) => el.classList.add("hidden")); document.querySelector(".v" + v)?.classList.remove("hidden");
-  document.querySelectorAll("#switch button").forEach((b) => b.classList.toggle("on", b.dataset.v === v)); location.hash = v; };
+  document.querySelectorAll("#switch button").forEach((b) => b.classList.toggle("on", b.dataset.v === v)); location.hash = v; if (v === "e") drawShopE(); };
 document.querySelectorAll("#switch button").forEach((b) => (b.onclick = () => show(b.dataset.v)));
+addEventListener("resize", () => { if (location.hash === "#e") drawShopE(); });
 show((location.hash || "#a").slice(1));
 </script>
 </body>
