@@ -80,6 +80,29 @@
   <button data-v="c">C · Display rack</button>
   <button data-v="d">D · Split counter</button>
   <button data-v="e">E · Full shop scene</button>
+  <button data-v="f">F · Booth close-up</button>
+</div>
+
+<!-- F: the keep's own stall, zoomed in; world stays visible around it -->
+<div class="v vf hidden" style="display:block;">
+  <canvas id="boothF" style="position:fixed;inset:0;width:100%;height:100%;"></canvas>
+  <div style="position:fixed;top:14px;left:16px;z-index:12;font:700 12px 'Chakra Petch',sans-serif;letter-spacing:1px;color:#e7c878;background:rgba(7,10,16,.78);border:1px solid #3a2c14;border-radius:8px;padding:7px 12px;">🪙 3.80</div>
+  <div style="position:fixed;top:14px;right:16px;z-index:12;font:700 12px 'Chakra Petch',sans-serif;letter-spacing:1px;color:#a08a5e;background:rgba(7,10,16,.78);border:1px solid #3a2c14;border-radius:8px;padding:7px 12px;cursor:pointer;">◂ step back</div>
+  <div style="position:fixed;left:50%;transform:translateX(-50%);bottom:18px;width:min(840px,94vw);z-index:12;background:rgba(8,11,18,.92);border:1px solid #2a3548;border-radius:12px;backdrop-filter:blur(8px);box-shadow:0 18px 60px rgba(0,0,0,.6);overflow:hidden;">
+    <div style="display:flex;align-items:center;background:#0a0e17;border-bottom:1px solid #1b2533;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;padding:8px 16px;background:#111726;border-right:1px solid #1b2533;border-top:2px solid #ffd43b;"><span style="width:7px;height:7px;border-radius:50%;background:#62d27a;"></span> armory.py</div>
+      <div style="flex:1;padding:0 14px;font:700 12.5px 'Chakra Petch',sans-serif;color:#62d27a;">◈ Kit yourself out: tally your order, pay the smith</div>
+    </div>
+    <div style="padding:12px 16px;font-size:14px;line-height:1.6;">
+      <span style="color:#5a6273"># BOOTS, HELMET, GAUNTLETS, LEGGINGS, CHESTPLATE = 0.50 each · gold = 3.80</span><br/>
+      total = <span style="color:#55627a;font-style:italic">HELMET + CHESTPLATE + BOOTS</span><br/>
+      <span style="color:#55627a;font-style:italic">gold = gold - total</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;font-size:11.5px;color:#5d6a7d;background:#0a0e17;border-top:1px solid #1b2533;padding:6px 12px;">
+      <span style="color:#62d27a">● python ready</span><span>💡 hint</span><span style="margin-left:auto"></span>
+      <button style="background:#ffd43b;color:#0b0e14;border:0;font-weight:700;padding:7px 16px;border-radius:7px;font-family:'Chakra Petch',sans-serif;">▸ Run</button>
+    </div>
+  </div>
 </div>
 
 <!-- E: full-bleed shop interior -->
@@ -296,11 +319,67 @@ function drawShopE() {
     c.fillStyle = "#8a94a3"; c.font = "11px 'IBM Plex Mono',monospace"; c.textAlign = "center";
     c.fillText("your kit", mx, floorY + 16); }
 }
+// F: the armorsmith's own stall zoomed to booth scale, keep visible behind
+function drawBoothF() {
+  const cv = document.getElementById("boothF"); if (!cv) return;
+  const dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const S = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.ceil(w), Math.ceil(h)); };
+  // the keep behind, dimmed: wall, gold trim, columns, carpet, floor
+  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#171a24"); g.addColorStop(1, "#1f2330"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  S(0, H * 0.14, W, 5, "#a8832a"); S(0, H * 0.14 + 5, W, 2, "#ffd43b");
+  for (let i = 0; i < 6; i++) { const cx = W * (0.08 + i * 0.17); S(cx - 11, 0, 22, H * 0.74 + 30, "#2c303b"); S(cx - 14, 0, 28, 9, "#3a3f4b"); }
+  const floorY = H * 0.74;
+  for (let x = 0; x < W; x += 30) S(x, floorY, 30, H - floorY, (x / 30 | 0) % 2 ? "#2a2d36" : "#262931");
+  c.fillStyle = "rgba(4,6,10,.45)"; c.fillRect(0, 0, W, H); // step-up dim
+  // ---- the booth, big in front of you ----
+  const bx = W / 2, bw = Math.min(620, W * 0.62), half = bw / 2, top = H * 0.16, counterY = floorY - 26;
+  // corner posts
+  S(bx - half - 12, top + 26, 14, counterY - top - 4, "#5a4424"); S(bx + half - 2, top + 26, 14, counterY - top - 4, "#5a4424");
+  S(bx - half - 12, top + 26, 5, counterY - top - 4, "#7a5a30"); S(bx + half - 2, top + 26, 5, counterY - top - 4, "#7a5a30");
+  // back wall boards
+  S(bx - half, top + 34, bw, counterY - top - 38, "#241c11");
+  for (let y = top + 34; y < counterY - 6; y += 18) S(bx - half, y, bw, 2, "#1a140c");
+  // striped awning with scalloped hem (armorsmith purple)
+  for (let s = -half - 20; s < half + 20; s += 34) S(bx + s, top, 34, 30, ((s / 34) | 0) % 2 ? "#9c36b5" : "#f1f3f5");
+  for (let s = -half - 20; s < half + 20; s += 34) { c.fillStyle = ((s / 34) | 0) % 2 ? "#9c36b5" : "#f1f3f5"; c.beginPath(); c.arc(bx + s + 17, top + 30, 17, 0, Math.PI); c.fill(); }
+  S(bx - half - 24, top - 4, bw + 48, 6, "#8a6d3b");
+  // hanging sign
+  S(bx - 60, top + 44, 120, 30, "#6b4f2a"); S(bx - 60, top + 44, 120, 3, "#8a6d3b");
+  c.fillStyle = "#e8dcc0"; c.font = "bold 13px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("ARMORSMITH", bx, top + 63);
+  // the five pieces on the back rack with tags
+  const pieces = ["boots", "helmet", "gauntlets", "leggings", "chestplate"];
+  const names = ["BOOTS", "HELMET", "GAUNTLETS", "LEGGINGS", "CHESTPLATE"];
+  for (let i = 0; i < 5; i++) {
+    const ix = bx - half + bw * (0.1 + i * 0.2), iy = top + (counterY - top) * 0.34, s2 = 5;
+    S(ix - 6 * s2 - 4, iy - 4, 12 * s2 + 8, 12 * s2 + 8, "#1a140c");
+    c.save(); c.translate(ix - 6 * s2, iy); drawIcon(pieces[i], c, s2); c.restore();
+    S(ix - 40, iy + 12 * s2 + 6, 80, 26, "#e8dcc0"); S(ix - 40, iy + 12 * s2 + 6, 80, 2, "#c9b98a");
+    c.fillStyle = "#6b3f16"; c.font = "bold 10px 'IBM Plex Mono',monospace"; c.textAlign = "center";
+    c.fillText(names[i], ix, iy + 12 * s2 + 17); c.fillText("= 0.50", ix, iy + 12 * s2 + 28);
+  }
+  // counter with front planks
+  S(bx - half - 20, counterY, bw + 40, 8, "#8a6d3b"); S(bx - half - 20, counterY + 8, bw + 40, 20, "#6b4f2a");
+  for (let x = bx - half - 20; x < bx + half + 20; x += 46) S(x, counterY + 8, 2, 20, "#4a3a22");
+  // the vendor behind the counter (booth scale)
+  { const sc = 3.5; c.save(); c.translate(bx + half * 0.5, counterY); c.scale(sc, sc);
+    S(-4, -22, 8, 14, "#5b626b"); S(-4, -22, 2, 14, "rgba(255,255,255,.13)");
+    S(-6, -20, 3, 10, "#5b626b"); S(4, -20, 3, 10, "#5b626b"); S(4, -11, 3, 2, "#d8a878");
+    S(-3, -29, 7, 7, "#d8a878"); S(-4, -31, 8, 3, "#3a2c18"); S(0, -26, 2, 2, "#1c1208");
+    c.restore(); }
+  // your hero, this side of the counter at its left end
+  { const sc = 3.4; c.save(); c.translate(bx - half * 0.62, floorY + 22); c.scale(sc, sc);
+    S(-4, -4, 4, 12, "#3f6b2a"); S(1, -4, 4, 12, "#3f6b2a"); S(-4, 5, 4, 3, "#241a10"); S(1, 5, 4, 3, "#241a10");
+    S(-6, -22, 12, 20, "#6b8e23"); S(-6, -8, 12, 3, "#3a2c18");
+    S(-5, -33, 11, 11, "#e0a070"); S(-6, -35, 12, 5, "#3a2c18");
+    c.restore(); }
+}
 // switcher
 const show = (v) => { document.querySelectorAll(".v").forEach((el) => el.classList.add("hidden")); document.querySelector(".v" + v)?.classList.remove("hidden");
-  document.querySelectorAll("#switch button").forEach((b) => b.classList.toggle("on", b.dataset.v === v)); location.hash = v; if (v === "e") drawShopE(); };
+  document.querySelectorAll("#switch button").forEach((b) => b.classList.toggle("on", b.dataset.v === v)); location.hash = v; if (v === "e") drawShopE(); if (v === "f") drawBoothF(); };
 document.querySelectorAll("#switch button").forEach((b) => (b.onclick = () => show(b.dataset.v)));
-addEventListener("resize", () => { if (location.hash === "#e") drawShopE(); });
+addEventListener("resize", () => { if (location.hash === "#e") drawShopE(); if (location.hash === "#f") drawBoothF(); });
 show((location.hash || "#a").slice(1));
 </script>
 </body>
