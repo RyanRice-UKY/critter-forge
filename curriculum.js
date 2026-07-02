@@ -54,7 +54,7 @@ export const CONCEPTS = {
   },
   if: {
     journal: "ifelse", link: "if statement",
-    teach: "An if statement makes a choice. When its condition is true, the indented block under it runs. When it is false, Python skips the block. An else catches the false case.",
+    teach: "An if statement is how code makes a decision. You write if, then a condition, then a colon: if food >= 2:. The indented lines under it run ONLY when the condition is true. When it is false, Python skips them entirely and carries on below, as if they were never there. Add an else block to catch the false case. Everything smart a program ever does, every gate, guard and checklist, is built from decisions like this one.",
     remind: "Make the choice with an if statement.",
   },
   input: {

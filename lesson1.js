@@ -44,6 +44,9 @@ let lastMs = performance.now();
 const char = { x: 0, rise: 0, walk: 0, walking: false, target: 0, onArrive: null, facing: 1, bubble: null, bubbleT: 0, hasBow: false, items: { sticks: 0, string: 0 }, gold: 0, hearts: 5 };
 let zoms = [], ARROWS = [], zombiesApproach = false;
 let FX = [], shootT = 0; // impact debris particles + how long the hero holds the draw pose
+let manifestRect = null; // clickable wall note in the storage room (set by drawStorage)
+const MANIFEST_NOTE =
+  "CAPTAIN'S MANIFEST: NORTH WATCH\n\nLoad the raft with EXACTLY:\n\n    armor .... 1 plate\n    food ..... 2 crates\n    water .... 1 barrel\n\nWeight must stay within 30 stone.\n(a plate weighs 10, a crate 4, a barrel 3)\n\nShort or over, she doesn't sail.";
 let invinc = 0, dmgFlash = 0, dying = false;
 let townsfolk = [];
 let lesson1Done = false; // the king's chamber stays sealed until Lesson 1 is complete
@@ -66,7 +69,16 @@ async function boot() {
   els.noteClose.onclick = () => (els.noteModal.hidden = true);
   els.noteModal.onclick = (e) => { if (e.target === els.noteModal) els.noteModal.hidden = true; };
   fit(); window.addEventListener("resize", fit);
-  els.stage.onclick = advance;
+  els.stage.onclick = (e) => {
+    // the storage room's wall note opens the captain's manifest
+    if (scene === "storage" && manifestRect) {
+      const r = els.stage.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+      if (mx >= manifestRect.x && mx <= manifestRect.x + manifestRect.w && my >= manifestRect.y && my <= manifestRect.y + manifestRect.h) {
+        els.noteText.textContent = MANIFEST_NOTE; els.noteModal.hidden = false; return;
+      }
+    }
+    advance();
+  };
   els.run.onclick = submit;
   els.hint.onclick = () => { if (currentInput) Editor.toggleHint(currentInput.opts.placeholder || ""); };
   Editor.init({ onSubmit: submit, onChange: (lines) => els.ide.classList.toggle("wide", lines > 8) }); // grow wide before tall at the bottom dock
@@ -409,7 +421,7 @@ function update(dt) {
     if (Math.abs(dx) <= st) { survivor.x = survivor.target; survivor.state = survivor.hideAfter ? "hiding" : "beside"; const r = survivor.onArrive; survivor.onArrive = null; if (r) r(); }
     else survivor.x += Math.sign(dx) * st;
   }
-  if (survivor && survivor.state === "beside" && survivorFollow) { const tx = char.x + 30; if (Math.abs(survivor.x - tx) > 4) { survivor.x += Math.sign(tx - survivor.x) * 110 * dt; survivor.wphase += dt * 9; } }
+  if (survivor && survivor.state === "beside" && survivorFollow) { const tx = char.x - 34 * char.facing; if (Math.abs(survivor.x - tx) > 4) { survivor.x += Math.sign(tx - survivor.x) * 110 * dt; survivor.wphase += dt * 9; } } // trail BEHIND the hero, never in the firing line
   // a zombie that reaches you deals 1 heart of damage, then is knocked back
   if (invinc > 0) invinc -= dt;
   if (dmgFlash > 0) dmgFlash -= dt * 2;
@@ -613,10 +625,18 @@ function drawStorage(c, W, gy, now) {
   const wx = W * 0.62, wy = gy * 0.1;
   px(c, wx - 17, wy - 1, 34, 27, "#0e1622"); px(c, wx - 17, wy - 1, 34, 3, "#3a2c18"); px(c, wx - 17, wy + 23, 34, 3, "#3a2c18"); px(c, wx - 2, wy - 1, 3, 27, "#3a2c18"); px(c, wx - 17, wy + 11, 34, 2, "#3a2c18");
   c.fillStyle = "rgba(180,205,235,0.06)"; c.beginPath(); c.moveTo(wx - 17, wy + 26); c.lineTo(wx + 17, wy + 26); c.lineTo(wx + 80, gy + 8); c.lineTo(wx - 40, gy + 8); c.closePath(); c.fill();
-  // the captain's checklist, pinned by the door
-  px(c, W * 0.53 - 11, gy * 0.28, 22, 28, "#e8dcc0"); px(c, W * 0.53 - 11, gy * 0.28, 22, 2, "#c9b98a");
-  circ(c, W * 0.53, gy * 0.28 + 2, 2, "#b34a3a");
-  for (let i = 0; i < 4; i++) px(c, W * 0.53 - 7, gy * 0.28 + 8 + i * 5, 14 - (i % 2) * 4, 2, "#b9a97f");
+  // the captain's manifest, pinned at eye level; click it to read (intro to if statements)
+  { const nx = W * 0.53 - 16, ny = gy * 0.52, nw = 32, nh = 42;
+    manifestRect = { x: nx - 6, y: ny - 6, w: nw + 12, h: nh + 12 }; // generous hit area
+    const pulse = 0.5 + 0.5 * Math.sin(now * 2.6);
+    c.shadowColor = "#ffe066"; c.shadowBlur = 8 + 10 * pulse;
+    px(c, nx, ny, nw, nh, "#e8dcc0"); c.shadowBlur = 0;
+    px(c, nx, ny, nw, 3, "#c9b98a");
+    circ(c, nx + nw / 2, ny + 3, 2.5, "#b34a3a"); // pin
+    for (let i = 0; i < 6; i++) px(c, nx + 5, ny + 10 + i * 5, nw - 10 - (i % 2) * 6, 2, "#b9a97f");
+    c.fillStyle = `rgba(255,224,102,${0.65 + 0.35 * pulse})`; c.font = "10px 'IBM Plex Mono',monospace"; c.textAlign = "center";
+    c.fillText("▸ click to read", nx + nw / 2, ny + nh + 14);
+  }
   // coiled rope + a saw hung between the studs
   c.strokeStyle = "#8a6d3b"; c.lineWidth = 3; c.beginPath(); c.arc(W * 0.12, gy * 0.3, 9, 0, Math.PI * 2); c.stroke(); c.strokeStyle = "#6e551f"; c.lineWidth = 1.5; c.beginPath(); c.arc(W * 0.12, gy * 0.3, 6, 0, Math.PI * 2); c.stroke();
   px(c, W * 0.44 - 2, gy * 0.24, 4, 6, "#5a3f22"); px(c, W * 0.44 - 14, gy * 0.3, 28, 4, "#9aa3ad"); for (let i = 0; i < 6; i++) px(c, W * 0.44 - 13 + i * 5, gy * 0.34, 3, 2, "#7a828c");
@@ -831,7 +851,7 @@ async function dropOff() {
 
 const KEEP_MANIFEST_RUN = "weight = armor*10 + food*4 + water*3\nchecklist = 0\nif weight <= 30:\n    checklist = checklist + 1\nif armor == 1:\n    checklist = checklist + 1\nif food == 2:\n    checklist = checklist + 1\nif water == 1:\n    checklist = checklist + 1";
 const KEEP_MANIFEST_LESSON =
-  "Read the captain's checklist on the wall, then record how many of each item you load: armour, food, and water. An if statement runs a line only when its condition is true, so the checklist can count itself and confirm the load is correct. Match the exact amounts and keep the total weight within the limit.";
+  "Click the manifest on the wall and read it carefully. Then record your load: set armor, food and water to the exact amounts it demands. The checklist code below your answer runs four if statements, one per requirement, and each true condition adds one mark. Four marks and the raft sails.";
 
 async function startQuest(name) {
   await say("Knight-Captain", `So you want the keep's trust, ${name}? Earn it.`);
@@ -844,13 +864,15 @@ async function startQuest(name) {
 }
 async function playBeat1(name) {
   await fadeTo("storage"); char.x = els.W * 0.06; char.facing = 1; prog(name + " · 1.3"); raftCargo = { armor: 0, food: 0, water: 0 };
-  await say("", "The storage room. Piles of armour, food and water on the left; a raft waits at the dock on the right. The captain's checklist hangs on the wall. Read it.");
+  await say("", "The storage room. Piles of armour, food and water on the left; a raft waits at the dock on the right.");
+  await say("", "The captain's manifest is pinned to the wall, glowing in the lantern light. Click the note to read what the north watch needs.");
   const r = await ask({
     prompt: "Pack the supply cart",
     placeholder: "armor = 1\nfood = 2\nwater = 1", rows: 3,
     concept: "if", task: KEEP_MANIFEST_LESSON, append: KEEP_MANIFEST_RUN,
     validate: (r) => (Number(r.vars.checklist) === 4 ? null : "The cart's not right. Read the captain's checklist again (exact amounts, and weight ≤ 30)."),
   }, null);
+  await say("", "Four marks. That was your first if statement, and the last new tool of the introduction. From here the world stops teaching and starts testing: same tools, harder problems.");
   await say("Guard", "Right, grab what's on the list and load the raft.");
   await loadRaft({ armor: Number(r.vars.armor), food: Number(r.vars.food), water: Number(r.vars.water) });
   await say("Guard", "That's her loaded. Cast off and float her across to the camp.");
@@ -874,7 +896,17 @@ async function playBeat2(name) {
   await say("Captain", "The north-watch supplies! Bring them up off the raft and set them down here, scout.");
   await dropOff();
   await say("Captain", "Every crate accounted for. The army won't go hungry. My thanks, and my hand on it.");
-  await say("Captain", "Carry this back to your knight: the city's being reclaimed… but something older stirs in the dark. We'll need a scout.");
+  await say("Captain", "One more thing, scout. A report for your knight-captain, and I need to know you have it word for word. Listen, then say it back.");
+  await ask({
+    prompt: "Run the code, then type the captain's order when the box asks.",
+    prefill: 'order = input()\nprint("Message for the knight:", order)',
+    readonly: true, rows: 2,
+    concept: "input",
+    task: "The captain speaks and input() catches his words. Run the code and type the order back to him.",
+    inputPrompt: 'The captain, slow and clear: "RETURN TO THE KNIGHT. The city is being reclaimed, but something older stirs in the dark." Say the order back:',
+    validate: (r) => (String(r.vars.order || "").toLowerCase().includes("knight") ? null : 'Say it back with the word "knight" in it, so there is no mistaking it.'),
+  }, null);
+  await say("Captain", "Word for word. He'll want that quickly. Off you go.");
   questStep = 2;
   await fadeTo("keep"); char.x = els.W * 0.06; char.facing = 1; setupTownsfolk();
   setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber"]);
