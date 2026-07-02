@@ -692,31 +692,34 @@ function drawFallenCamp(c, W, gy, now) {
   }
   // splintered stakes thrown inward at the breach
   for (const [sx2, rot] of [[W * 0.1, 0.9], [W * 0.13, -1.2], [W * 0.16, 0.5]]) { c.save(); c.translate(sx2, gy - 4); c.rotate(rot); px(c, -4, -20, 8, 24, "#3f3220"); c.fillStyle = "#3f3220"; c.beginPath(); c.moveTo(-4, -20); c.lineTo(0, -28); c.lineTo(4, -20); c.fill(); c.restore(); }
-  // the storehouse, brought down: a REAL building's worth of wreckage
-  { const sx3 = W * 0.74, hw = Math.min(150, W * 0.13);
-    // standing back wall run + tall corner, both broken ragged at the top
-    px(c, sx3 - hw, gy - 46, hw * 1.5, 46, "#454c55");
-    for (let x2 = sx3 - hw; x2 < sx3 + hw * 0.5; x2 += 26) for (let y2 = gy - 46; y2 < gy; y2 += 16) px(c, x2 + 1, y2 + 1, 24, 14, ((x2 / 26 | 0) + (y2 / 16 | 0)) % 2 ? "#3f454e" : "#484f59");
-    for (let x2 = sx3 - hw; x2 < sx3 + hw * 0.5; x2 += 26) px(c, x2, gy - 46 - ((x2 * 7) % 14), 24, 14, "#454c55"); // ragged top course
-    px(c, sx3 - hw - 14, gy - 92, 18, 92, "#4e555e"); px(c, sx3 - hw - 14, gy - 92, 18, 4, "#5d656f"); // tall corner
-    px(c, sx3 - hw - 14, gy - 92, 5, 92, "#5d656f");
-    px(c, sx3 - hw + 8, gy - 66, 16, 20, "#1a2027"); // empty window in the standing wall
-    // collapsed roof: long crossed beams + a slab of fallen roof planks
-    c.save(); c.translate(sx3 - 30, gy); c.rotate(0.55); px(c, -5, -110, 10, 110, "#33271a"); px(c, -5, -110, 4, 110, "#3f3220"); c.restore();
-    c.save(); c.translate(sx3 + 34, gy - 4); c.rotate(-0.75); px(c, -5, -92, 10, 92, "#3a2c1c"); c.restore();
-    c.save(); c.translate(sx3 + 6, gy - 26); c.rotate(0.18); for (let i = 0; i < 5; i++) px(c, -44 + i * 18, -8, 16, 30, i % 2 ? "#4a3a26" : "#54422a"); c.restore(); // roof slab
-    // the rubble mound, big and deep
-    for (let i = 0; i < 22; i++) {
-      const rx4 = sx3 - hw * 0.8 + (i * 53) % (hw * 1.7), ry4 = gy - 8 - (i * 23) % 34;
+  // the granary tower, snapped at half height; its upper half lies smashed beside it
+  { const sx3 = W * 0.73, tw = 90, th = 190;
+    // standing half-tower with course lines and a ragged snap line
+    px(c, sx3 - tw / 2, gy - th, tw, th, "#454c55");
+    px(c, sx3 - tw / 2, gy - th, 12, th, "#5d656f"); // moonlit edge
+    for (let y2 = gy - th; y2 < gy; y2 += 24) px(c, sx3 - tw / 2, y2, tw, 3, "#3f454e");
+    for (let i = 0; i < 6; i++) px(c, sx3 - tw / 2 + i * 15, gy - th - ((i * 7) % 20), 14, 20, "#454c55"); // ragged break
+    px(c, sx3 - 12, gy - th + 34, 24, 28, "#1a2027"); px(c, sx3 - 12, gy - th + 34, 24, 4, "#33271a"); // loading door, high up
+    px(c, sx3 - tw / 2 + 12, gy - 60, 18, 22, "#1a2027"); // ground-level doorway, half buried
+    // the fallen upper half: a cracked drum on its side
+    c.save(); c.translate(sx3 + 118, gy - 28); c.rotate(0.28);
+    px(c, -75, -42, 150, 70, "#4e555e"); px(c, -75, -42, 150, 10, "#5d656f");
+    for (let i = 0; i < 6; i++) px(c, -75 + i * 27, -42, 3, 70, "#3f454e"); // course seams
+    c.strokeStyle = "#2e343c"; c.lineWidth = 2; c.beginPath(); c.moveTo(-30, -42); c.lineTo(-14, 0); c.lineTo(-26, 28); c.stroke(); // crack
+    c.restore();
+    // rubble spilling between the halves
+    for (let i = 0; i < 20; i++) {
+      const rx4 = sx3 - 30 + (i * 53) % 190, ry4 = gy - 8 - (i * 23) % 40;
       px(c, rx4, ry4, 14 + (i % 4) * 6, 12, i % 3 === 0 ? "#454c55" : i % 3 === 1 ? "#4e555e" : "#3f454e");
       if (i % 5 === 0) px(c, rx4 + 2, ry4 - 3, 8, 3, "#5d656f");
     }
-    drawSack(c, sx3 - hw * 0.6, gy + 8, "#8a6d3b"); drawSack(c, sx3 + hw * 0.5, gy + 6, "#7a5f36");
-    px(c, sx3 - hw * 0.7, gy + 3, 20, 3, "#c9b89a"); px(c, sx3 + hw * 0.3, gy + 10, 16, 3, "#c9b89a"); // spilled grain
-    drawBarrel(c, sx3 + hw * 0.72, gy + 4, 16, 20); // survived barrel, absurdly upright
-    if (!tamFreed && Math.sin(now * 2.2) > 0.75) px(c, sx3 + 2, gy - 26, 4, 4, "#e8dcc0"); // a knuckle rapping from beneath
+    c.save(); c.translate(sx3 + 24, gy); c.rotate(0.5); px(c, -5, -96, 10, 96, "#33271a"); px(c, -5, -96, 4, 96, "#3f3220"); c.restore(); // fallen beam
+    drawSack(c, sx3 - 60, gy + 8, "#8a6d3b"); drawSack(c, sx3 + 158, gy + 6, "#7a5f36");
+    px(c, sx3 - 74, gy + 3, 20, 3, "#c9b89a"); px(c, sx3 + 132, gy + 10, 16, 3, "#c9b89a"); // spilled grain
+    drawBarrel(c, sx3 - 84, gy + 4, 16, 20); // survived barrel, absurdly upright
+    if (!tamFreed && Math.sin(now * 2.2) > 0.75) px(c, sx3 + 34, gy - 24, 4, 4, "#e8dcc0"); // a knuckle rapping from beneath
     if (tamFreed) { // Tam, out of the rubble: a clerk, no armor, satchel hugged tight
-      const tx4 = sx3 - hw * 0.9; c.save(); c.translate(tx4, gy); c.scale(CH, CH);
+      const tx4 = sx3 - 66; c.save(); c.translate(tx4, gy); c.scale(CH, CH);
       px(c, -4, -4, 4, 10, "#4a3a26"); px(c, 1, -4, 4, 10, "#4a3a26"); px(c, -4, 4, 4, 3, "#241a10"); px(c, 1, 4, 4, 3, "#241a10");
       px(c, -6, -22, 12, 18, "#8a6d3b"); px(c, -6, -22, 3, 18, "rgba(255,255,255,0.12)");
       px(c, -8, -14, 7, 9, "#5a4426"); px(c, -8, -14, 7, 2, "#6e5430"); // the satchel, held to his chest
