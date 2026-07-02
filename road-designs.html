@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>The Road to the City — area design concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing:border-box; margin:0; }
+  body { background:#0b0e14; color:#dbe6f2; font-family:"IBM Plex Mono",monospace; padding:26px 0 60px; }
+  h1 { font:700 24px "Chakra Petch",sans-serif; color:#ffd43b; text-align:center; letter-spacing:1px; }
+  .sub { text-align:center; color:#8a94a3; font-size:13px; margin:6px 0 26px; }
+  .card { width:min(1100px,94vw); margin:0 auto 30px; background:#0d1320; border:1px solid #2a3548; border-radius:14px; overflow:hidden; }
+  .card.pick { border-color:#ffd43b; box-shadow:0 0 0 1px #ffd43b33, 0 20px 60px rgba(0,0,0,.5); }
+  .card canvas { display:block; width:100%; height:280px; image-rendering:auto; }
+  .meta { display:flex; gap:22px; padding:16px 22px; align-items:flex-start; }
+  .meta .t { min-width:270px; }
+  .meta h2 { font:700 17px "Chakra Petch",sans-serif; color:#e7c878; }
+  .meta .rec { display:inline-block; margin-top:6px; font:700 10px "Chakra Petch",sans-serif; letter-spacing:1px; color:#0b0e14; background:#ffd43b; border-radius:5px; padding:3px 8px; }
+  .meta .py { margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
+  .meta .py span { font-size:10.5px; color:#7ec9ff; border:1px solid #234; border-radius:5px; padding:2px 7px; }
+  .meta p { font-size:13px; line-height:1.65; color:#aab6c6; }
+</style>
+</head>
+<body>
+<h1>THE ROAD TO THE CITY</h1>
+<div class="sub">five directions for the area between the keep and the ruined city · scroll</div>
+<div id="cards"></div>
+<script>
+const CONCEPTS = [
+  { id:"A", name:"A · The Old King's Road", py:["while miles > 0:", "comparisons", "rations math"], pick:false,
+    desc:"A ruined highway with mile markers counting down to the city. Broken wagons, a collapsed toll gate, refugees streaming the other way with warnings. The road IS a while loop: walk, camp, repeat while miles remain, rations draining every league." },
+  { id:"B", name:"B · The Blackwood", py:["while torch > 0:", "and / or / not", "booleans"], pick:true,
+    desc:"The Wildwood's corrupted twin: the same treeline gone wrong, eyes between the trunks. Your torch burns down as you travel and the wood presses closer when it gutters. Booleans keep you alive: if torch_lit and not surrounded. A perfect bookend: you started helpless in a forest; now you cross a worse one in steel." },
+  { id:"C", name:"C · The Fallen Outpost", py:["reading if/elif chains", "code as evidence"], pick:true,
+    desc:"The north watch's forward post, found silent. The scouts who went quiet are here, and their logs are written in Python. Reading code becomes detective work: piece together what happened from the if/elif chains they left behind, then catch your first glimpse of the sinister thing. Midpoint beat of the Blackwood road." },
+  { id:"D", name:"D · The Drowned Farmlands", py:["if / elif routing", "depth comparisons"], pick:false,
+    desc:"Flooded fields where raised dike paths fork constantly and the deep water hides things. A ferryman poles you over the worst of it, echoing the raft. The scarecrows are not where they were yesterday. Every fork is an if/elif decision on depth, distance and light." },
+  { id:"E", name:"E · The Crossroads Camp", py:["practice zone", "supply budget puzzle"], pick:false,
+    desc:"A refugee waystation half a day from the walls: the last traders, the last fire, rumors of the city. A supply-budget puzzle before the final stretch, and a natural rest-stop handoff into the Ruined City chapter. No new tool, pure consolidation." },
+];
+const cards = document.getElementById("cards");
+for (const c of CONCEPTS) {
+  const card = document.createElement("div"); card.className = "card" + (c.pick ? " pick" : "");
+  const cv = document.createElement("canvas"); cv.width = 1100; cv.height = 280; card.appendChild(cv);
+  const meta = document.createElement("div"); meta.className = "meta";
+  meta.innerHTML = `<div class="t"><h2>${c.name}</h2>${c.pick ? '<span class="rec">RECOMMENDED PAIR</span>' : ""}<div class="py">${c.py.map((p) => `<span>${p}</span>`).join("")}</div></div><p>${c.desc}</p>`;
+  card.appendChild(meta); cards.appendChild(card);
+  draw(c.id, cv.getContext("2d"), 1100, 280);
+}
+function S(c, x, y, w, h, col) { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.ceil(w), Math.ceil(h)); }
+function stars(c, W, H, n = 40, a = 0.5) { for (let i = 0; i < n; i++) { c.globalAlpha = 0.2 + (i * 37 % 10) / 22; S(c, (i * 89) % W, (i * 53) % (H * a), 2, 2, "#cfe0f5"); } c.globalAlpha = 1; }
+function hero(c, x, gy, s = 2.4) { c.save(); c.translate(x, gy); c.scale(s, s); S(c, -4, -4, 4, 12, "#7a828c"); S(c, 1, -4, 4, 12, "#7a828c"); S(c, -4, 5, 4, 3, "#9aa3ad"); S(c, 1, 5, 4, 3, "#9aa3ad"); S(c, -6, -22, 12, 18, "#8a939e"); S(c, -5, -33, 11, 11, "#e0a070"); S(c, -6, -36, 12, 5, "#7a828c"); c.restore(); }
+function tree(c, x, gy, s, col1, col2) { S(c, x - 3 * s, gy - 30 * s, 6 * s, 32 * s, "#2a1f14"); for (let r = 0; r < 4; r++) { c.fillStyle = r % 2 ? col1 : col2; c.beginPath(); c.arc(x, gy - (36 + r * 9) * s, (16 - r * 3) * s, 0, Math.PI * 2); c.fill(); } }
+function draw(id, c, W, H) {
+  const gy = H * 0.76;
+  if (id === "A") { // dawn highway, mile markers, wreck, distant city smoke
+    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#2a2438"); g.addColorStop(0.5, "#4a3348"); g.addColorStop(0.75, "#7a4a3a"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+    // distant city on the horizon, smoking
+    for (let i = 0; i < 7; i++) { const x = W * 0.78 + i * 26, h = 20 + (i * 31 % 34); S(c, x, gy - h - 8, 18, h + 8, "#241f2e"); }
+    for (let i = 0; i < 3; i++) { c.globalAlpha = 0.25; c.beginPath(); c.ellipse(W * 0.82 + i * 40, gy - 70 - i * 14, 26, 9, 0, 0, Math.PI * 2); c.fillStyle = "#555"; c.fill(); } c.globalAlpha = 1;
+    S(c, 0, gy, W, H - gy, "#4a3b2e");
+    // the road with cracks
+    c.fillStyle = "#5f5244"; c.beginPath(); c.moveTo(0, gy + 34); c.lineTo(W, gy + 8); c.lineTo(W, gy + 26); c.lineTo(0, gy + 66); c.closePath(); c.fill();
+    c.strokeStyle = "#3a3226"; c.lineWidth = 2; c.beginPath(); c.moveTo(W * 0.2, gy + 44); c.lineTo(W * 0.26, gy + 30); c.moveTo(W * 0.55, gy + 30); c.lineTo(W * 0.6, gy + 18); c.stroke();
+    // mile markers counting down
+    for (let i = 0; i < 4; i++) { const x = W * (0.16 + i * 0.22); S(c, x, gy - 20, 12, 34, "#6a6155"); S(c, x, gy - 20, 12, 3, "#8a8172"); c.fillStyle = "#241f18"; c.font = "bold 11px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText(String(9 - i * 3), x + 6, gy); }
+    // broken wagon
+    S(c, W * 0.42, gy - 26, 60, 22, "#4a3a26"); S(c, W * 0.42, gy - 30, 60, 6, "#5d4a30"); c.strokeStyle = "#3a2c1c"; c.lineWidth = 4; c.beginPath(); c.arc(W * 0.44, gy + 2, 12, 0, Math.PI * 2); c.stroke(); c.beginPath(); c.arc(W * 0.485, gy + 4, 12, 0.6, Math.PI * 1.8); c.stroke();
+    hero(c, W * 0.08, gy + 30);
+  } else if (id === "B") { // corrupted forest, eyes, torch circle
+    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#0a0d16"); g.addColorStop(1, "#101a22"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+    stars(c, W, H, 20, 0.3);
+    S(c, 0, gy, W, H - gy, "#14201a");
+    for (let i = 0; i < 14; i++) { const x = i * 85 + (i * 37 % 30); tree(c, x, gy, 1.3 + (i % 3) * 0.3, "#16283a", "#1a2f30"); }
+    // pairs of eyes between the trunks
+    for (const [ex, ey] of [[W * 0.3, gy - 60], [W * 0.55, gy - 90], [W * 0.72, gy - 50], [W * 0.9, gy - 74]]) { c.shadowColor = "#ff3b3b"; c.shadowBlur = 6; S(c, ex, ey, 3, 3, "#ff3b3b"); S(c, ex + 8, ey, 3, 3, "#ff3b3b"); c.shadowBlur = 0; }
+    // the torch circle of light around the hero
+    const hx = W * 0.16;
+    const glow = c.createRadialGradient(hx, gy - 20, 10, hx, gy - 20, 150); glow.addColorStop(0, "rgba(255,159,67,.28)"); glow.addColorStop(1, "rgba(255,159,67,0)"); c.fillStyle = glow; c.fillRect(hx - 150, gy - 170, 300, 300);
+    hero(c, hx, gy + 14);
+    c.strokeStyle = "#8a6d3b"; c.lineWidth = 3; c.beginPath(); c.moveTo(hx + 12, gy - 34); c.lineTo(hx + 20, gy - 66); c.stroke();
+    c.shadowColor = "#ffb14d"; c.shadowBlur = 18; c.fillStyle = "#ff9f43"; c.beginPath(); c.arc(hx + 21, gy - 72, 8, 0, Math.PI * 2); c.fill(); c.fillStyle = "#ffe066"; c.beginPath(); c.arc(hx + 21, gy - 74, 4.5, 0, Math.PI * 2); c.fill(); c.shadowBlur = 0;
+    // trail sign
+    S(c, W * 0.46, gy - 26, 5, 40, "#3a2c1c"); S(c, W * 0.42, gy - 34, 64, 14, "#4a3a26"); c.fillStyle = "#c9b89a"; c.font = "10px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText("CITY 6", W * 0.475, gy - 24);
+  } else if (id === "C") { // fallen outpost at night, log book glowing
+    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#0d1626"); g.addColorStop(1, "#1a2430"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+    stars(c, W, H, 34, 0.5);
+    S(c, 0, gy, W, H - gy, "#20301f");
+    // broken watchtower, leaning
+    c.save(); c.translate(W * 0.62, gy); c.rotate(-0.08);
+    S(c, -16, -120, 6, 120, "#33271a"); S(c, 12, -110, 6, 110, "#33271a");
+    S(c, -24, -128, 52, 10, "#54422a"); for (let r = -22; r < 26; r += 11) S(c, r, -140, 4, 12, "#4a3a22");
+    c.restore();
+    // shattered palisade
+    for (let p = 0; p < 9; p++) { const x = W * 0.2 + p * 26, h = p % 3 === 1 ? 14 : 34 - (p % 2) * 8; S(c, x, gy - h, 10, h + 2, "#4a3a22"); if (p % 3 !== 1) { c.fillStyle = "#4a3a22"; c.beginPath(); c.moveTo(x, gy - h); c.lineTo(x + 5, gy - h - 7); c.lineTo(x + 10, gy - h); c.fill(); } }
+    // dead campfire + dropped spear
+    S(c, W * 0.4, gy - 3, 22, 5, "#26201a"); c.fillStyle = "#3a3a3a"; c.beginPath(); c.arc(W * 0.41, gy - 4, 5, 0, Math.PI * 2); c.fill();
+    c.save(); c.translate(W * 0.47, gy + 6); c.rotate(1.2); S(c, 0, 0, 3, 40, "#8a6d3b"); c.restore();
+    // the log book, glowing (the code-evidence hook)
+    c.shadowColor = "#ffe066"; c.shadowBlur = 16; S(c, W * 0.33, gy - 12, 26, 18, "#e8dcc0"); c.shadowBlur = 0; S(c, W * 0.33, gy - 12, 26, 3, "#c9b98a");
+    c.fillStyle = "#ffe066"; c.font = "10px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText("▸ read the log", W * 0.36, gy + 22);
+    hero(c, W * 0.1, gy + 14);
+  } else if (id === "D") { // drowned farmland forks
+    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#16243c"); g.addColorStop(1, "#21303c"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+    stars(c, W, H, 30, 0.4);
+    S(c, 0, gy - 10, W, H - gy + 10, "#16344e"); // floodwater
+    for (let i = 0; i < 8; i++) { c.globalAlpha = 0.3; S(c, (i * 157) % W, gy + (i * 23 % 40), 30, 2, "#7ea8cc"); } c.globalAlpha = 1;
+    // dike paths forking
+    c.fillStyle = "#54422a"; c.beginPath(); c.moveTo(0, gy + 30); c.lineTo(W * 0.4, gy + 6); c.lineTo(W, gy + 26); c.lineTo(W, gy + 40); c.lineTo(W * 0.4, gy + 22); c.lineTo(0, gy + 46); c.closePath(); c.fill();
+    c.fillStyle = "#4a3a22"; c.beginPath(); c.moveTo(W * 0.4, gy + 12); c.lineTo(W * 0.72, gy - 24); c.lineTo(W * 0.74, gy - 14); c.lineTo(W * 0.42, gy + 22); c.closePath(); c.fill();
+    // half-sunk farmhouse
+    S(c, W * 0.8, gy - 34, 70, 30, "#5d4a30"); c.fillStyle = "#7a2a1c"; c.beginPath(); c.moveTo(W * 0.79, gy - 34); c.lineTo(W * 0.8 + 35, gy - 58); c.lineTo(W * 0.8 + 72, gy - 34); c.fill();
+    // scarecrows (one where it should not be)
+    for (const [sx, lean] of [[W * 0.3, 0], [W * 0.55, 0.18]]) { c.save(); c.translate(sx, gy - 8); c.rotate(lean); S(c, -2, -34, 4, 34, "#3a2c1c"); S(c, -14, -28, 28, 4, "#3a2c1c"); c.fillStyle = "#a9844a"; c.beginPath(); c.arc(0, -38, 7, 0, Math.PI * 2); c.fill(); S(c, -3, -40, 2, 2, "#241a10"); S(c, 2, -40, 2, 2, "#241a10"); c.restore(); }
+    // ferryman on a punt
+    S(c, W * 0.62, gy + 18, 54, 8, "#5a4424"); c.save(); c.translate(W * 0.65, gy + 18); c.scale(2, 2); S(c, -3, -14, 7, 10, "#2f3a3a"); S(c, -2, -20, 6, 6, "#c89a72"); c.restore(); c.strokeStyle = "#8a6d3b"; c.lineWidth = 2.5; c.beginPath(); c.moveTo(W * 0.68, gy - 8); c.lineTo(W * 0.66, gy + 30); c.stroke();
+    hero(c, W * 0.08, gy + 26);
+  } else { // E crossroads camp at dusk
+    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#1d2233"); g.addColorStop(0.6, "#3a3040"); g.addColorStop(0.8, "#5d4038"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+    S(c, 0, gy, W, H - gy, "#2c4a30");
+    // signpost with three fingers
+    S(c, W * 0.48, gy - 64, 6, 70, "#4a3a22");
+    for (const [dy, txt, flip] of [[-58, "CITY", 1], [-42, "KEEP", -1], [-26, "SOUTH", 1]]) { S(c, W * 0.48 + (flip > 0 ? 6 : -58), gy + dy, 58, 12, "#5d4a30"); c.fillStyle = "#e8dcc0"; c.font = "9px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText(txt, W * 0.48 + (flip > 0 ? 34 : -28), gy + dy + 9); }
+    // tents + market stall
+    for (const [tx, s] of [[W * 0.18, 1], [W * 0.3, 0.8], [W * 0.86, 1.1]]) { c.fillStyle = "#77603c"; c.beginPath(); c.moveTo(tx - 30 * s, gy); c.lineTo(tx, gy - 40 * s); c.lineTo(tx + 30 * s, gy); c.fill(); c.fillStyle = "#191308"; c.beginPath(); c.moveTo(tx - 10 * s, gy); c.lineTo(tx, gy - 18 * s); c.lineTo(tx + 10 * s, gy); c.fill(); }
+    for (let s2 = -18; s2 < 18; s2 += 6) S(c, W * 0.66 + s2, gy - 44, 6, 8, ((s2 / 6) | 0) % 2 ? "#2f9e44" : "#f1f3f5");
+    S(c, W * 0.66 - 18, gy - 12, 36, 8, "#6b4f2a"); S(c, W * 0.66 - 4, gy - 24, 8, 12, "#8a6d3b");
+    // fire + sitters
+    const fx = W * 0.55; c.shadowColor = "#ff9f43"; c.shadowBlur = 20; c.fillStyle = "#ff6b3d"; c.beginPath(); c.moveTo(fx - 7, gy - 2); c.quadraticCurveTo(fx - 9, gy - 16, fx, gy - 24); c.quadraticCurveTo(fx + 9, gy - 16, fx + 7, gy - 2); c.fill(); c.shadowBlur = 0;
+    for (const [px2, f2] of [[fx - 26, 1], [fx + 26, -1]]) { c.save(); c.translate(px2, gy); c.scale(f2 * 1.6, 1.6); S(c, -6, -18, 12, 12, "#6b5a3c"); S(c, -5, -27, 10, 10, "#c89060"); S(c, -6, -7, 14, 4, "#6b5a3c"); c.restore(); }
+    hero(c, W * 0.06, gy + 16);
+  }
+}
+</script>
+</body>
+</html>
