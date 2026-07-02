@@ -76,7 +76,9 @@ const WT_FORLOOP = {
 };
 let invinc = 0, dmgFlash = 0, dying = false;
 let townsfolk = [];
-let lesson1Done = false; // the king's chamber stays sealed until Lesson 1 is complete
+let lesson1Done = false;
+// parts of the keep that stay locked until later in the game (future chapters)
+let chamberUnlocked = false, provingUnlocked = false;
 let questStep = 0, armoryOpen = false, raftP = 0; // 1.3 questline progress
 let raftCargo = { armor: 0, food: 0, water: 0 };  // what's loaded on the raft
 let campSupplies = { armor: 0, food: 0, water: 0 };  // what's been unloaded at the army camp
@@ -498,6 +500,18 @@ function die() { if (dying) return; dying = true; zombiesApproach = false; locat
 const CHAT = ["Stay sharp.", "Heard the east wall held.", "Trade's slow today.", "You new here?", "Mind the curfew.", "Any word from the south?", "Gold's tight this week.", "...", "Keep your blade close."];
 const KEEP_LABEL = { craftsman: "CRAFTSMAN", forhire: "FOR HIRE", blacksmith: "BLACKSMITH", armorsmith: "ARMORSMITH" };
 const KEEP_VENDOR = { craftsman: ["Craftsman", "Need something built? Come back when I'm open for trade."], forhire: ["For Hire", "Looking for hired steel? Soon, friend."], blacksmith: ["Blacksmith", "I'll forge you a finer bow once my shop's running."], armorsmith: ["Armorsmith", "Armour to keep the bites out. Wares coming soon."] };
+const LOCKED_STALL = {
+  craftsman: ["Craftsman", "Bench is shuttered until the guild grants my licence. Later in your training, scout."],
+  forhire: ["For Hire", "No contracts posted for the likes of you yet. Come back when your name carries further."],
+  blacksmith: ["Blacksmith", "Forge is cold for now. The armorsmith next door can kit you out."],
+};
+// a small padlock badge drawn over anything still locked
+function lockBadge(c, x, y) {
+  c.fillStyle = "rgba(7,11,17,0.6)"; rr(c, x - 14, y - 14, 28, 30, 6); c.fill();
+  c.fillStyle = "#caa000"; rr(c, x - 8, y - 2, 16, 13, 2); c.fill();
+  c.strokeStyle = "#caa000"; c.lineWidth = 3; c.beginPath(); c.arc(x, y - 2, 5, Math.PI, 0); c.stroke();
+  px(c, x - 1, y + 2, 2, 5, "#3a2c10");
+}
 const circ = (c, x, y, r, col) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); };
 function setupTownsfolk() {
   townsfolk = [];
@@ -589,7 +603,7 @@ function drawKeep(c, W, gy, now) {
     const topY = gy - steps * sh;
     px(c, sx - 24, topY - 50, 48, 50, "#15100a"); c.fillStyle = "#15100a"; c.beginPath(); c.arc(sx, topY - 50, 24, Math.PI, 0); c.fill();
     c.strokeStyle = "#a8832a"; c.lineWidth = 3; c.beginPath(); c.moveTo(sx - 24, topY); c.lineTo(sx - 24, topY - 50); c.arc(sx, topY - 50, 24, Math.PI, 0); c.lineTo(sx + 24, topY); c.stroke();
-    if (!lesson1Done) {
+    if (!chamberUnlocked) {
       c.fillStyle = "#caa000"; rr(c, sx - 8, topY - 26, 16, 13, 2); c.fill(); c.strokeStyle = "#caa000"; c.lineWidth = 3; c.beginPath(); c.arc(sx, topY - 26, 5, Math.PI, 0); c.stroke(); px(c, sx - 1, topY - 20, 2, 5, "#3a2c10");
       c.fillStyle = "#ff9a9a"; c.font = "10px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText("SEALED", sx, gy + 16);
     } else { c.fillStyle = "#ffe066"; c.font = "10px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText("KING'S CHAMBER", sx, gy + 16); }
@@ -603,7 +617,8 @@ function drawKeep(c, W, gy, now) {
     const cmd = 'you.walk("proving")', cw2 = c.measureText(cmd).width, cy2 = gy - 49 * CH - 8;
     c.fillStyle = "rgba(8,12,18,0.8)"; rr(c, dx - cw2 / 2 - 7, cy2 - 12, cw2 + 14, 18, 5); c.fill(); c.strokeStyle = "#2a3a4a"; c.stroke(); c.fillStyle = "#9fd9ff"; c.fillText(cmd, dx, cy2 + 1);
     c.fillStyle = "#cdd8e6"; c.font = "10px 'IBM Plex Mono',monospace"; c.fillText("PROVING GROUNDS", dx, gy + 18);
-    if (lesson1Done) { c.fillStyle = "#7ec9ff"; c.font = "bold 20px 'Chakra Petch',sans-serif"; c.fillText("⚔", dx, cy2 - 20 + Math.sin(now * 3 + 1) * 3); }
+    if (provingUnlocked) { c.fillStyle = "#7ec9ff"; c.font = "bold 20px 'Chakra Petch',sans-serif"; c.fillText("⚔", dx, cy2 - 20 + Math.sin(now * 3 + 1) * 3); }
+    else lockBadge(c, dx + 26, gy - 30 * CH);
   }
   for (const [name, frac] of Object.entries(SCENES.keep)) {
     if (name === "knight" || name === "chamber" || name === "proving") continue; // drawn separately
@@ -614,8 +629,9 @@ function drawKeep(c, W, gy, now) {
     const cmd = `you.walk("${name}")`, cw = c.measureText(cmd).width, cy = gy - 40 * CH - 18;
     c.fillStyle = "rgba(8,12,18,0.78)"; rr(c, x - cw / 2 - 7, cy - 12, cw + 14, 18, 5); c.fill();
     c.strokeStyle = "#2a3a4a"; c.stroke(); c.fillStyle = "#9fd9ff"; c.fillText(cmd, x, cy + 1);
-    // name label below
+    // name label below; locked stalls wear a padlock until later chapters
     c.fillStyle = "#cdd8e6"; c.font = "10px 'IBM Plex Mono',monospace"; c.fillText(KEEP_LABEL[name], x, gy + 18);
+    if (name !== "armorsmith") lockBadge(c, x, gy - 24 * CH);
   }
   for (const bx of [W * 0.1, W * 0.82]) { px(c, bx - 4, gy - 26, 8, 20, "#a8832a"); const fl = 0.6 + 0.4 * Math.sin(now * 12 + bx); c.shadowColor = "#ffb14d"; c.shadowBlur = 18 * fl; circ(c, bx, gy - 28, 7 * fl, "#ffb14d"); circ(c, bx, gy - 29, 4 * fl, "#ffe066"); c.shadowBlur = 0; }
   // townsfolk — bubbles raised above the (scaled) heads so they don't clip
@@ -1156,10 +1172,16 @@ async function playBeat4(name) {
   await shopRound(false);
   char.hasArmor = true;
   await fadeTo("keep");
-  await say("Knight-Captain", "The keep is yours now: the traders, the king's hall, all of it. Well earned.");
+  questStep = 4;
+  await say("", 'Kit bought and fitted. Report back to the knight-captain: you.walk("knight").');
+}
+// the wrap-up: report back to the knight in your new steel
+async function playBeatWrap(name) {
+  await say("Knight-Captain", "Look at you, scout. Steel where there was cloth this morning.");
+  await say("Knight-Captain", "The keep is yours to walk. Rest while you can; the north gate is tomorrow's worry.");
   questStep = 5; lesson1Done = true;
   if (Sv) { Sv.completeChapter(1); Sv.write({ gold: char.gold }); awardXP(40); } // chapter clear bonus; unlocks The Keep on the map
-  await say("", "Lesson 1.3 complete. The stalls are open for trade and the king's chamber doors are unlocked.");
+  await say("", "Lesson 1.3 complete. The rest of the keep unlocks as your story continues.");
 }
 // return visits to the armorsmith reopen the booth for the remaining pieces
 async function shopVisit() {
@@ -1182,26 +1204,27 @@ async function playKeep(name) {
     logCmd(`you.walk("${r.walk}")`, true);
     await goTo(r.walk);
     if (r.walk === "proving") {
-      if (!lesson1Done) await say("Drillmaster", "The proving grounds are for keep scouts. Prove yourself to the knight-captain first, recruit.");
+      if (!provingUnlocked) await say("Drillmaster", "The proving grounds open to seasoned scouts, not fresh ones. Your training here comes later.");
       else {
         const done = TRIALS.filter((tt) => Sv && Sv.isTrialDone(tt.id)).length;
         await say("Drillmaster", done === 0 ? "So the captain vouches for you. Eight trials, real puzzles, no hand-holding. Show me what you can build." : done >= TRIALS.length ? "Every trial bested. There's nothing left I can teach you, scout." : `${done} of ${TRIALS.length} trials down. Back for more? Good.`);
         openTrialBoard();
       }
     } else if (r.walk === "chamber") {
-      if (lesson1Done) await say("", "The great doors swing open onto the king's chamber…");
-      else { await say("", "You climb the stairs. The king's chamber doors are bound shut with a heavy gold lock."); await say("Guard", "None pass to the king until you've proven yourself. Finish your business in the keep, survivor."); }
+      if (chamberUnlocked) await say("", "The great doors swing open onto the king's chamber…");
+      else { await say("", "You climb the stairs. The king's chamber doors are bound shut with a heavy gold lock."); await say("Guard", "None pass to the king. These doors open later in your story, survivor."); }
     } else if (r.walk === "knight") {
       if (questStep === 0) await startQuest(name);
       else if (questStep === 2) await playBeat3(name);
       else if (questStep === 3) await say("Knight-Captain", "The armoury's open. See the armorsmith for your scout kit before you report back.");
+      else if (questStep === 4) await playBeatWrap(name);
       else if (questStep >= 5) await say("Knight-Captain", "You've earned the keep's trust, scout. Rest. The north gate is tomorrow's worry.");
       else await say("Knight-Captain", "The cart won't pack itself. Off with you.");
     } else {
       if (r.walk === "armorsmith" && armoryOpen && questStep < 5) await playBeat4(name);
       else if (r.walk === "armorsmith" && questStep >= 5) await shopVisit();
-      else if (questStep >= 5 || (r.walk === "armorsmith" && armoryOpen)) { const v = KEEP_VENDOR[r.walk]; await say(v[0], v[1]); }
-      else await say(KEEP_VENDOR[r.walk][0], "The captain hasn't cleared you to trade yet. See the knight.");
+      else if (r.walk === "armorsmith") await say(KEEP_VENDOR.armorsmith[0], "The captain hasn't cleared you to trade yet. See the knight.");
+      else await say(LOCKED_STALL[r.walk][0], LOCKED_STALL[r.walk][1]); // craftsman/forhire/blacksmith stay locked until later chapters
     }
   }
 }
@@ -1455,19 +1478,30 @@ function hero(c, x, y) {
   const sw = char.walking ? Math.sin(char.walk) * 4 : 0;
   const bob = char.walking ? Math.abs(Math.cos(char.walk)) * 1.3 : Math.sin(t * 1.8) * 0.7; // step bounce / breathing
   const ty = y - bob; // torso and up ride the bob; feet stay planted
-  // legs with boots
-  px(c, x - 4, y - 4 + sw, 4, 12, "#3f6b2a"); px(c, x + 1, y - 4 - sw, 4, 12, "#3f6b2a");
-  px(c, x - 4, y + 5 + sw, 4, 3, "#241a10"); px(c, x + 1, y + 5 - sw, 4, 3, "#241a10");
+  const K = char.kit || {};
+  // legs (steel greaves once leggings are bought) with boots (steel once bought)
+  const legC = K.leggings ? "#7a828c" : "#3f6b2a", legL = K.leggings ? "#9aa3ad" : "#3f6b2a";
+  px(c, x - 4, y - 4 + sw, 4, 12, legL); px(c, x + 1, y - 4 - sw, 4, 12, legC);
+  const bootC = K.boots ? "#9aa3ad" : "#241a10";
+  px(c, x - 4, y + 5 + sw, 4, 3, bootC); px(c, x + 1, y + 5 - sw, 4, 3, bootC);
   // quiver on the back (only once armed)
   if (char.hasBow) { c.save(); c.translate(x - f * 7, ty - 20); c.rotate(f * 0.35); px(c, -2, -6, 5, 13, "#5a3f22"); px(c, -2, -6, 5, 2, "#7a5a30"); px(c, -1, -10, 1, 5, "#e9dcc0"); px(c, 1, -11, 1, 6, "#e9dcc0"); c.restore(); }
-  // tunic + belt with buckle + collar
-  px(c, x - 6, ty - 22, 12, 20, "#6b8e23"); px(c, x - 6, ty - 22, 3, 20, "#7fa32e"); // moonlit edge
+  // torso: tunic, or a steel chestplate once bought; belt with buckle
+  if (K.chestplate) {
+    px(c, x - 6, ty - 22, 12, 20, "#8a939e"); px(c, x - 6, ty - 22, 3, 20, "#a5aeb8"); // plate + moonlit edge
+    px(c, x - 1, ty - 22, 2, 14, "#6a727c"); px(c, x - 6, ty - 22, 12, 2, "#c9a24a"); // centre ridge + gilt collar
+  } else {
+    px(c, x - 6, ty - 22, 12, 20, "#6b8e23"); px(c, x - 6, ty - 22, 3, 20, "#7fa32e");
+    px(c, x - 4, ty - 23, 8, 2, "#4a5f18");
+  }
   px(c, x - 6, ty - 8, 12, 3, "#3a2c18"); px(c, x - 1, ty - 8, 2, 3, "#c9a24a");
-  px(c, x - 4, ty - 23, 8, 2, "#4a5f18");
-  // head: skin, hair falling over the brow, eye toward facing
-  px(c, x - 5, ty - 33, 11, 11, "#e0a070"); px(c, x - 6, ty - 35, 12, 4, "#3a2c18"); px(c, x - 6 + (f > 0 ? 0 : 8), ty - 33, 4, 3, "#3a2c18");
+  // head: skin; hair, or an open steel helm once bought; eye toward facing
+  px(c, x - 5, ty - 33, 11, 11, "#e0a070");
+  if (K.helmet) { px(c, x - 6, ty - 36, 12, 5, "#7a828c"); px(c, x - 6, ty - 36, 12, 2, "#9aa3ad"); px(c, x - 6, ty - 27, 12, 2, "#6a727c"); }
+  else { px(c, x - 6, ty - 35, 12, 4, "#3a2c18"); px(c, x - 6 + (f > 0 ? 0 : 8), ty - 33, 4, 3, "#3a2c18"); }
   px(c, x + f * 2, ty - 29, 2, 2, "#1c1208");
-  // arms + bow
+  // arms + bow (steel gauntlets once bought)
+  const handC = K.gauntlets ? "#9aa3ad" : "#e0a070";
   const drawing = shootT > 0;
   if (char.hasBow) {
     const bx = x + f * 11;
@@ -1476,16 +1510,16 @@ function hero(c, x, y) {
       const pull = x + f * 3; // string drawn back to the cheek, arrow nocked
       c.strokeStyle = "#e9dcc0"; c.lineWidth = 1.4; c.beginPath(); c.moveTo(bx, ty - 26); c.lineTo(pull, ty - 18); c.lineTo(bx, ty - 6); c.stroke();
       c.strokeStyle = "#c9a878"; c.lineWidth = 2; c.beginPath(); c.moveTo(pull, ty - 18); c.lineTo(bx + f * 8, ty - 18); c.stroke();
-      px(c, x + f * 1, ty - 20, f * 6, 3, "#e0a070"); // draw hand at the cheek
+      px(c, x + f * 1, ty - 20, f * 6, 3, handC); // draw hand at the cheek
     } else {
       c.strokeStyle = "#e9dcc0"; c.lineWidth = 1.4; c.beginPath(); c.moveTo(bx, ty - 26); c.lineTo(bx, ty - 6); c.stroke();
     }
-    px(c, x + f * 4, ty - 18, f * 7, 3, "#e0a070"); // bow arm
+    px(c, x + f * 4, ty - 18, f * 7, 3, handC); // bow arm
   } else {
     const armSw = char.walking ? Math.sin(char.walk) * 3 : 0;
-    px(c, x + f * 4, ty - 18 + armSw, f * 8, 3, "#e0a070");
+    px(c, x + f * 4, ty - 18 + armSw, f * 8, 3, handC);
   }
-  if (char.grabbing) px(c, x + char.facing * 6, ty - 14, char.facing * 5, 8, "#e0a070"); // reaching down to grab
+  if (char.grabbing) px(c, x + char.facing * 6, ty - 14, char.facing * 5, 8, handC); // reaching down to grab
   if (char.bubble) bubble(c, x, ty - 40, char.bubble);
 }
 function npc(c, x, y, cloth, skin, hair, f = -1) {

@@ -28,11 +28,10 @@ const beat3 = (before) => Math.abs((before + 1.75) - (before + 1.75)) < 0.001; /
 ok(beat3(2.05) && Math.abs((2.05 + 1.75) - 3.8) < 1e-9, "Beat3 float reward adds to 3.80");
 ok(Math.abs((0 + 1.75) - 1.75) < 1e-9, "Beat3 works from zero gold too");
 
-// Beat 4: reward // price = pieces, reward % price = change (binary-exact 1.75 / 0.5).
-const beat4 = (reward, price) => ({ pieces: Math.floor(reward / price), change: reward % price });
-const b4 = beat4(1.75, 0.5);
-ok(b4.pieces === 3, "Beat4 // gives 3 pieces");
-ok(Math.abs(b4.change - 0.25) < 0.001, "Beat4 % gives 0.25 change");
-ok((1.75 - 1.5) === 0.25, "Beat4 spend 3×0.50 leaves 0.25");
+// Beat 4 (armory shop): total = 0.50 × picked pieces; pay from gold; full kit affordable at 3.80.
+const shop = (picked, gold) => ({ total: 0.5 * picked, goldAfter: +(gold - 0.5 * picked).toFixed(2) });
+ok(shop(2, 3.8).total === 1.0 && shop(2, 3.8).goldAfter === 2.8, "Shop: two pieces cost 1.00, leaves 2.80");
+ok(shop(5, 3.8).total === 2.5 && shop(5, 3.8).goldAfter === 1.3, "Shop: full kit costs 2.50, leaves 1.30 (+1 heart)");
+ok(shop(5, 2.05).total > 2.05, "Shop: full kit unaffordable before the scout's pay");
 
 console.log(fails ? `\n${fails} FAILED` : "\nALL LESSON 1.3 LOGIC OK");
