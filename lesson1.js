@@ -947,7 +947,16 @@ async function playBeat2(name) {
   await say("", 'Back in the keep, the captain\'s report in hand. Carry it to the knight: you.walk("knight").');
 }
 async function playBeat3(name) {
-  await say("Knight-Captain", "You crossed the water and came back whole? Then the captain trusts you, and so do I.");
+  await say("Knight-Captain", "You crossed the water and came back whole? Then report, scout. The captain's words, exactly as he gave them.");
+  await ask({
+    prompt: "Deliver the captain's report",
+    placeholder: "print(army_orders)",
+    seed: 'army_orders = "Return to the knight. The city is being reclaimed, but something older stirs in the dark."',
+    concept: "print-var",
+    task: "The captain's message rides in your pack as a variable: army_orders holds his exact words as a string. Print the variable and the message comes out word for word.",
+    validate: (r) => (/army_orders/.test(lastSrc) ? (r.stdout.toLowerCase().includes("knight") ? null : "Something garbled the message. Print army_orders untouched.") : "Print the army_orders variable itself, no quotes, so his exact words come out."),
+  }, (r) => speech(r.stdout));
+  await say("Knight-Captain", "Reclaimed... and something older stirring in the dark. Grim news carries best in careful words. Well delivered, scout.");
   await say("Knight-Captain", "Here's a scout's pay. One gold and seventy-five: 1.75. A coin with a decimal point is a float; add it to your purse.");
   const before = char.gold;
   await ask({
