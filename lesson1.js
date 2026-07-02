@@ -203,7 +203,7 @@ async function submit() {
   if (opts.requireOp && !src.includes(opts.requireOp)) { setStatus(`Use the “${opts.requireOp}” operator.`, "err"); return; }
   const runSrc = src + (opts.append ? "\n" + opts.append : "");      // append a read-only check to run (not shown/logged)
   let inputval = "";
-  if (opts.inputPrompt) inputval = window.prompt(opts.inputPrompt) || "";  // interactive input(): the player types
+  if (opts.inputPrompt) inputval = window.prompt(opts.inputPrompt, opts.inputDefault || "") || "";  // interactive input(); may arrive pre-filled to accept
   let r;
   try { r = JSON.parse(runUser(runSrc, opts.seed || "", inputval)); }
   catch (e) { setStatus(String(e.message || e), "err"); return; }
@@ -931,13 +931,14 @@ async function playBeat2(name) {
   await say("Captain", "Every crate accounted for. The army won't go hungry. My thanks, and my hand on it.");
   await say("Captain", "One more thing, scout. A report for your knight-captain, and I need to know you have it word for word. Listen, then say it back.");
   await ask({
-    prompt: "Run the code, then type the captain's order when the box asks.",
+    prompt: "Run the code, then accept the captain's message when the box appears.",
     prefill: 'order = input()\nprint("Message for the knight:", order)',
     readonly: true, rows: 2,
     concept: "input",
-    task: "The captain speaks and input() catches his words. Run the code and type the order back to him.",
-    inputPrompt: 'The captain, slow and clear: "RETURN TO THE KNIGHT. The city is being reclaimed, but something older stirs in the dark." Say the order back:',
-    validate: (r) => (String(r.vars.order || "").toLowerCase().includes("knight") ? null : 'Say it back with the word "knight" in it, so there is no mistaking it.'),
+    task: "The captain speaks and input() catches his words. His message is already on your lips: accept it, or say it your own way.",
+    inputPrompt: "The captain, slow and clear. Carry this word for word:",
+    inputDefault: "Return to the knight. The city is being reclaimed, but something older stirs in the dark.",
+    validate: (r) => (String(r.vars.order || "").toLowerCase().includes("knight") ? null : 'The order must carry the word "knight", so there is no mistaking it.'),
   }, null);
   await say("Captain", "Word for word. He'll want that quickly. Off you go.");
   questStep = 2;
