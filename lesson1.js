@@ -809,7 +809,7 @@ const TAM_RIDDLES = [
     intro: "He scratches something through a gap in the stones. Code, written in the dirt:" },
   { code: 'x = 7\nif x % 2 == 0:\n    print("even")\nelse:\n    print(x + 3)', answer: "10", banned: ["% 2", "x + 3", "x = 7", "x=7"],
     intro: "A pause. Then a second scratching, slower, like he's thinking hard:" },
-  { code: "total = 1\nfor i in range(3):\n    total = total * 2\nprint(total)", answer: "8", banned: ["total * 2", "range(3)", "total = 1", "total=1"],
+  { code: "p = 5\nq = 14 - p\nif q > p:\n    print(q - p)\nelse:\n    print(q + p)", answer: "4", banned: ["14 - p", "q - p", "q + p", "p = 5", "p=5"],
     intro: "One more. His voice is steadier now:" },
 ];
 async function playTam(name) {
