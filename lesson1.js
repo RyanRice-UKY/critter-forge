@@ -25,8 +25,8 @@ def run_user(src, pre, inputval=""):
         sys.stdout=old
     out={}
     for k,v in ns.items():
-        if k.startswith("_") or k in ("you","bow") or isinstance(v,bool): continue
-        if isinstance(v,(int,float,str)): out[k]=v
+        if k.startswith("_") or k in ("you","bow") or callable(v): continue
+        if isinstance(v,(bool,int,float,str)): out[k]=v
     return json.dumps({"vars":out,"walk":ns.get("_walk"),"fires":ns.get("_fires"),"stdout":buf.getvalue(),"err":err})
 `;
 
@@ -35,7 +35,7 @@ const SCENES = {
   clearing: { center: 0.42, tree: 0.72, bridge: 0.9 },
   castle: { castle: 0.74 },
   keep: { road: 0.03, craftsman: 0.2, proving: 0.3, forhire: 0.4, chamber: 0.5, blacksmith: 0.6, armorsmith: 0.8, knight: 0.92 },
-  fallencamp: { gate: 0.1, bodies: 0.32, fire: 0.5, tent: 0.66, tower: 0.86 },
+  fallencamp: { gate: 0.1, bodies: 0.32, fire: 0.5, tent: 0.63, rubble: 0.76, tower: 0.9 },
   storage: { cart: 0.5 },
   camp: { gate: 0.5 },
 };
@@ -48,6 +48,7 @@ let zoms = [], ARROWS = [], zombiesApproach = false;
 let FX = [], shootT = 0; // impact debris particles + how long the hero holds the draw pose
 // ---- the armory booth (shop scene) ----
 const KIT_PIECES = ["boots", "helmet", "gauntlets", "leggings", "chestplate"];
+let tamFreed = false; // the survivor beneath the storehouse rubble
 let armoryRects = null; // clickable rack items, set by drawArmory
 let armoryPicked = { boots: false, helmet: false, gauntlets: false, leggings: false, chestplate: false };
 let manifestRect = null; // clickable wall note in the storage room (set by drawStorage)
@@ -691,8 +692,25 @@ function drawFallenCamp(c, W, gy, now) {
   }
   // splintered stakes thrown inward at the breach
   for (const [sx2, rot] of [[W * 0.1, 0.9], [W * 0.13, -1.2], [W * 0.16, 0.5]]) { c.save(); c.translate(sx2, gy - 4); c.rotate(rot); px(c, -4, -20, 8, 24, "#3f3220"); c.fillStyle = "#3f3220"; c.beginPath(); c.moveTo(-4, -20); c.lineTo(0, -28); c.lineTo(4, -20); c.fill(); c.restore(); }
+  // the storehouse, brought down: broken stone walls, crossed roof beams, a rubble heap
+  { const sx3 = W * 0.76;
+    px(c, sx3 - 58, gy - 34, 10, 34, "#4e555e"); px(c, sx3 - 58, gy - 34, 10, 3, "#5d656f"); // standing corner
+    px(c, sx3 - 58, gy - 12, 24, 12, "#4a5058"); px(c, sx3 + 34, gy - 20, 22, 20, "#4e555e"); px(c, sx3 + 34, gy - 20, 22, 3, "#5d656f"); // wall stumps
+    c.save(); c.translate(sx3 - 20, gy - 2); c.rotate(0.5); px(c, -3, -52, 6, 52, "#33271a"); c.restore(); // fallen beams
+    c.save(); c.translate(sx3 + 14, gy - 4); c.rotate(-0.7); px(c, -3, -46, 6, 46, "#3a2c1c"); c.restore();
+    for (let i = 0; i < 9; i++) { const rx4 = sx3 - 34 + (i * 41) % 64, ry4 = gy - 6 - (i * 17) % 16; px(c, rx4, ry4, 10 + (i % 3) * 4, 8, i % 2 ? "#454c55" : "#4e555e"); } // rubble heap
+    drawSack(c, sx3 - 44, gy + 6, "#8a6d3b"); px(c, sx3 - 50, gy + 2, 16, 3, "#c9b89a"); // spilled grain
+    if (!tamFreed && Math.sin(now * 2.2) > 0.75) px(c, sx3 + 2, gy - 20, 3, 3, "#e8dcc0"); // a knuckle rapping from beneath
+    if (tamFreed) { // Tam, out of the rubble: a clerk, no armor, satchel hugged tight
+      const tx4 = sx3 - 14; c.save(); c.translate(tx4, gy); c.scale(CH, CH);
+      px(c, -4, -4, 4, 10, "#4a3a26"); px(c, 1, -4, 4, 10, "#4a3a26"); px(c, -4, 4, 4, 3, "#241a10"); px(c, 1, 4, 4, 3, "#241a10");
+      px(c, -6, -22, 12, 18, "#8a6d3b"); px(c, -6, -22, 3, 18, "rgba(255,255,255,0.12)");
+      px(c, -8, -14, 7, 9, "#5a4426"); px(c, -8, -14, 7, 2, "#6e5430"); // the satchel, held to his chest
+      px(c, -5, -32, 11, 11, "#d8a878"); px(c, -6, -34, 12, 4, "#6e4a22"); px(c, -2, -28, 2, 2, "#1c1208");
+      c.restore(); }
+  }
   // collapsed watchtower: snapped legs, platform down in the grass
-  { const wx2 = W * 0.86;
+  { const wx2 = W * 0.9;
     px(c, wx2 - 20, gy - 40, 6, 40, "#33271a"); px(c, wx2 + 16, gy - 26, 6, 26, "#33271a"); // snapped stumps
     c.save(); c.translate(wx2, gy - 6); c.rotate(0.22);
     px(c, -30, -8, 60, 10, "#54422a"); for (let r = -28; r < 30; r += 11) px(c, r, -18, 3, 10, "#4a3a22");
@@ -706,7 +724,7 @@ function drawFallenCamp(c, W, gy, now) {
     for (let i = 0; i < 3; i++) px(c, tx - 16 + i * 12, gy - 2, 8, 3, "#1c1812"); // ash
   }
   // the command tent, shredded but standing (clue point)
-  { const tx = W * 0.66;
+  { const tx = W * 0.63;
     c.fillStyle = "#5a4a34"; c.beginPath(); c.moveTo(tx - 34, gy); c.lineTo(tx, gy - 52); c.lineTo(tx + 34, gy); c.closePath(); c.fill();
     c.fillStyle = "#4a3d2a"; c.beginPath(); c.moveTo(tx - 34, gy); c.lineTo(tx, gy - 52); c.lineTo(tx - 8, gy); c.closePath(); c.fill();
     c.fillStyle = "#191308"; c.beginPath(); c.moveTo(tx - 10, gy); c.lineTo(tx, gy - 24); c.lineTo(tx + 10, gy); c.closePath(); c.fill();
@@ -768,17 +786,79 @@ async function playFallenCamp(name) {
     const r = await ask({ prompt: `Investigate the camp (${Object.keys(seen).length}/${Object.keys(CAMP_CLUES).length} clues found)`, placeholder: 'you.walk("bodies")', concept: "walk", validate: (rr) => (rr.walk && SCENES.fallencamp[rr.walk] ? null : `Walk to: ${Object.keys(SCENES.fallencamp).map((l) => `"${l}"`).join(", ")}`) }, null);
     logCmd(`you.walk("${r.walk}")`, true);
     await goTo(r.walk);
+    if (r.walk === "rubble") { await say("", "The storehouse is a heap of stone and crossed beams. If anyone was inside when it came down... The dead first, scout. Then the stones."); continue; }
     const clue = CAMP_CLUES[r.walk];
     await say("", clue[0]);
     if (!seen[r.walk]) { seen[r.walk] = true; logCmd(`# ${clue[1]}`, false); }
   }
   await say("", "Five clues, and none of them sit right together. No alarm. No fight. Hours ago. Something taken.");
-  await say("", "The pieces are on the table, scout. Making sense of them comes next... (to be continued)");
+  await say("", "Then you hear it: from beneath the storehouse rubble, a knock. Then another. Something alive.");
+  await ask({ prompt: "Get to the storehouse", placeholder: 'you.walk("rubble")', concept: "walk", validate: (rr) => (rr.walk === "rubble" ? null : 'The knocking came from the storehouse: you.walk("rubble").') }, null);
+  await goTo("rubble"); logCmd('you.walk("rubble")', true);
+  await playTam(name);
   while (true) { // linger at the scene; clues can be revisited
     const r = await ask({ prompt: "Look over the camp again", placeholder: 'you.walk("bodies")', concept: "walk", validate: (rr) => (rr.walk && SCENES.fallencamp[rr.walk] ? null : `Walk to: ${Object.keys(SCENES.fallencamp).map((l) => `"${l}"`).join(", ")}`) }, null);
     logCmd(`you.walk("${r.walk}")`, true); await goTo(r.walk);
-    await say("", CAMP_CLUES[r.walk][0]);
+    if (r.walk === "rubble") await say("Tam", "I'm not going back under there. Whatever you need, ask it here.");
+    else await say("", CAMP_CLUES[r.walk][0]);
   }
+}
+// ---- Tam, the survivor beneath the rubble: three riddles, then the ledger ----
+const TAM_RIDDLES = [
+  { code: "a = 3\nb = a * a\nprint(b - a)", answer: "6", banned: ["a * a", "b - a", "a=3", "a = 3"],
+    intro: "He scratches something through a gap in the stones. Code, written in the dirt:" },
+  { code: 'x = 7\nif x % 2 == 0:\n    print("even")\nelse:\n    print(x + 3)', answer: "10", banned: ["% 2", "x + 3", "x = 7", "x=7"],
+    intro: "A pause. Then a second scratching, slower, like he's thinking hard:" },
+  { code: "total = 1\nfor i in range(3):\n    total = total * 2\nprint(total)", answer: "8", banned: ["total * 2", "range(3)", "total = 1", "total=1"],
+    intro: "One more. His voice is steadier now:" },
+];
+async function playTam(name) {
+  char.grabbing = 1; await wait(0.5); char.grabbing = 0; await wait(0.2);
+  char.grabbing = 1; await wait(0.5); char.grabbing = 0; // hauling stones aside
+  await say("Tam", "DON'T. Don't come closer. Stay where you are.");
+  await say("Tam", "It SAID the watchword back to us. Perfect. It moved like Weck moves. It wore us like a coat, right up until it turned.");
+  await say("Tam", "So the watchword proves nothing. Words prove nothing. You want me out of this hole, you solve my riddles. It could repeat anything. It couldn't THINK anything.");
+  for (let i = 0; i < TAM_RIDDLES.length; i++) {
+    const R = TAM_RIDDLES[i];
+    await say("Tam", i === 0 ? "Three riddles. Here's the first." : i === 1 ? "Again. Second riddle." : "Last one. Get it right and I'll come out.");
+    await ask({
+      prompt: `Tam's riddle ${i + 1} of 3: what does it print?`,
+      placeholder: `print(${R.answer})`, rows: 1,
+      task: `${R.intro}\n\n${R.code.split("\n").map((l) => "    " + l).join("\n")}\n\nRun it in your HEAD, then answer with a single print of the result. Give the code itself back and he bolts: repeating is what IT did.`,
+      validate: (r) => {
+        if (R.banned.some((f) => lastSrc.includes(f))) return "Tam recoils: \"That's REPEATING. That's what it did. Run it in your head, then tell me what comes OUT.\"";
+        return r.stdout.trim() === R.answer ? null : "Tam, flat: \"No. Trace it line by line. What is each variable when it reaches the print?\"";
+      },
+    }, null);
+    await say("Tam", i === 0 ? "...right. Okay. Right." : i === 1 ? "Right again. Almost. Almost." : "A person. You're a person.");
+  }
+  tamFreed = true;
+  await say("", "Stones shift. A hand, then a boy: sixteen maybe, clerk's satchel clutched to his chest, grain dust in his hair.");
+  await say("Tam", "Tam. Quartermaster's clerk. I was under the grain shelves when the roof came down, and I stayed there. All night. Listening.");
+  await say("Tam", "It came at the black hour, through the gate, like it was expected. Nobody blew the horn. The captain drew steel and then he just... didn't. NONE of them could even begin. Like their bodies already knew it was over.");
+  await say("Tam", "It didn't want us. It went through them, to the command tent, and took the captain's dispatch case. Maps. Muster rolls. It knew exactly where they were.");
+  await say("Tam", "Help me count. Please. If I count it, it's real, and if it's real I can stop shaking. The ledger's in my head; the numbers are all I've got left.");
+  await ask({
+    prompt: "Tally the losses with Tam",
+    placeholder: "missing = roster - fallen - survivors\nspears_lost = spears_issued - spears_found\narrows_fired = arrows_issued - arrows_found\nfought_back = arrows_fired > 0\ntaken_unawares = fought_back == False and horn_blown == False",
+    rows: 5,
+    seed: "roster=9\nfallen=7\nsurvivors=1\nspears_issued=24\nspears_found=21\narrows_issued=60\narrows_found=60\nhorn_blown=False",
+    concept: "bool", requireOp: "and",
+    task: "Tam's ledger is seeded: roster, fallen, survivors, spears_issued, spears_found, arrows_issued, arrows_found, horn_blown. Work out missing, spears_lost and arrows_fired with subtraction. Then the new tool: a comparison like  arrows_fired > 0  IS a value, True or False, and you can store it. Set fought_back from that comparison, and taken_unawares true only when fought_back is False AND horn_blown is False.",
+    validate: (r) => {
+      if (Number(r.vars.missing) !== 1) return "missing = roster - fallen - survivors. Count again; the ledger has to balance.";
+      if (Number(r.vars.spears_lost) !== 3) return "spears_lost = spears_issued - spears_found.";
+      if (Number(r.vars.arrows_fired) !== 0) return "arrows_fired = arrows_issued - arrows_found.";
+      if (r.vars.fought_back !== false) return "fought_back should hold the comparison  arrows_fired > 0  (which comes out False).";
+      if (r.vars.taken_unawares !== true) return "taken_unawares = fought_back == False and horn_blown == False.";
+      return null;
+    },
+  }, null);
+  await say("Tam", "Zero arrows. They never fought back. Taken unawares: True. That's the truth of it, in five lines.");
+  await say("Tam", "And... missing is one. The ledger doesn't balance. Nine stood this camp. Seven in the grass, me under the stones. Someone's not here.");
+  await say("Tam", "Weck. Weck had the wall. It's WECK that's missing. And it moved like him, I told you it moved like him...");
+  await say("", "A camp that never fought back. A stolen dispatch case. A missing watchman it learned to walk like. The road to the city just got darker... (to be continued)");
+  if (Sv) awardXP(30);
 }
 // ---- the armory booth scene ----
 function armorIcon(c, kind, s) {
@@ -1773,7 +1853,7 @@ function bubble(c, x, y, text) {
 function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 function sparkle(c, x, y, amt, col) { c.globalAlpha = amt; for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, r = (1 - amt) * 26 + 4; px(c, x + Math.cos(a) * r, y + Math.sin(a) * r, 3, 3, col); } c.globalAlpha = 1; }
 // where does a speaker's head sit on screen? null → not on stage (narrator banner instead)
-const SPEAKER_KEY = { "???": "stranger", stranger: "stranger", smith: "smith", "knight-captain": "knight", guard: "chamber", armorsmith: "armorsmith", blacksmith: "blacksmith", craftsman: "craftsman", captain: "gate" };
+const SPEAKER_KEY = { "???": "stranger", stranger: "stranger", smith: "smith", "knight-captain": "knight", guard: "chamber", armorsmith: "armorsmith", blacksmith: "blacksmith", craftsman: "craftsman", captain: "gate", tam: "rubble" };
 function speakerAnchor(who, W, gy) {
   if (!who) return null;
   const w = who.toLowerCase();

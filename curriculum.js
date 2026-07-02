@@ -67,6 +67,11 @@ export const CONCEPTS = {
     teach: "A float is a number with a decimal point, like 1.75. Coins smaller than one whole gold need one. Python does math on floats exactly like whole numbers.",
     remind: "It is a float. The math works the same.",
   },
+  bool: {
+    journal: "equals", link: "True or False",
+    teach: "A comparison is itself a value: arrows_fired > 0 comes out as True or False, and you can store it in a variable like any number. Chain comparisons with and: the whole thing is True only when BOTH sides are. This is boolean logic, and it is how programs weigh evidence.",
+    remind: "Store the comparison itself: it is already True or False.",
+  },
   intdiv: {
     journal: "floordiv", link: "floor division",
     teach: "Two operators split things into whole shares. Floor division, written //, finds how many whole times one number fits inside another. Modulo, written %, gives what is left over after those whole shares.",
