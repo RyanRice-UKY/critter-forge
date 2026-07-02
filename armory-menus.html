@@ -368,6 +368,37 @@ function drawBoothF() {
     S(-6, -20, 3, 10, "#5b626b"); S(4, -20, 3, 10, "#5b626b"); S(4, -11, 3, 2, "#d8a878");
     S(-3, -29, 7, 7, "#d8a878"); S(-4, -31, 8, 3, "#3a2c18"); S(0, -26, 2, 2, "#1c1208");
     c.restore(); }
+  // ---- the crafting annex: a tailor's station bolted to the booth's left, LOCKED for now ----
+  { const ax = bx - half - 26, aw = Math.min(190, W * 0.17), ax0 = ax - aw;
+    // back panel + bench
+    S(ax0, top + 70, aw, counterY - top - 74, "#1f1810");
+    for (let y = top + 70; y < counterY - 6; y += 18) S(ax0, y, aw, 2, "#171208");
+    S(ax0 - 8, top + 62, aw + 16, 10, "#54422a"); S(ax0 - 8, top + 62, aw + 16, 3, "#6b5636"); // little roof
+    S(ax0 - 6, counterY, aw + 12, 8, "#8a6d3b"); S(ax0 - 6, counterY + 8, aw + 12, 20, "#6b4f2a"); // bench
+    // sign
+    S(ax0 + aw / 2 - 44, top + 80, 88, 24, "#6b4f2a"); S(ax0 + aw / 2 - 44, top + 80, 88, 2, "#8a6d3b");
+    c.fillStyle = "#e8dcc0"; c.font = "bold 11px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("CRAFTING", ax0 + aw / 2, top + 96);
+    // body diagram: dotted slots for each piece (head, chest, hands, legs, feet)
+    const dx = ax0 + aw / 2, dy = top + 120, slotH = (counterY - dy - 40) / 5;
+    c.setLineDash([3, 3]); c.strokeStyle = "#5a4a30"; c.lineWidth = 1.5;
+    const slots = [[dx - 14, dy, 28, slotH - 6], [dx - 22, dy + slotH, 44, slotH + 8], [dx - 30, dy + slotH * 2 + 8, 60, slotH - 10], [dx - 18, dy + slotH * 3 + 4, 36, slotH + 6], [dx - 20, dy + slotH * 4 + 8, 40, slotH - 8]];
+    for (const [sx, sy, sw2, sh2] of slots) c.strokeRect(sx, sy, sw2, sh2);
+    c.setLineDash([]);
+    c.fillStyle = "#5a4a30"; c.font = "9px 'IBM Plex Mono',monospace";
+    ["helmet", "chest", "hands", "legs", "boots"].forEach((n, i) => c.fillText(n, dx, slots[i][1] + slots[i][3] / 2 + 3));
+    // tools on the bench
+    S(ax0 + 10, counterY - 8, 4, 8, "#9c6b3f"); S(ax0 + 7, counterY - 12, 10, 4, "#7a828c"); // hammer
+    S(ax0 + aw - 26, counterY - 10, 16, 3, "#c9b89a"); // thread
+    // chain + padlock over the whole station
+    c.strokeStyle = "#6a727c"; c.lineWidth = 4; c.setLineDash([8, 6]);
+    c.beginPath(); c.moveTo(ax0 - 8, top + 74); c.lineTo(ax + 6, counterY + 18); c.moveTo(ax + 6, top + 74); c.lineTo(ax0 - 8, counterY + 18); c.stroke(); c.setLineDash([]);
+    const lx = ax0 + aw / 2, ly = top + (counterY - top) * 0.55;
+    c.fillStyle = "#caa000"; c.fillRect(lx - 13, ly - 4, 26, 22);
+    c.strokeStyle = "#caa000"; c.lineWidth = 5; c.beginPath(); c.arc(lx, ly - 6, 9, Math.PI, 0); c.stroke();
+    S(lx - 2, ly + 3, 4, 8, "#3a2c10");
+    c.fillStyle = "#ff9a9a"; c.font = "bold 10px 'IBM Plex Mono',monospace"; c.fillText("LOCKED", lx, ly + 34);
+    c.fillStyle = "#8a7c52"; c.font = "9px 'IBM Plex Mono',monospace"; c.fillText("earn the smith's trust", lx, ly + 48);
+  }
   // your hero, this side of the counter at its left end
   { const sc = 3.4; c.save(); c.translate(bx - half * 0.62, floorY + 22); c.scale(sc, sc);
     S(-4, -4, 4, 12, "#3f6b2a"); S(1, -4, 4, 12, "#3f6b2a"); S(-4, 5, 4, 3, "#241a10"); S(1, 5, 4, 3, "#241a10");
