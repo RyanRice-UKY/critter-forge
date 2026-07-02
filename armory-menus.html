@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Armory shop menu options</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing:border-box; margin:0; }
+  html,body { height:100%; }
+  body { background:#0b0e14; color:#dbe6f2; font-family:"IBM Plex Mono",monospace; overflow:hidden; }
+  #switch { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:50; display:flex; gap:6px; background:rgba(7,10,16,.92); border:1px solid #232c3a; border-radius:10px; padding:6px 8px; }
+  #switch button { font:700 12px "Chakra Petch",sans-serif; letter-spacing:1px; color:#8a94a3; background:none; border:1px solid transparent; border-radius:7px; padding:5px 11px; cursor:pointer; }
+  #switch button.on { color:#ffd43b; border-color:#4a3a18; }
+  .stagebg { position:fixed; inset:0; background:linear-gradient(#171a24,#1f2330); }
+  .dim { position:fixed; inset:0; background:rgba(4,6,10,.55); }
+  .v { position:fixed; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; }
+  .hidden { display:none !important; }
+  .kbd { color:#7ec9ff; }
+  .price { color:#ffd43b; }
+  .icon { image-rendering:pixelated; }
+
+  /* A: merchant ledger (parchment) */
+  .ledger { width:min(94%,760px); height:min(88%,520px); display:grid; grid-template-columns: 1fr 240px; background:linear-gradient(175deg,#f2e3c2,#e7d3a8); color:#2a2014; border-radius:8px; box-shadow:0 26px 80px rgba(0,0,0,.7); overflow:hidden; }
+  .ledger .items { padding:18px 20px; border-right:2px solid #c9b98a; }
+  .ledger h2 { font:700 17px "Chakra Petch",sans-serif; color:#6b3f16; margin-bottom:4px; }
+  .ledger .sub2 { font-size:11px; color:#8a7c52; margin-bottom:12px; }
+  .lrow { display:flex; align-items:center; gap:12px; padding:7px 6px; border-bottom:1px dashed #c9b98a; font-size:13.5px; }
+  .lrow code { color:#7a3a9e; }
+  .lrow .dots { flex:1; border-bottom:1px dotted #a8935f; height:1px; }
+  .lrow .pr { color:#8a5a10; font-weight:700; }
+  .ledger .side { padding:16px; display:flex; flex-direction:column; gap:10px; background:rgba(122,90,48,.08); }
+  .ledger .purse { background:#2a2113; color:#ffe066; border-radius:8px; padding:10px 12px; font-size:13px; }
+  .ledger .codehint { background:#2a2113; color:#e8dcc0; border-radius:8px; padding:10px 12px; font-size:11.5px; line-height:1.6; flex:1; }
+  .ledger .codehint b { color:#ffd43b; font-family:"Chakra Petch",sans-serif; letter-spacing:1px; font-size:10px; }
+
+  /* B: forge terminal (code-first) */
+  .forge { width:min(94%,780px); height:min(88%,530px); display:grid; grid-template-columns: 1fr 230px; background:#0d1320f6; border:1px solid #3b4a63; border-radius:14px; box-shadow:0 26px 80px rgba(0,0,0,.7); overflow:hidden; }
+  .forge .code { padding:14px 0; font-size:13.5px; line-height:1.7; overflow-y:auto; }
+  .forge .cl { display:flex; padding:0 16px 0 8px; }
+  .forge .cl .n { width:26px; text-align:right; padding-right:12px; color:#3d4757; font-size:11px; }
+  .forge .cm { color:#5a6273; } .forge .k { color:#7ec9ff; } .forge .s { color:#a3d977; } .forge .num { color:#cf8a6a; }
+  .forge .side { border-left:1px solid #22304a; background:#0a0f1a; display:flex; flex-direction:column; align-items:center; padding:16px 12px; gap:8px; }
+  .forge .side h3 { font:700 12px "Chakra Petch",sans-serif; color:#ffd43b; letter-spacing:1px; }
+  .forge .man { position:relative; width:120px; height:200px; }
+  .forge .slot { display:flex; align-items:center; gap:8px; width:100%; font-size:11px; color:#8a94a3; padding:3px 6px; }
+
+  /* C: display rack (visual grid) */
+  .rack { width:min(94%,820px); height:min(88%,540px); background:#160f08f6; border:2px solid #6b4f25; border-radius:14px; box-shadow:0 26px 80px rgba(0,0,0,.7); padding:18px 22px; display:flex; flex-direction:column; }
+  .rack h2 { font:700 17px "Chakra Petch",sans-serif; color:#e7c878; }
+  .rack .sub2 { font-size:11px; color:#a08a5e; margin-bottom:12px; }
+  .cards { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; flex:1; }
+  .card { background:#241a10; border:1px solid #6b4f25; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:10px 6px; cursor:pointer; }
+  .card:hover { border-color:#e7c878; }
+  .card .nm { font-size:11px; color:#e8dcc4; }
+  .card code { font-size:10px; color:#9fd9ff; }
+  .card .pr { font:700 12px "Chakra Petch",sans-serif; color:#ffd43b; }
+  .rack .foot2 { display:flex; gap:14px; align-items:center; margin-top:14px; background:#0d1017; border:1px solid #3a2c14; border-radius:10px; padding:10px 14px; font-size:12.5px; }
+  .rack .foot2 .purse2 { color:#ffe066; }
+  .rack .foot2 .hint2 { color:#8a7c52; flex:1; }
+
+  /* D: split counter (vendor + shelf + code) */
+  .counter { width:min(94%,780px); height:min(88%,540px); background:#0d1320f6; border:1px solid #3b4a63; border-radius:14px; box-shadow:0 26px 80px rgba(0,0,0,.7); display:flex; flex-direction:column; overflow:hidden; }
+  .counter .shelf { display:flex; gap:10px; padding:14px 18px; background:#160f08; border-bottom:2px solid #6b4f25; align-items:center; }
+  .counter .shelf .it { display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10px; color:#e8dcc4; }
+  .counter .talk { display:flex; gap:14px; padding:12px 18px; border-bottom:1px solid #22304a; align-items:center; }
+  .counter .talk .face { width:52px; height:52px; }
+  .counter .talk .words { font-size:13px; color:#dbe6f2; line-height:1.55; }
+  .counter .talk .words b { color:#62d27a; font-family:"Chakra Petch",sans-serif; }
+  .counter .codearea { flex:1; padding:12px 18px; font-size:13.5px; line-height:1.7; color:#dcd8c8; }
+  .counter .codearea .ghosty { color:#55627a; font-style:italic; }
+  .counter .foot3 { display:flex; align-items:center; gap:12px; padding:10px 16px; background:#0a0e17; border-top:1px solid #22304a; font-size:11.5px; color:#5d6a7d; }
+  .counter .runb { margin-left:auto; background:#ffd43b; color:#0b0e14; border:0; font-weight:700; padding:7px 16px; border-radius:7px; font-family:"Chakra Petch",sans-serif; }
+</style>
+</head>
+<body>
+<div class="stagebg"></div><div class="dim"></div>
+<div id="switch">
+  <button data-v="a">A · Merchant ledger</button>
+  <button data-v="b">B · Forge terminal</button>
+  <button data-v="c">C · Display rack</button>
+  <button data-v="d">D · Split counter</button>
+</div>
+
+<!-- A: parchment ledger -->
+<div class="v va">
+  <div class="ledger">
+    <div class="items">
+      <h2>⚒ THE ARMORY</h2>
+      <div class="sub2">every piece half a gold, honest steel</div>
+      <div id="rowsA"></div>
+      <div style="margin-top:14px; font-size:11.5px; color:#8a7c52;">The smith takes exact coin only. Work your total out in the forge terminal below the counter.</div>
+    </div>
+    <div class="side">
+      <div class="purse">🪙 your purse<br/><b style="font-size:17px">3.80</b></div>
+      <div class="codehint"><b>HOW TO BUY</b><br/><br/>total = HELMET + CHESTPLATE<br/>gold = gold - total<br/><br/>The constants are already declared. Add up what you want, subtract from your purse, and Run.</div>
+    </div>
+  </div>
+</div>
+
+<!-- B: forge terminal -->
+<div class="v vb hidden">
+  <div class="forge">
+    <div class="code" id="codeB"></div>
+    <div class="side">
+      <h3>THE SCOUT</h3>
+      <canvas class="man icon" id="manB" width="60" height="100" style="width:120px;height:200px"></canvas>
+      <div id="slotsB" style="width:100%"></div>
+    </div>
+  </div>
+</div>
+
+<!-- C: display rack -->
+<div class="v vc hidden">
+  <div class="rack">
+    <h2>⚒ THE ARMORY</h2>
+    <div class="sub2">click a piece to study it, then write your purchase below</div>
+    <div class="cards" id="cardsC"></div>
+    <div class="foot2"><span class="purse2">🪙 3.80</span><span class="hint2">total = BOOTS + HELMET + GAUNTLETS … then pay: gold = gold - total</span><span style="color:#62d27a">▸ open forge terminal</span></div>
+  </div>
+</div>
+
+<!-- D: split counter -->
+<div class="v vd hidden">
+  <div class="counter">
+    <div class="shelf" id="shelfD"></div>
+    <div class="talk">
+      <canvas class="face icon" id="faceD" width="26" height="26" style="width:52px;height:52px"></canvas>
+      <div class="words"><b>Armorsmith:</b> Half a gold a piece, any of the five. Tally your order in the terminal, take your change to the coin, and she's yours.</div>
+    </div>
+    <div class="codearea">
+      <div><span style="color:#5a6273"># BOOTS, HELMET, GAUNTLETS, LEGGINGS, CHESTPLATE are each 0.50</span></div>
+      <div>total = <span class="ghosty">HELMET + CHESTPLATE + BOOTS</span></div>
+      <div><span class="ghosty">pieces = total // 0.50</span></div>
+      <div><span class="ghosty">gold = gold - total</span></div>
+    </div>
+    <div class="foot3"><span>● python ready</span><span>🪙 3.80</span><button class="runb">▸ Run</button></div>
+  </div>
+</div>
+
+<script>
+// pixel armor icons, drawn once and stamped wherever needed
+const PIECES = [
+  ["boots", "BOOTS"], ["helmet", "HELMET"], ["gauntlets", "GAUNTLETS"], ["leggings", "LEGGINGS"], ["chestplate", "CHESTPLATE"],
+];
+function drawIcon(kind, c, s) { // s = pixel cell
+  const S = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x * s, y * s, w * s, h * s); };
+  const steel = "#9aa3ad", dark = "#6a727c", trim = "#c9a24a";
+  if (kind === "helmet") { S(3,2,6,2,steel); S(2,4,8,3,steel); S(3,7,2,2,steel); S(7,7,2,2,steel); S(5,5,2,2,"#1a140d"); S(3,2,6,1,trim); }
+  else if (kind === "chestplate") { S(3,2,6,1,trim); S(2,3,8,5,steel); S(3,8,6,2,dark); S(5,3,2,7,dark); S(2,3,2,2,dark); S(8,3,2,2,dark); }
+  else if (kind === "gauntlets") { S(2,3,3,5,steel); S(7,3,3,5,steel); S(2,8,3,2,dark); S(7,8,3,2,dark); S(2,3,3,1,trim); S(7,3,3,1,trim); }
+  else if (kind === "leggings") { S(3,2,6,2,steel); S(3,4,2,6,steel); S(7,4,2,6,steel); S(3,9,2,1,dark); S(7,9,2,1,dark); S(3,2,6,1,trim); }
+  else { S(3,3,2,5,steel); S(7,3,2,5,steel); S(2,8,4,2,dark); S(6,8,4,2,dark); S(2,8,4,1,trim); S(6,8,4,1,trim); } // boots
+}
+function iconCanvas(kind, px = 4) {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 12 * px; cv.className = "icon";
+  cv.style.width = cv.style.height = 12 * px + "px";
+  drawIcon(kind, cv.getContext("2d"), px); return cv;
+}
+// A rows
+document.getElementById("rowsA").innerHTML = "";
+for (const [kind, CONST] of PIECES) {
+  const row = document.createElement("div"); row.className = "lrow";
+  row.appendChild(iconCanvas(kind, 3));
+  const sp = document.createElement("span"); sp.innerHTML = `${kind} <code>${CONST} = 0.50</code>`; row.appendChild(sp);
+  const dots = document.createElement("span"); dots.className = "dots"; row.appendChild(dots);
+  const pr = document.createElement("span"); pr.className = "pr"; pr.textContent = "0.50"; row.appendChild(pr);
+  document.getElementById("rowsA").appendChild(row);
+}
+// B code panel
+const bLines = [
+  ["cm", "# THE ARMORY, prices in gold"],
+  ["", "BOOTS      = <span class='num'>0.50</span>"],
+  ["", "HELMET     = <span class='num'>0.50</span>"],
+  ["", "GAUNTLETS  = <span class='num'>0.50</span>"],
+  ["", "LEGGINGS   = <span class='num'>0.50</span>"],
+  ["", "CHESTPLATE = <span class='num'>0.50</span>"],
+  ["cm", ""],
+  ["cm", "# your purse"],
+  ["", "gold = <span class='num'>3.80</span>"],
+  ["cm", ""],
+  ["cm", "# write your order below, then Run"],
+  ["", "total = <span style='color:#55627a;font-style:italic'>HELMET + CHESTPLATE</span>"],
+  ["", "gold = <span style='color:#55627a;font-style:italic'>gold - total</span>"],
+];
+document.getElementById("codeB").innerHTML = bLines.map((l, i) => `<div class="cl"><span class="n">${i + 1}</span><span class="${l[0]}">${l[1] || "&nbsp;"}</span></div>`).join("");
+// B mannequin + slots
+{ const c = document.getElementById("manB").getContext("2d"); const S=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);};
+  S(24,8,12,12,"#e0a070"); S(20,20,20,30,"#6b8e23"); S(20,50,8,30,"#3f6b2a"); S(32,50,8,30,"#3f6b2a"); S(14,22,6,22,"#e0a070"); S(40,22,6,22,"#e0a070");
+  c.globalAlpha = 0.35; S(22,6,16,10,"#9aa3ad"); S(18,20,24,18,"#9aa3ad"); c.globalAlpha = 1; }
+document.getElementById("slotsB").innerHTML = "";
+for (const [kind, CONST] of PIECES) {
+  const d = document.createElement("div"); d.className = "slot";
+  d.appendChild(iconCanvas(kind, 2));
+  const sp = document.createElement("span"); sp.textContent = `${kind} · unbought`; d.appendChild(sp);
+  document.getElementById("slotsB").appendChild(d);
+}
+// C cards
+document.getElementById("cardsC").innerHTML = "";
+for (const [kind, CONST] of PIECES) {
+  const card = document.createElement("div"); card.className = "card";
+  card.appendChild(iconCanvas(kind, 5));
+  const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = kind; card.appendChild(nm);
+  const cd = document.createElement("code"); cd.textContent = `${CONST} = 0.50`; card.appendChild(cd);
+  const pr = document.createElement("span"); pr.className = "pr"; pr.textContent = "🪙 0.50"; card.appendChild(pr);
+  document.getElementById("cardsC").appendChild(card);
+}
+// D shelf + face
+document.getElementById("shelfD").innerHTML = "";
+for (const [kind, CONST] of PIECES) {
+  const it = document.createElement("div"); it.className = "it";
+  it.appendChild(iconCanvas(kind, 4));
+  const l1 = document.createElement("span"); l1.textContent = kind; it.appendChild(l1);
+  const l2 = document.createElement("code"); l2.textContent = CONST; l2.style.color = "#9fd9ff"; it.appendChild(l2);
+  const l3 = document.createElement("span"); l3.textContent = "0.50"; l3.style.color = "#ffd43b"; it.appendChild(l3);
+  document.getElementById("shelfD").appendChild(it);
+}
+{ const c = document.getElementById("faceD").getContext("2d"); const S=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);};
+  S(4,8,18,14,"#d8a878"); S(3,4,20,6,"#454c55"); S(3,14,20,3,"#454c55"); S(8,12,3,2,"#1c1208"); S(16,12,3,2,"#1c1208"); S(4,22,18,4,"#5b626b"); }
+// switcher
+const show = (v) => { document.querySelectorAll(".v").forEach((el) => el.classList.add("hidden")); document.querySelector(".v" + v)?.classList.remove("hidden");
+  document.querySelectorAll("#switch button").forEach((b) => b.classList.toggle("on", b.dataset.v === v)); location.hash = v; };
+document.querySelectorAll("#switch button").forEach((b) => (b.onclick = () => show(b.dataset.v)));
+show((location.hash || "#a").slice(1));
+</script>
+</body>
+</html>
