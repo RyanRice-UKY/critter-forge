@@ -35,7 +35,7 @@ const SCENES = {
   clearing: { center: 0.42, tree: 0.72, bridge: 0.9 },
   castle: { castle: 0.74 },
   keep: { road: 0.03, craftsman: 0.2, proving: 0.3, forhire: 0.4, chamber: 0.5, blacksmith: 0.6, armorsmith: 0.8, knight: 0.92 },
-  fallencamp: { gate: 0.1, bodies: 0.32, fire: 0.5, tent: 0.63, rubble: 0.76, tower: 0.9 },
+  fallencamp: { rubble: 0.74 },
   storage: { cart: 0.5 },
   camp: { gate: 0.5 },
 };
@@ -692,17 +692,31 @@ function drawFallenCamp(c, W, gy, now) {
   }
   // splintered stakes thrown inward at the breach
   for (const [sx2, rot] of [[W * 0.1, 0.9], [W * 0.13, -1.2], [W * 0.16, 0.5]]) { c.save(); c.translate(sx2, gy - 4); c.rotate(rot); px(c, -4, -20, 8, 24, "#3f3220"); c.fillStyle = "#3f3220"; c.beginPath(); c.moveTo(-4, -20); c.lineTo(0, -28); c.lineTo(4, -20); c.fill(); c.restore(); }
-  // the storehouse, brought down: broken stone walls, crossed roof beams, a rubble heap
-  { const sx3 = W * 0.76;
-    px(c, sx3 - 58, gy - 34, 10, 34, "#4e555e"); px(c, sx3 - 58, gy - 34, 10, 3, "#5d656f"); // standing corner
-    px(c, sx3 - 58, gy - 12, 24, 12, "#4a5058"); px(c, sx3 + 34, gy - 20, 22, 20, "#4e555e"); px(c, sx3 + 34, gy - 20, 22, 3, "#5d656f"); // wall stumps
-    c.save(); c.translate(sx3 - 20, gy - 2); c.rotate(0.5); px(c, -3, -52, 6, 52, "#33271a"); c.restore(); // fallen beams
-    c.save(); c.translate(sx3 + 14, gy - 4); c.rotate(-0.7); px(c, -3, -46, 6, 46, "#3a2c1c"); c.restore();
-    for (let i = 0; i < 9; i++) { const rx4 = sx3 - 34 + (i * 41) % 64, ry4 = gy - 6 - (i * 17) % 16; px(c, rx4, ry4, 10 + (i % 3) * 4, 8, i % 2 ? "#454c55" : "#4e555e"); } // rubble heap
-    drawSack(c, sx3 - 44, gy + 6, "#8a6d3b"); px(c, sx3 - 50, gy + 2, 16, 3, "#c9b89a"); // spilled grain
-    if (!tamFreed && Math.sin(now * 2.2) > 0.75) px(c, sx3 + 2, gy - 20, 3, 3, "#e8dcc0"); // a knuckle rapping from beneath
+  // the storehouse, brought down: a REAL building's worth of wreckage
+  { const sx3 = W * 0.74, hw = Math.min(150, W * 0.13);
+    // standing back wall run + tall corner, both broken ragged at the top
+    px(c, sx3 - hw, gy - 46, hw * 1.5, 46, "#454c55");
+    for (let x2 = sx3 - hw; x2 < sx3 + hw * 0.5; x2 += 26) for (let y2 = gy - 46; y2 < gy; y2 += 16) px(c, x2 + 1, y2 + 1, 24, 14, ((x2 / 26 | 0) + (y2 / 16 | 0)) % 2 ? "#3f454e" : "#484f59");
+    for (let x2 = sx3 - hw; x2 < sx3 + hw * 0.5; x2 += 26) px(c, x2, gy - 46 - ((x2 * 7) % 14), 24, 14, "#454c55"); // ragged top course
+    px(c, sx3 - hw - 14, gy - 92, 18, 92, "#4e555e"); px(c, sx3 - hw - 14, gy - 92, 18, 4, "#5d656f"); // tall corner
+    px(c, sx3 - hw - 14, gy - 92, 5, 92, "#5d656f");
+    px(c, sx3 - hw + 8, gy - 66, 16, 20, "#1a2027"); // empty window in the standing wall
+    // collapsed roof: long crossed beams + a slab of fallen roof planks
+    c.save(); c.translate(sx3 - 30, gy); c.rotate(0.55); px(c, -5, -110, 10, 110, "#33271a"); px(c, -5, -110, 4, 110, "#3f3220"); c.restore();
+    c.save(); c.translate(sx3 + 34, gy - 4); c.rotate(-0.75); px(c, -5, -92, 10, 92, "#3a2c1c"); c.restore();
+    c.save(); c.translate(sx3 + 6, gy - 26); c.rotate(0.18); for (let i = 0; i < 5; i++) px(c, -44 + i * 18, -8, 16, 30, i % 2 ? "#4a3a26" : "#54422a"); c.restore(); // roof slab
+    // the rubble mound, big and deep
+    for (let i = 0; i < 22; i++) {
+      const rx4 = sx3 - hw * 0.8 + (i * 53) % (hw * 1.7), ry4 = gy - 8 - (i * 23) % 34;
+      px(c, rx4, ry4, 14 + (i % 4) * 6, 12, i % 3 === 0 ? "#454c55" : i % 3 === 1 ? "#4e555e" : "#3f454e");
+      if (i % 5 === 0) px(c, rx4 + 2, ry4 - 3, 8, 3, "#5d656f");
+    }
+    drawSack(c, sx3 - hw * 0.6, gy + 8, "#8a6d3b"); drawSack(c, sx3 + hw * 0.5, gy + 6, "#7a5f36");
+    px(c, sx3 - hw * 0.7, gy + 3, 20, 3, "#c9b89a"); px(c, sx3 + hw * 0.3, gy + 10, 16, 3, "#c9b89a"); // spilled grain
+    drawBarrel(c, sx3 + hw * 0.72, gy + 4, 16, 20); // survived barrel, absurdly upright
+    if (!tamFreed && Math.sin(now * 2.2) > 0.75) px(c, sx3 + 2, gy - 26, 4, 4, "#e8dcc0"); // a knuckle rapping from beneath
     if (tamFreed) { // Tam, out of the rubble: a clerk, no armor, satchel hugged tight
-      const tx4 = sx3 - 14; c.save(); c.translate(tx4, gy); c.scale(CH, CH);
+      const tx4 = sx3 - hw * 0.9; c.save(); c.translate(tx4, gy); c.scale(CH, CH);
       px(c, -4, -4, 4, 10, "#4a3a26"); px(c, 1, -4, 4, 10, "#4a3a26"); px(c, -4, 4, 4, 3, "#241a10"); px(c, 1, 4, 4, 3, "#241a10");
       px(c, -6, -22, 12, 18, "#8a6d3b"); px(c, -6, -22, 3, 18, "rgba(255,255,255,0.12)");
       px(c, -8, -14, 7, 9, "#5a4426"); px(c, -8, -14, 7, 2, "#6e5430"); // the satchel, held to his chest
@@ -724,7 +738,7 @@ function drawFallenCamp(c, W, gy, now) {
     for (let i = 0; i < 3; i++) px(c, tx - 16 + i * 12, gy - 2, 8, 3, "#1c1812"); // ash
   }
   // the command tent, shredded but standing (clue point)
-  { const tx = W * 0.63;
+  { const tx = W * 0.55;
     c.fillStyle = "#5a4a34"; c.beginPath(); c.moveTo(tx - 34, gy); c.lineTo(tx, gy - 52); c.lineTo(tx + 34, gy); c.closePath(); c.fill();
     c.fillStyle = "#4a3d2a"; c.beginPath(); c.moveTo(tx - 34, gy); c.lineTo(tx, gy - 52); c.lineTo(tx - 8, gy); c.closePath(); c.fill();
     c.fillStyle = "#191308"; c.beginPath(); c.moveTo(tx - 10, gy); c.lineTo(tx, gy - 24); c.lineTo(tx + 10, gy); c.closePath(); c.fill();
@@ -739,7 +753,7 @@ function drawFallenCamp(c, W, gy, now) {
   { const bx2 = W * 0.5; c.save(); c.translate(bx2, gy - 2); c.rotate(1.25); px(c, -2, -46, 4, 46, "#3a2c18"); c.restore();
     c.fillStyle = "#6e1d1d"; c.beginPath(); c.moveTo(bx2 + 28, gy - 16); c.lineTo(bx2 + 52, gy - 10); c.lineTo(bx2 + 46, gy - 2); c.lineTo(bx2 + 34, gy - 6); c.closePath(); c.fill(); }
   // the dead fire, one thin wisp of smoke still rising (clue point)
-  { const fx2 = W * 0.5;
+  { const fx2 = W * 0.46;
     for (let i = 0; i < 5; i++) px(c, fx2 - 12 + i * 5, gy + 4, 4, 3, "#3a4048");
     c.fillStyle = "#26201a"; c.beginPath(); c.arc(fx2, gy + 2, 6, 0, Math.PI * 2); c.fill();
     const t = (now * 0.25) % 1; c.globalAlpha = 0.25 * (1 - t); circ(c, fx2 + Math.sin(now * 1.2) * 5, gy - 8 - t * 40, 4 + t * 6, "#aab6c4"); c.globalAlpha = 1; }
@@ -747,7 +761,7 @@ function drawFallenCamp(c, W, gy, now) {
   fallenGuard(c, W * 0.2, gy + 6, 1); fallenGuard(c, W * 0.3, gy + 12, -1); fallenGuard(c, W * 0.36, gy + 4, 1);
   fallenGuard(c, W * 0.55, gy + 8, -1); fallenGuard(c, W * 0.61, gy + 14, 1); fallenGuard(c, W * 0.74, gy + 6, 1); fallenGuard(c, W * 0.9, gy + 12, -1);
   // dropped weapons
-  for (const [wx3, rot] of [[W * 0.24, 1.3], [W * 0.57, -1.1], [W * 0.78, 0.8]]) { c.save(); c.translate(wx3, gy + 8); c.rotate(rot); px(c, -1, -26, 2, 26, "#8a6d3b"); c.fillStyle = "#9aa3ad"; c.beginPath(); c.moveTo(-3, -26); c.lineTo(0, -32); c.lineTo(3, -26); c.fill(); c.restore(); }
+  for (const [wx3, rot] of [[W * 0.24, 1.3], [W * 0.51, -1.1], [W * 0.94, 0.8]]) { c.save(); c.translate(wx3, gy + 8); c.rotate(rot); px(c, -1, -26, 2, 26, "#8a6d3b"); c.fillStyle = "#9aa3ad"; c.beginPath(); c.moveTo(-3, -26); c.lineTo(0, -32); c.lineTo(3, -26); c.fill(); c.restore(); }
   px(c, W * 0.33, gy + 16, 16, 5, "#3a5a8a"); px(c, W * 0.33, gy + 16, 16, 2, "#5a7aaa"); // a shield, face down
   // crows on the palisade, one flapping
   for (const [cx3, fl] of [[W * 0.23, 0], [W * 0.7, 1]]) {
@@ -780,27 +794,21 @@ async function playFallenCamp(name) {
   await say("", "The palisade is breached. Beyond it: body after body in the dead grass. The whole camp, gone.");
   await walkTo(0.2);
   await say("", "Someone has to work out what happened here. That someone is the scout the knight sent. Investigate everything.");
-  setLocations(Object.keys(SCENES.fallencamp));
-  const seen = {};
-  while (Object.keys(seen).length < Object.keys(CAMP_CLUES).length) {
-    const r = await ask({ prompt: `Investigate the camp (${Object.keys(seen).length}/${Object.keys(CAMP_CLUES).length} clues found)`, placeholder: 'you.walk("bodies")', concept: "walk", validate: (rr) => (rr.walk && SCENES.fallencamp[rr.walk] ? null : `Walk to: ${Object.keys(SCENES.fallencamp).map((l) => `"${l}"`).join(", ")}`) }, null);
-    logCmd(`you.walk("${r.walk}")`, true);
-    await goTo(r.walk);
-    if (r.walk === "rubble") { await say("", "The storehouse is a heap of stone and crossed beams. If anyone was inside when it came down... The dead first, scout. Then the stones."); continue; }
-    const clue = CAMP_CLUES[r.walk];
-    await say("", clue[0]);
-    if (!seen[r.walk]) { seen[r.walk] = true; logCmd(`# ${clue[1]}`, false); }
-  }
-  await say("", "Five clues, and none of them sit right together. No alarm. No fight. Hours ago. Something taken.");
-  await say("", "Then you hear it: from beneath the storehouse rubble, a knock. Then another. Something alive.");
+  // guided sweep: the scout walks the camp and the evidence speaks for itself
+  setLocations(["rubble"]);
+  await walkTo(0.3); await say("", CAMP_CLUES.bodies[0]); logCmd(`# ${CAMP_CLUES.bodies[1]}`, false);
+  await walkTo(0.46); await say("", CAMP_CLUES.fire[0]); logCmd(`# ${CAMP_CLUES.fire[1]}`, false);
+  await walkTo(0.55); await say("", CAMP_CLUES.tent[0]); logCmd(`# ${CAMP_CLUES.tent[1]}`, false);
+  await say("", CAMP_CLUES.tower[0]); logCmd(`# ${CAMP_CLUES.tower[1]}`, false);
+  await say("", "No alarm. No fight. Hours ago. Something taken. None of it sits right together.");
+  await say("", "Then you hear it: from beneath the storehouse rubble, a knock. Then another. Something ALIVE.");
   await ask({ prompt: "Get to the storehouse", placeholder: 'you.walk("rubble")', concept: "walk", validate: (rr) => (rr.walk === "rubble" ? null : 'The knocking came from the storehouse: you.walk("rubble").') }, null);
   await goTo("rubble"); logCmd('you.walk("rubble")', true);
   await playTam(name);
-  while (true) { // linger at the scene; clues can be revisited
-    const r = await ask({ prompt: "Look over the camp again", placeholder: 'you.walk("bodies")', concept: "walk", validate: (rr) => (rr.walk && SCENES.fallencamp[rr.walk] ? null : `Walk to: ${Object.keys(SCENES.fallencamp).map((l) => `"${l}"`).join(", ")}`) }, null);
-    logCmd(`you.walk("${r.walk}")`, true); await goTo(r.walk);
-    if (r.walk === "rubble") await say("Tam", "I'm not going back under there. Whatever you need, ask it here.");
-    else await say("", CAMP_CLUES[r.walk][0]);
+  while (true) { // linger by the wreck with Tam
+    await ask({ prompt: "…(to be continued)", placeholder: 'you.walk("rubble")', concept: "walk", validate: (rr) => (rr.walk === "rubble" ? null : 'Stay close: you.walk("rubble").') }, null);
+    logCmd('you.walk("rubble")', true); await goTo("rubble");
+    await say("Tam", "I'm not going back under there. Whatever comes next, I'm coming with you.");
   }
 }
 // ---- Tam, the survivor beneath the rubble: three riddles, then the ledger ----
