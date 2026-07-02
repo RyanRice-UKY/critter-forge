@@ -67,14 +67,18 @@ async function boot() {
   wireIde();
   els.ctx = els.stage.getContext("2d");
   els.noteClose.onclick = () => (els.noteModal.hidden = true);
+  document.getElementById("wallNoteClose").onclick = () => (document.getElementById("wallNote").hidden = true);
   els.noteModal.onclick = (e) => { if (e.target === els.noteModal) els.noteModal.hidden = true; };
   fit(); window.addEventListener("resize", fit);
   els.stage.onclick = (e) => {
-    // the storage room's wall note opens the captain's manifest
+    // the storage room's wall note opens the captain's manifest in a PINNED side
+    // panel (not a modal), so the player can read it while they type
     if (scene === "storage" && manifestRect) {
       const r = els.stage.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
       if (mx >= manifestRect.x && mx <= manifestRect.x + manifestRect.w && my >= manifestRect.y && my <= manifestRect.y + manifestRect.h) {
-        els.noteText.textContent = MANIFEST_NOTE; els.noteModal.hidden = false; return;
+        document.getElementById("wallNoteText").textContent = MANIFEST_NOTE;
+        document.getElementById("wallNote").hidden = false;
+        return;
       }
     }
     advance();
@@ -625,8 +629,10 @@ function drawStorage(c, W, gy, now) {
   const wx = W * 0.62, wy = gy * 0.1;
   px(c, wx - 17, wy - 1, 34, 27, "#0e1622"); px(c, wx - 17, wy - 1, 34, 3, "#3a2c18"); px(c, wx - 17, wy + 23, 34, 3, "#3a2c18"); px(c, wx - 2, wy - 1, 3, 27, "#3a2c18"); px(c, wx - 17, wy + 11, 34, 2, "#3a2c18");
   c.fillStyle = "rgba(180,205,235,0.06)"; c.beginPath(); c.moveTo(wx - 17, wy + 26); c.lineTo(wx + 17, wy + 26); c.lineTo(wx + 80, gy + 8); c.lineTo(wx - 40, gy + 8); c.closePath(); c.fill();
-  // the captain's manifest, pinned at eye level; click it to read (intro to if statements)
-  { const nx = W * 0.53 - 16, ny = gy * 0.52, nw = 32, nh = 42;
+  // the captain's manifest, pinned at head height right where the player stands;
+  // click it to read (intro to if statements). Opens a pinned panel, not a modal,
+  // so it stays readable while coding.
+  { const nx = W * 0.095 - 16, ny = gy - 104, nw = 32, nh = 42;
     manifestRect = { x: nx - 6, y: ny - 6, w: nw + 12, h: nh + 12 }; // generous hit area
     const pulse = 0.5 + 0.5 * Math.sin(now * 2.6);
     c.shadowColor = "#ffe066"; c.shadowBlur = 8 + 10 * pulse;

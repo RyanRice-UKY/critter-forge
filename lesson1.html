@@ -153,6 +153,13 @@
       #journalToast { position:fixed; top:116px; right:16px; z-index:50; background:#2a2113; color:#ffe066; border:1px solid #7a5e2a; border-radius:8px; padding:7px 11px; font-size:12px; box-shadow:0 6px 18px #0009; opacity:0; transform:translateY(-6px); transition:opacity .25s, transform .25s; pointer-events:none; }
       #journalToast.show { opacity:1; transform:none; }
 
+      /* pinned wall note (readable while coding; sits clear of the bottom IDE) */
+      .wallnote { position:fixed; left:16px; top:88px; width:310px; z-index:29; background:linear-gradient(175deg,#f2e3c2,#e7d3a8); color:#2a2014; border-radius:6px; box-shadow:0 14px 44px rgba(0,0,0,.55), inset 0 0 40px rgba(122,90,48,.18); transform:rotate(-.5deg); }
+      .wallnote[hidden] { display:none; }
+      .wn-head { display:flex; justify-content:space-between; align-items:center; padding:8px 12px 4px; font:700 12px "Chakra Petch",sans-serif; letter-spacing:1px; color:#6b3f16; }
+      .wn-head button { background:#2a2113; color:#efe4c6; border:0; border-radius:5px; width:22px; height:22px; cursor:pointer; }
+      .wallnote pre { margin:0; padding:6px 14px 14px; white-space:pre-wrap; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.55; color:#33260f; }
+
       /* Proving Grounds trial board */
       .tboard-back { position:fixed; inset:0; background:#04070ccc; z-index:45; display:flex; align-items:center; justify-content:center; }
       .tboard-back[hidden] { display:none; }
@@ -215,6 +222,12 @@
         </div>
         <div class="jbook-r" id="jbookDetail"></div>
       </div>
+    </div>
+
+    <!-- pinned wall note: stays open beside the IDE while the player codes -->
+    <div id="wallNote" class="wallnote" hidden>
+      <div class="wn-head"><span>📌 Pinned to the wall</span><button id="wallNoteClose">✕</button></div>
+      <pre id="wallNoteText"></pre>
     </div>
 
     <!-- Proving Grounds trial board -->
