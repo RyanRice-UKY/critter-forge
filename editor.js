@@ -8,21 +8,35 @@ let onSubmit = () => {};
 let onChange = () => {};
 let _enabled = true, _readonly = false;
 let _hintShown = false;
-let ghostText = "", ghostMark = null;
+let ghostText = "", ghostMark = null, ghostBlock = null;
 
 // inline ghost: faint answer text that stays visible while what the player has
 // typed is still a prefix of it (typing "through" the ghost), instead of a
 // placeholder that vanishes at the first keystroke.
+// The remainder is split: rest-of-current-line renders inline, further lines
+// render as a line widget BELOW (a multiline inline span would inflate the
+// line box and blow the cursor up to giant size).
 function refreshGhost() {
   if (!cm) return;
   if (ghostMark) { ghostMark.clear(); ghostMark = null; }
+  if (ghostBlock) { ghostBlock.clear(); ghostBlock = null; }
   if (!ghostText || !_enabled) return;
   const val = cm.getValue();
   if (!ghostText.startsWith(val) || val.length >= ghostText.length) return; // diverged or finished: ghost retires
-  const node = document.createElement("span");
-  node.className = "cm-ghost-rest";
-  node.textContent = ghostText.slice(val.length);
-  ghostMark = cm.setBookmark(cm.posFromIndex(val.length), { widget: node, insertLeft: true });
+  const rest = ghostText.slice(val.length), nl = rest.indexOf("\n");
+  const inline = nl === -1 ? rest : rest.slice(0, nl);
+  if (inline) {
+    const node = document.createElement("span");
+    node.className = "cm-ghost-rest";
+    node.textContent = inline;
+    ghostMark = cm.setBookmark(cm.posFromIndex(val.length), { widget: node, insertLeft: true });
+  }
+  if (nl !== -1) {
+    const block = document.createElement("pre");
+    block.className = "cm-ghost-block";
+    block.textContent = rest.slice(nl + 1);
+    ghostBlock = cm.addLineWidget(cm.lastLine(), block);
+  }
 }
 
 function applyReadonly() {

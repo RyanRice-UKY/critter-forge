@@ -46,7 +46,7 @@ let zoms = [], ARROWS = [], zombiesApproach = false;
 let FX = [], shootT = 0; // impact debris particles + how long the hero holds the draw pose
 let manifestRect = null; // clickable wall note in the storage room (set by drawStorage)
 const MANIFEST_NOTE =
-  "CAPTAIN'S MANIFEST: NORTH WATCH\n\nLoad the raft with EXACTLY:\n\n    armor .... 1 plate\n    food ..... 2 crates\n    water .... 1 barrel\n\nWeight must stay within 30 stone.\n(a plate weighs 10, a crate 4, a barrel 3)\n\nShort or over, she doesn't sail.";
+  "NORTH WATCH: LOADING PROTOCOL\n\nplate_weight = 10\ncrate_weight = 4\nbarrel_weight = 3\n\ncorrect_items = 0\nif armor * plate_weight == 10:\n    correct_items = correct_items + 1\nif food * crate_weight == 8:\n    correct_items = correct_items + 1\nif water * barrel_weight == 3:\n    correct_items = correct_items + 1\n\n# she sails only when correct_items == 3";
 let invinc = 0, dmgFlash = 0, dying = false;
 let townsfolk = [];
 let lesson1Done = false; // the king's chamber stays sealed until Lesson 1 is complete
@@ -849,9 +849,10 @@ async function dropOff() {
   char.grabbing = 1; await wait(0.8); char.grabbing = 0;                                       // shake the captain's hand
 }
 
-const KEEP_MANIFEST_RUN = "weight = armor*10 + food*4 + water*3\nchecklist = 0\nif weight <= 30:\n    checklist = checklist + 1\nif armor == 1:\n    checklist = checklist + 1\nif food == 2:\n    checklist = checklist + 1\nif water == 1:\n    checklist = checklist + 1";
+// the checker IS the note: the game appends exactly the code the wall manifest shows
+const KEEP_MANIFEST_RUN = "plate_weight = 10\ncrate_weight = 4\nbarrel_weight = 3\ncorrect_items = 0\nif armor * plate_weight == 10:\n    correct_items = correct_items + 1\nif food * crate_weight == 8:\n    correct_items = correct_items + 1\nif water * barrel_weight == 3:\n    correct_items = correct_items + 1";
 const KEEP_MANIFEST_LESSON =
-  "Click the manifest on the wall and read it carefully. Then record your load: set armor, food and water to the exact amounts it demands. The checklist code below your answer runs four if statements, one per requirement, and each true condition adds one mark. Four marks and the raft sails.";
+  "Click the manifest on the wall. It is written in Python: the keep's quartermasters trust code more than words. Read each if line and work out what values of armor, food and water make all three conditions true. Then set those three variables. Your load only sails when correct_items reaches 3.";
 
 async function startQuest(name) {
   await say("Knight-Captain", `So you want the keep's trust, ${name}? Earn it.`);
@@ -870,9 +871,9 @@ async function playBeat1(name) {
     prompt: "Pack the supply cart",
     placeholder: "armor = 1\nfood = 2\nwater = 1", rows: 3,
     concept: "if", task: KEEP_MANIFEST_LESSON, append: KEEP_MANIFEST_RUN,
-    validate: (r) => (Number(r.vars.checklist) === 4 ? null : "The cart's not right. Read the captain's checklist again (exact amounts, and weight ≤ 30)."),
+    validate: (r) => (Number(r.vars.correct_items) === 3 ? null : "The checks came back short. Read each if line on the manifest: what value makes its condition true?"),
   }, null);
-  await say("", "Four marks. That was your first if statement, and the last new tool of the introduction. From here the world stops teaching and starts testing: same tools, harder problems.");
+  await say("", "Three checks, all true. You just read your first if statements, and they are the last new tool of the introduction. From here the world stops teaching and starts testing: same tools, harder problems.");
   await say("Guard", "Right, grab what's on the list and load the raft.");
   await loadRaft({ armor: Number(r.vars.armor), food: Number(r.vars.food), water: Number(r.vars.water) });
   await say("Guard", "That's her loaded. Cast off and float her across to the camp.");

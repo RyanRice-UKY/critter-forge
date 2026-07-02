@@ -2,20 +2,21 @@
 let fails = 0;
 const ok = (cond, msg) => { if (!cond) { console.log("FAIL:", msg); fails++; } };
 
-// Beat 1: player sets armor/food/water; the appended manifest computes checklist.
+// Beat 1: player sets armor/food/water; the appended manifest (the wall note's
+// own Python) counts correct_items via weight-product if checks.
 function beat1(armor, food, water) {
-  const weight = armor * 10 + food * 4 + water * 3;
-  let checklist = 0;
-  if (weight <= 30) checklist++;
-  if (armor === 1) checklist++;
-  if (food === 2) checklist++;
-  if (water === 1) checklist++;
-  return checklist === 4;
+  const plate_weight = 10, crate_weight = 4, barrel_weight = 3;
+  let correct_items = 0;
+  if (armor * plate_weight === 10) correct_items++;
+  if (food * crate_weight === 8) correct_items++;
+  if (water * barrel_weight === 3) correct_items++;
+  return correct_items === 3;
 }
-ok(beat1(1, 2, 1) === true, "Beat1 canonical (1,2,1) packs the cart");
+ok(beat1(1, 2, 1) === true, "Beat1 canonical (1,2,1) makes all three checks true");
 ok(beat1(0, 2, 1) === false, "Beat1 too little blocked");
 ok(beat1(2, 2, 1) === false, "Beat1 too much blocked");
 ok(beat1(1, 3, 1) === false, "Beat1 wrong food blocked");
+ok(beat1(1, 2, 0) === false, "Beat1 missing water blocked");
 
 // Beat 2: typed watchword must equal the hidden WATCHWORD.
 const beat2 = (typed) => typed === "ironwatch";
