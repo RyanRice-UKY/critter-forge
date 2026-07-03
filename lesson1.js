@@ -49,6 +49,7 @@ let FX = [], shootT = 0; // impact debris particles + how long the hero holds th
 // ---- the armory booth (shop scene) ----
 const KIT_PIECES = ["boots", "helmet", "gauntlets", "leggings", "chestplate"];
 let tamFreed = false; // the survivor beneath the storehouse rubble
+let tamHiding = false; // Tam ducks behind the tower half while the mutant is up
 let armoryRects = null; // clickable rack items, set by drawArmory
 let armoryPicked = { boots: false, helmet: false, gauntlets: false, leggings: false, chestplate: false };
 let manifestRect = null; // clickable wall note in the storage room (set by drawStorage)
@@ -295,6 +296,8 @@ async function freeRoam(locs, exitName, hint) {
 
 // ---------- combat ----------
 const mkZom = (f) => ({ x: els.W * f, alive: true, dying: 0, doomed: false, wphase: Math.random() * 6 });
+// the 1.4 mutant: dodges ranged arrows until .dodges is cleared; z.rise fades it up out of the dead
+const mkMutant = (f) => ({ x: els.W * f, alive: true, dying: 0, doomed: false, wphase: Math.random() * 6, mutant: true, dodges: true, dodgeT: 0, dashing: false, gdir: -1, rise: 1, spawnDist: 0 });
 // fire an arrow that actually flies to the nearest un-doomed zombie and kills it on impact
 function fireAtNearest() { let best = null, bd = Infinity; for (const z of zoms) { if (!z.alive || z.doomed) continue; const d = Math.abs(z.x - char.x); if (d < bd) { bd = d; best = z; } } if (best) { best.doomed = true; const sx = char.x + char.facing * 18; ARROWS.push({ x: sx, sx, target: best }); shootT = 0.38; } }
 function waitForImpact() { return new Promise((res) => { const chk = () => { if (ARROWS.length === 0) res(); else setTimeout(chk, 40); }; setTimeout(chk, 80); }); }
@@ -463,9 +466,18 @@ function update(dt) {
   // arrows fly to their target and kill on impact
   for (const a of ARROWS) {
     const dir = Math.sign(a.target.x - a.x) || 1; a.x += dir * 320 * dt;
+    // a dodging mutant blur-steps out of the arrow's path; the shot flies on and dies off-scene
+    if (a.target.dodges && Math.abs(a.x - a.target.x) < 46) {
+      const z = a.target; z.dodgeT = 0.45; z.doomed = false; z.gdir = -dir; z.x += dir * 30;
+      for (let i = 0; i < 6; i++) FX.push({ x: z.x - dir * 22, y: els.H * 0.74 - 4 - Math.random() * 8, vx: -dir * (30 + Math.random() * 50), vy: -20 - Math.random() * 40, t: 0.4 + Math.random() * 0.2, col: "#aab6c4" });
+      a.target = { x: a.x + dir * els.W * 0.5, phantom: true };
+    }
     if (Math.abs(a.x - a.target.x) < 10) {
-      a.hit = true; a.target.alive = false; a.target.dying = 1; a.target.fall = dir; // fall away from the shot
-      for (let i = 0; i < 9; i++) FX.push({ x: a.target.x, y: els.H * 0.74 - 16 - Math.random() * 14, vx: dir * (20 + Math.random() * 70) * (Math.random() < 0.3 ? -0.4 : 1), vy: -40 - Math.random() * 80, t: 0.55 + Math.random() * 0.3, col: Math.random() < 0.5 ? "#8a9a6a" : "#5c6b44" });
+      a.hit = true;
+      if (!a.target.phantom) {
+        a.target.alive = false; a.target.dying = 1; a.target.fall = dir; // fall away from the shot
+        for (let i = 0; i < 9; i++) FX.push({ x: a.target.x, y: els.H * 0.74 - 16 - Math.random() * 14, vx: dir * (20 + Math.random() * 70) * (Math.random() < 0.3 ? -0.4 : 1), vy: -40 - Math.random() * 80, t: 0.55 + Math.random() * 0.3, col: Math.random() < 0.5 ? "#8a9a6a" : "#5c6b44" });
+      }
     }
   }
   ARROWS = ARROWS.filter((a) => !a.hit);
@@ -474,6 +486,7 @@ function update(dt) {
   FX = FX.filter((p) => p.t > 0);
   for (const z of zoms) {
     if (!z.alive && z.dying > 0) z.dying = Math.max(0, z.dying - dt * 1.1);
+    if (z.dodgeT > 0) z.dodgeT = Math.max(0, z.dodgeT - dt);
     if (z.alive && zombiesApproach) { z.x += Math.sign(char.x - z.x) * 24 * dt; z.wphase += dt * 7; } // slow shamble toward you
   }
   // survivor jump-down + walk-over (or walk back to hide)
@@ -719,13 +732,18 @@ function drawFallenCamp(c, W, gy, now) {
     px(c, sx3 - 74, gy + 3, 20, 3, "#c9b89a"); px(c, sx3 + 132, gy + 10, 16, 3, "#c9b89a"); // spilled grain
     drawBarrel(c, sx3 - 84, gy + 4, 16, 20); // survived barrel, absurdly upright
     if (!tamFreed && Math.sin(now * 2.2) > 0.75) px(c, sx3 + 34, gy - 24, 4, 4, "#e8dcc0"); // a knuckle rapping from beneath
-    if (tamFreed) { // Tam, out of the rubble: a clerk, no armor, satchel hugged tight
+    if (tamFreed && !tamHiding) { // Tam, out of the rubble: a clerk, no armor, satchel hugged tight
       const tx4 = sx3 - 66; c.save(); c.translate(tx4, gy); c.scale(CH, CH);
       px(c, -4, -4, 4, 10, "#4a3a26"); px(c, 1, -4, 4, 10, "#4a3a26"); px(c, -4, 4, 4, 3, "#241a10"); px(c, 1, 4, 4, 3, "#241a10");
       px(c, -6, -22, 12, 18, "#8a6d3b"); px(c, -6, -22, 3, 18, "rgba(255,255,255,0.12)");
       px(c, -8, -14, 7, 9, "#5a4426"); px(c, -8, -14, 7, 2, "#6e5430"); // the satchel, held to his chest
       px(c, -5, -32, 11, 11, "#d8a878"); px(c, -6, -34, 12, 4, "#6e4a22"); px(c, -3, -28, 2, 2, "#1c1208"); px(c, 2, -28, 2, 2, "#1c1208");
       c.restore(); }
+    if (tamFreed && tamHiding) { // just his head, peeking around the standing tower half
+      const hx2 = sx3 - tw / 2 - 8;
+      px(c, hx2, gy - 38, 10, 9, "#d8a878"); px(c, hx2 - 1, gy - 40, 11, 4, "#6e4a22");
+      px(c, hx2 + 2, gy - 35, 2, 2, "#1c1208"); px(c, hx2 + 6, gy - 35, 2, 2, "#1c1208");
+    }
   }
   // collapsed watchtower: snapped legs, platform down in the grass
   { const wx2 = W * 0.9;
@@ -778,6 +796,17 @@ function drawFallenCamp(c, W, gy, now) {
     const x2 = W * frac2, cmd2 = `you.walk("${name2}")`, cw2 = c.measureText(cmd2).width;
     c.fillStyle = "rgba(8,12,18,0.72)"; rr(c, x2 - cw2 / 2 - 7, gy - 92, cw2 + 14, 18, 5); c.fill();
     c.strokeStyle = "#2a3a4a"; c.stroke(); c.fillStyle = "#9fd9ff"; c.fillText(cmd2, x2, gy - 79);
+  }
+  // the mutant (and its corpse), plus a live distance readout while it stands
+  drawZoms(c, gy);
+  const mz = zoms.find((z2) => z2.mutant && z2.alive && z2.spawnDist);
+  if (mz) {
+    const d = Math.max(0, Math.round(40 * Math.abs(mz.x - char.x) / mz.spawnDist));
+    const txt = `distance = ${d}`;
+    c.font = "11px 'IBM Plex Mono',monospace"; c.textAlign = "center";
+    const tw2 = c.measureText(txt).width;
+    c.fillStyle = "rgba(8,12,18,0.72)"; rr(c, mz.x - tw2 / 2 - 7, gy - 118, tw2 + 14, 18, 5); c.fill();
+    c.strokeStyle = "#2a3a4a"; c.stroke(); c.fillStyle = "#9fd9ff"; c.fillText(txt, mz.x, gy - 105);
   }
   // ground fog drifting through it all
   for (let i = 0; i < 3; i++) { const mx2 = ((now * (6 + i * 3) + i * 500) % (W + 300)) - 150; c.fillStyle = "rgba(190,200,215,0.05)"; c.beginPath(); c.ellipse(mx2, gy + 14 + i * 12, 130, 12, 0, 0, Math.PI * 2); c.fill(); }
@@ -1697,6 +1726,7 @@ function drawCastle(c, W, gy, now) {
 function drawZoms(c, gy) {
   for (const z of zoms) {
     if (z.dying <= 0 && !z.alive) continue;
+    if (z.mutant) { drawMutant(c, z, gy); continue; }
     const sw = (z.alive && zombiesApproach) ? Math.sin(z.wphase) : 0;
     const p = z.alive ? 0 : 1 - z.dying; // 0 upright → 1 flat
     c.save(); c.translate(z.x, gy);
@@ -1704,6 +1734,27 @@ function drawZoms(c, gy) {
     c.scale(CH, CH); zombie(c, 0, 0, sw); c.restore(); c.globalAlpha = 1;
   }
   for (const p of FX) { c.globalAlpha = Math.min(1, p.t * 2.5); px(c, p.x, p.y, 3, 3, p.col); } c.globalAlpha = 1; // impact debris
+}
+// the mutant: pent-up jitter at rest, afterimages while it dashes or dodges, same topple as the others
+function drawMutant(c, z, gy) {
+  const tt = performance.now() / 1000;
+  const p = z.alive ? 0 : 1 - z.dying;
+  const jx = z.alive ? (Math.sin(tt * 29) + Math.sin(tt * 41 + 2)) * 0.9 : 0;
+  const jy = z.alive ? Math.abs(Math.sin(tt * 33)) * 0.5 : 0;
+  const sw = z.dashing ? Math.sin(tt * 22) : 0;
+  const reach = z.dashing ? 1 : 0.2;
+  const rise = z.rise === undefined ? 1 : z.rise;
+  const one = (ox, oa) => {
+    c.save();
+    c.globalAlpha = oa * rise * (p > 0 && z.dying < 0.35 ? z.dying / 0.35 : 1);
+    c.translate(z.x + jx + ox, gy + jy + (1 - rise) * 26);
+    if (p > 0) { c.rotate((z.fall || 1) * Math.min(1, p * 1.5) * 1.45); c.translate(0, -Math.sin(Math.min(1, p * 1.5) * Math.PI) * 3); }
+    c.scale(CH * 1.1, CH * 1.1);
+    mutantBody(c, 0, 17, sw, reach);
+    c.restore();
+  };
+  if (z.alive && (z.dodgeT > 0.05 || z.dashing)) { one(z.gdir * 16, 0.16); one(z.gdir * 8, 0.28); } // afterimages
+  one(0, 1); c.globalAlpha = 1;
 }
 
 // sprites (drawn at local origin; P() scales/positions)
@@ -1789,6 +1840,31 @@ function smith(c, x, y) {
   px(c, x - 6, ty - 32, 12, 11, "#c89a72");
   px(c, x - 8, ty - 35, 16, 5, "#454c55"); px(c, x - 8, ty - 28, 16, 3, "#454c55");
   px(c, x - 3, ty - 27, 2, 2, "#1c1208");
+}
+// the 1.4 mutant: the TWITCHER, wiry and wrong-jointed (mutant-styles.html specimen A)
+function mutantBody(c, x, y, sw, reach) {
+  const s = sw * 4, lean = reach * 4;
+  // stilt legs, knees backward
+  px(c, x - 5, y - 20 + Math.max(0, s) * 1.5, 3, 12, "#2a2014");
+  px(c, x - 7, y - 9 + Math.max(0, s) * 1.5, 3, 9, "#241c10");
+  px(c, x + 2, y - 20 + Math.max(0, -s) * 1.5, 3, 12, "#2a2014");
+  px(c, x + 4, y - 9 + Math.max(0, -s) * 1.5, 3, 9, "#241c10");
+  // narrow torso, canted hard forward
+  px(c, x - 7 - lean, y - 38, 13, 20, "#10200c");
+  px(c, x - 6 - lean, y - 37, 11, 18, "#7a8a5c"); px(c, x - 6 - lean, y - 37, 3, 18, "rgba(255,255,255,0.10)");
+  px(c, x - 4 - lean, y - 30, 3, 8, "#5c1f1f"); // opened ribs
+  px(c, x - 8 - lean, y - 39, 9, 5, "#8a939e"); px(c, x - 8 - lean, y - 39, 9, 2, "#a5aeb8"); // pauldron scrap
+  px(c, x - 1 - lean, y - 34, 2, 12, "#3a2c18"); // strap across the chest
+  // head cocked hard sideways
+  px(c, x - 9 - lean, y - 46, 10, 9, "#9aab7a"); px(c, x - 9 - lean, y - 46, 10, 3, "#6b7a4c");
+  c.shadowColor = "#ff3b3b"; c.shadowBlur = 6;
+  px(c, x - 8 - lean, y - 43, 2, 2, "#ff3b3b"); px(c, x - 4 - lean, y - 43, 2, 2, "#ff3b3b");
+  c.shadowBlur = 0;
+  px(c, x - 8 - lean, y - 39, 6, 2, "#241206");
+  // arms too long, fingers to the ground
+  px(c, x - 13 - lean - reach * 6, y - 33, 4, 3, "#9aab7a");
+  px(c, x - 15 - lean - reach * 6, y - 32, 3, 16, "#7a8a5c");
+  px(c, x + 6 - lean, y - 33, 3, 24, "#7a8a5c"); px(c, x + 6 - lean, y - 10, 4, 3, "#9aab7a");
 }
 function zombie(c, x, y, sw = 0) {
   const f = -1; // always shambling toward the player
