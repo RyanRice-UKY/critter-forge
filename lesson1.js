@@ -724,7 +724,7 @@ function drawFallenCamp(c, W, gy, now) {
       px(c, -4, -4, 4, 10, "#4a3a26"); px(c, 1, -4, 4, 10, "#4a3a26"); px(c, -4, 4, 4, 3, "#241a10"); px(c, 1, 4, 4, 3, "#241a10");
       px(c, -6, -22, 12, 18, "#8a6d3b"); px(c, -6, -22, 3, 18, "rgba(255,255,255,0.12)");
       px(c, -8, -14, 7, 9, "#5a4426"); px(c, -8, -14, 7, 2, "#6e5430"); // the satchel, held to his chest
-      px(c, -5, -32, 11, 11, "#d8a878"); px(c, -6, -34, 12, 4, "#6e4a22"); px(c, -2, -28, 2, 2, "#1c1208");
+      px(c, -5, -32, 11, 11, "#d8a878"); px(c, -6, -34, 12, 4, "#6e4a22"); px(c, -3, -28, 2, 2, "#1c1208"); px(c, 2, -28, 2, 2, "#1c1208");
       c.restore(); }
   }
   // collapsed watchtower: snapped legs, platform down in the grass
