@@ -21,8 +21,10 @@ if statement. Also fixes Tam's one-eyed face.
    eyes). Keep his testimony lines about the attack (black hour, no horn,
    dispatch case) — cut the counting plea and the three ledger/Weck lines.
 2. New beat: the ground shifts near the command tent. The mutant rises —
-   a hulking, twitch-fast variant of the zombie sprite wearing a torn Iron
-   Guard breastplate. Tam scrambles behind the rubble.
+   the TWITCHER (specimen A from `mutant-styles.html`): wiry, wrong-jointed,
+   taller than a regular zombie, head cocked sideways, a steel pauldron
+   scrap on one shoulder, vibrating even when still. Tam scrambles behind
+   the rubble.
 3. **Prompt 1 (familiar ground):** plain `bow.fire()`. The mutant
    snap-dodges — fast sidestep with a dust puff; the arrow whiffs past and
    buries itself in the palisade. Tam: it SEES the arrow at range; let it
@@ -64,10 +66,12 @@ Failure modes are teaching beats:
 ## Mechanics
 
 - Reuse `zoms`, `ARROWS`, `fireAtNearest()`, `drawZoms`.
-- New: `mutant` flag on a zombie — larger scale, jittery idle offset, torn
-  Iron Guard breastplate over the base sprite.
+- New: `mutant` flag on a zombie — the Twitcher body (port `twitcherBody`
+  from `mutant-styles.js`), high-frequency idle jitter, and dash-burst
+  advance (move-pause-move) with afterimages instead of the walk cycle.
 - New: dodge behavior — when a doomed arrow nears a dodging mutant, it
-  sidesteps (dust puff), the arrow un-dooms it and flies past off-scene.
+  blur-steps aside (afterimages + dust puff), the arrow un-dooms it and
+  flies past off-scene.
 - New: re-run helper — execute `lastSrc` against an injected seed
   (`distance=40`, then `distance=6`). The Python harness already accepts a
   seed prelude, so this is two harness calls with different seeds.
