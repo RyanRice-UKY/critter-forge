@@ -469,6 +469,7 @@ function update(dt) {
     // a dodging mutant blur-steps out of the arrow's path; the shot flies on and dies off-scene
     if (a.target.dodges && Math.abs(a.x - a.target.x) < 46) {
       const z = a.target; z.dodgeT = 0.45; z.doomed = false; z.gdir = -dir; z.x += dir * 30;
+      if (z.spawnDist) z.spawnDist = Math.abs(z.x - char.x); // the pill keeps reading 40: the seed and the screen must agree
       for (let i = 0; i < 6; i++) FX.push({ x: z.x - dir * 22, y: els.H * 0.74 - 4 - Math.random() * 8, vx: -dir * (30 + Math.random() * 50), vy: -20 - Math.random() * 40, t: 0.4 + Math.random() * 0.2, col: "#aab6c4" });
       a.target = { x: a.x + dir * els.W * 0.5, phantom: true };
     }
@@ -892,7 +893,7 @@ async function playMutant() {
   await ask({ prompt: "Loose an arrow", placeholder: "bow.fire()", concept: "fire",
     validate: (r) => (r.fires >= 1 ? null : "Call bow.fire() to shoot.") }, null);
   fireAtNearest(); await waitForImpact(); await wait(0.4);
-  await say("", "It is not where the arrow lands. A blur, a stutter in the air, and it is two steps aside. The shaft buries itself in the dirt behind it.");
+  await say("", "It is not where the arrow lands. A blur, a stutter in the air, and it is two steps aside. The shaft buries itself in the palisade behind it.");
   await say("Tam", "It SEES the arrow. At that range it has all night to step aside.");
   await say("Tam", "Let it get CLOSE. Close up, it cannot dodge what it cannot outrun. Under ten paces, THEN loose. Not before. Please not before.");
   await ask({
@@ -908,7 +909,8 @@ async function playMutant() {
       let rerun;
       try { rerun = JSON.parse(runUser(lastSrc, "distance = 6", "")); } catch (e) { return "Something broke re-running your code. Try again."; }
       if (rerun.err) return translate(rerun.err);
-      if (rerun.fires !== 1) return "Now imagine it at 6 paces, breath on your face, and your code STILL does not fire. The condition has to come true when it is close. Try distance < 10.";
+      if (rerun.fires === 0) return "Now imagine it at 6 paces, breath on your face, and your code STILL does not fire. The condition has to come true when it is close. Try distance < 10.";
+      if (rerun.fires > 1) return "One arrow, held for the one moment it counts. Your block fires " + rerun.fires + " times. Loose it once.";
       return null;
     },
   }, null);
@@ -926,7 +928,7 @@ async function playMutant() {
   await say("", "Eight paces. Your same two lines run again, and this time the condition is TRUE.");
   m.dodges = false; fireAtNearest(); await waitForImpact(); await wait(0.5);
   tamHiding = false;
-  await say("Tam", "...it could not dodge that. You WAITED. The arrow only existed when it could not matter less to you and more to it.");
+  await say("Tam", "...it could not dodge that. You WAITED. The arrow only existed once it could no longer be dodged.");
   await say("Tam", "That is what took the camp. Things like that. And it was headed the same way you are.");
   await say("", "One arrow, held until the if said now. Whatever is out on that road, you do not meet it by firing early... (to be continued)");
 }
