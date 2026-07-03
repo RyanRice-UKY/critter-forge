@@ -878,28 +878,57 @@ async function playTam(name) {
   await say("Tam", "Tam. Quartermaster's clerk. I was under the grain shelves when the roof came down, and I stayed there. All night. Listening.");
   await say("Tam", "It came at the black hour, through the gate, like it was expected. Nobody blew the horn. The captain drew steel and then he just... didn't. NONE of them could even begin. Like their bodies already knew it was over.");
   await say("Tam", "It didn't want us. It went through them, to the command tent, and took the captain's dispatch case. Maps. Muster rolls. It knew exactly where they were.");
-  await say("Tam", "Help me count. Please. If I count it, it's real, and if it's real I can stop shaking. The ledger's in my head; the numbers are all I've got left.");
+  await playMutant();
+  if (Sv) awardXP(30);
+}
+// ---- the mutant: the thing the camp fed. First WRITTEN if statement. ----
+async function playMutant() {
+  await say("", "Then the ground moves. By the command tent, canvas and ash slide off something that was lying among the dead. It stands up WRONG: too tall, too thin, joints bending in places joints don't bend.");
+  char.facing = -1; // it rises between you and the gate
+  const m = mkMutant(0.52); m.rise = 0; m.spawnDist = Math.abs(m.x - char.x); zoms = [m]; ARROWS = [];
+  tamHiding = true;
+  await anim(0.8, (p) => (m.rise = p));
+  await say("Tam", "That is NOT one of the shuffling ones. Look at it, it never stops moving. Shoot it. SHOOT IT.");
+  await ask({ prompt: "Loose an arrow", placeholder: "bow.fire()", concept: "fire",
+    validate: (r) => (r.fires >= 1 ? null : "Call bow.fire() to shoot.") }, null);
+  fireAtNearest(); await waitForImpact(); await wait(0.4);
+  await say("", "It is not where the arrow lands. A blur, a stutter in the air, and it is two steps aside. The shaft buries itself in the dirt behind it.");
+  await say("Tam", "It SEES the arrow. At that range it has all night to step aside.");
+  await say("Tam", "Let it get CLOSE. Close up, it cannot dodge what it cannot outrun. Under ten paces, THEN loose. Not before. Please not before.");
   await ask({
-    prompt: "Tally the losses with Tam",
-    placeholder: "missing = roster - fallen - survivors\nspears_lost = spears_issued - spears_found\narrows_fired = arrows_issued - arrows_found\nfought_back = arrows_fired > 0\ntaken_unawares = fought_back == False and horn_blown == False",
-    rows: 5,
-    seed: "roster=9\nfallen=7\nsurvivors=1\nspears_issued=24\nspears_found=21\narrows_issued=60\narrows_found=60\nhorn_blown=False",
-    concept: "bool", requireOp: "and",
-    task: "Tam's ledger is seeded: roster, fallen, survivors, spears_issued, spears_found, arrows_issued, arrows_found, horn_blown. Work out missing, spears_lost and arrows_fired with subtraction. Then the new tool: a comparison like  arrows_fired > 0  IS a value, True or False, and you can store it. Set fought_back from that comparison, and taken_unawares true only when fought_back is False AND horn_blown is False.",
+    prompt: "Guard the shot with an if statement",
+    placeholder: "if distance < 10:\n    bow.fire()", rows: 2,
+    seed: "distance = 40",
+    concept: "if",
+    task: "The variable distance is set for you: it holds how far away the thing is, 40 paces right now. Write a guard: IF distance is under 10, fire. Your code runs while it is still far out, so when distance is 40 the indented line must NOT run. Holding the arrow IS the correct result.",
     validate: (r) => {
-      if (Number(r.vars.missing) !== 1) return "missing = roster - fallen - survivors. Count again; the ledger has to balance.";
-      if (Number(r.vars.spears_lost) !== 3) return "spears_lost = spears_issued - spears_found.";
-      if (Number(r.vars.arrows_fired) !== 0) return "arrows_fired = arrows_issued - arrows_found.";
-      if (r.vars.fought_back !== false) return "fought_back should hold the comparison  arrows_fired > 0  (which comes out False).";
-      if (r.vars.taken_unawares !== true) return "taken_unawares = fought_back == False and horn_blown == False.";
+      if (!/\bif\b[^\n]*\bdistance\b[^\n]*:/.test(lastSrc)) return "Write an if statement that asks a question about distance, ending with a colon.";
+      if (!/\n\s+bow\.fire\(\)/.test(lastSrc)) return "Put bow.fire() on its own line, indented 4 spaces under the if.";
+      if (r.fires > 0) return "It is 40 paces out and your code FIRED. The blur again, the arrow in the dirt. The shot must only happen when distance is small. Make the condition stricter.";
+      let rerun;
+      try { rerun = JSON.parse(runUser(lastSrc, "distance = 6", "")); } catch (e) { return "Something broke re-running your code. Try again."; }
+      if (rerun.err) return translate(rerun.err);
+      if (rerun.fires !== 1) return "Now imagine it at 6 paces, breath on your face, and your code STILL does not fire. The condition has to come true when it is close. Try distance < 10.";
       return null;
     },
   }, null);
-  await say("Tam", "Zero arrows. They never fought back. Taken unawares: True. That's the truth of it, in five lines.");
-  await say("Tam", "And... missing is one. The ledger doesn't balance. Nine stood this camp. Seven in the grass, me under the stones. Someone's not here.");
-  await say("Tam", "Weck. Weck had the wall. It's WECK that's missing. And it moved like him, I told you it moved like him...");
-  await say("", "A camp that never fought back. A stolen dispatch case. A missing watchman it learned to walk like. The road to the city just got darker... (to be continued)");
-  if (Sv) awardXP(30);
+  // act one: distance = 40. The same code runs, and correctly does nothing.
+  await say("", "You nock and draw. distance = 40. Your code runs... and holds. The condition is False, so Python skips the fire line as if it were never written.");
+  const side = Math.sign(m.x - char.x) || -1;
+  shootT = 2.8; // the hero holds the draw while it closes
+  for (const d of [27, 16, 8]) { // it comes on in bursts: move, freeze, move
+    m.dashing = true; m.gdir = -side;
+    const from = m.x, to = char.x + side * m.spawnDist * d / 40;
+    await anim(0.26, (p) => (m.x = from + (to - from) * p));
+    m.dashing = false;
+    await wait(d > 8 ? 0.55 : 0.1);
+  }
+  await say("", "Eight paces. Your same two lines run again, and this time the condition is TRUE.");
+  m.dodges = false; fireAtNearest(); await waitForImpact(); await wait(0.5);
+  tamHiding = false;
+  await say("Tam", "...it could not dodge that. You WAITED. The arrow only existed when it could not matter less to you and more to it.");
+  await say("Tam", "That is what took the camp. Things like that. And it was headed the same way you are.");
+  await say("", "One arrow, held until the if said now. Whatever is out on that road, you do not meet it by firing early... (to be continued)");
 }
 // ---- the armory booth scene ----
 function armorIcon(c, kind, s) {
