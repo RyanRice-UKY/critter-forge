@@ -50,6 +50,7 @@ let FX = [], shootT = 0; // impact debris particles + how long the hero holds th
 const KIT_PIECES = ["boots", "helmet", "gauntlets", "leggings", "chestplate"];
 let tamFreed = false; // the survivor beneath the storehouse rubble
 let tamHiding = false; // Tam ducks behind the tower half while the mutant is up
+let knockHeard = false; // the rubble only knocks once the story says you hear it
 let armoryRects = null; // clickable rack items, set by drawArmory
 let armoryPicked = { boots: false, helmet: false, gauntlets: false, leggings: false, chestplate: false };
 let manifestRect = null; // clickable wall note in the storage room (set by drawStorage)
@@ -732,7 +733,7 @@ function drawFallenCamp(c, W, gy, now) {
     drawSack(c, sx3 - 60, gy + 8, "#8a6d3b"); drawSack(c, sx3 + 158, gy + 6, "#7a5f36");
     px(c, sx3 - 74, gy + 3, 20, 3, "#c9b89a"); px(c, sx3 + 132, gy + 10, 16, 3, "#c9b89a"); // spilled grain
     drawBarrel(c, sx3 - 84, gy + 4, 16, 20); // survived barrel, absurdly upright
-    if (!tamFreed && Math.sin(now * 2.2) > 0.75) px(c, sx3 + 34, gy - 24, 4, 4, "#e8dcc0"); // a knuckle rapping from beneath
+    if (knockHeard && !tamFreed && Math.sin(now * 2.2) > 0.75) px(c, sx3 + 34, gy - 24, 4, 4, "#e8dcc0"); // a knuckle rapping from beneath
     if (tamFreed && !tamHiding) { // Tam, out of the rubble: a clerk, no armor, satchel hugged tight
       const tx4 = sx3 - 66; c.save(); c.translate(tx4, gy); c.scale(CH, CH);
       px(c, -4, -4, 4, 10, "#4a3a26"); px(c, 1, -4, 4, 10, "#4a3a26"); px(c, -4, 4, 4, 3, "#241a10"); px(c, 1, 4, 4, 3, "#241a10");
@@ -835,6 +836,7 @@ async function playFallenCamp(name) {
   await walkTo(0.55); await say("", CAMP_CLUES.tent[0]); logCmd(`# ${CAMP_CLUES.tent[1]}`, false);
   await say("", CAMP_CLUES.tower[0]); logCmd(`# ${CAMP_CLUES.tower[1]}`, false);
   await say("", "No alarm. No fight. Hours ago. Something taken. None of it sits right together.");
+  knockHeard = true;
   await say("", "Then you hear it: from beneath the storehouse rubble, a knock. Then another. Something ALIVE.");
   await ask({ prompt: "Get to the storehouse", placeholder: 'you.walk("rubble")', concept: "walk", validate: (rr) => (rr.walk === "rubble" ? null : 'The knocking came from the storehouse: you.walk("rubble").') }, null);
   await goTo("rubble"); logCmd('you.walk("rubble")', true);
