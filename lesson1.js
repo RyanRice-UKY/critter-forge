@@ -1700,6 +1700,118 @@ async function runDecipherRounds() {
   implantStep = 3;
   await say("", 'The knight must hear this now. you.walk("knight").');
 }
+// ---- the Shapes of Values: six beats of data types + casting, before the rounds ----
+const WT_TYPES = {
+  id: "shapes-of-values", title: "The four shapes, on one slate",
+  code: 'marks = "12"\nsignal = int(marks)\nvolts = 7.5\ncut = int(volts)\nlabel = "OUT " + str(cut)\nstrong = signal >= 10',
+  steps: [
+    { lines: [1], text: "Quotes make a str, a string of text marks. \"12\" is not twelve. It is two marks standing side by side, a one and a two: text wearing a number's face." },
+    { lines: [2], text: "Casting. int(marks) pours the marks into the int mold and a true whole number comes out. The parentheses are the crucible: marks go in, a number arithmetic works on comes out." },
+    { lines: [3], text: "A bare number carrying a point is a float. It keeps the point forever: half strength is 7.5, and doubling it gives 15.0, point and all." },
+    { lines: [4], text: "Pour a float into the int mold and the mold CUTS. cut is 7. int(7.9) is also 7, though it sits a hair from 8. Everything after the point drips off the crucible's edge and is gone. The int mold never rounds." },
+    { lines: [5], text: "str() is the mold that runs backward: numbers into marks. You cannot glue marks straight onto a bare number. Cast it first, then + joins marks to marks." },
+    { lines: [6], text: "A question is a value too. signal >= 10 comes out True or False and nothing else: a bool, the smallest mold there is. Every decision the machine makes is built from this shape." },
+  ],
+};
+async function playTypesArc() {
+  await say("Craftsman", "Before we steal its rules, you should know why I FAILED all night. Look at the board. I cranked twelve into it. It answered one-two-one-two. Garbage.");
+  workshopPairs.push("IN 12 -> OUT 1212 ??");
+  await say("Craftsman", "And it was not the machine mocking me. It was the wire. A wire cannot hand you a NUMBER, scout. It hands you MARKS. Text. And all night, I was doing arithmetic on text.");
+  await ask({
+    prompt: "Run the craftsman's failed probe",
+    prefill: 'raw = "12"\nprint(raw * 2)', readonly: true, rows: 2,
+    concept: "types",
+    task: "This is exactly what the craftsman ran all night. Read it before you run it: the quotes around \"12\" matter. Run it and watch what the machine answers.",
+    validate: (r) => (r.stdout.trim() === "1212" ? null : "Just press Run; the code is already written."),
+  }, null);
+  await say("Craftsman", "One-two-one-two. Do you see it now? \"12\" in quotes is not a number. It is a str, a STRING of text marks. Multiply marks and Python politely repeats them. What a value CAN DO is decided by its shape.");
+  await say("Craftsman", "That shape has a name: its TYPE. And you never need to guess a value's type. You ask.");
+  await ask({
+    prompt: "Ask two values their shape",
+    placeholder: "print(type(raw))\nprint(type(12))", rows: 2,
+    seed: 'raw = "12"',
+    concept: "types",
+    task: "type() is the craftsman's caliper: hold any value up to it and it names the shape. Print the type of raw, then the type of a bare 12, and compare what comes out.",
+    validate: (r) => {
+      if (!/type\s*\(/.test(lastSrc)) return "Use the caliper: type(raw) inside a print().";
+      if (!r.stdout.includes("'str'")) return "One line must show raw's shape: print(type(raw)).";
+      if (!r.stdout.includes("'int'")) return "One line must show a bare number's shape: print(type(12)).";
+      return null;
+    },
+  }, null);
+  await say("Craftsman", "class str, class int. Marks, and a whole number. Integer, int for short: the shape arithmetic works on. Now the trick I never knew. The one where you teach ME.");
+  await ask({
+    prompt: "Cast the marks into a number",
+    placeholder: "signal = int(raw)\nprint(signal * 2)", rows: 2,
+    seed: 'raw = "12"',
+    concept: "convert",
+    task: "In this trade we CAST: pour metal into a mold and it takes the mold's shape. int(raw) is Python casting. The parentheses are the crucible: marks go in, a true int comes out. Cast raw into a variable named signal, then print signal * 2.",
+    validate: (r) => {
+      if (!/int\s*\(/.test(lastSrc)) return "Pour it through the mold: signal = int(raw).";
+      if (typeof r.vars.signal !== "number") return "signal is still marks. Cast it: signal = int(raw).";
+      if (r.vars.signal !== 12) return "Cast raw itself; do not type your own number.";
+      return r.stdout.trim() === "24" ? null : "Now print signal * 2 and let the machine answer with real arithmetic.";
+    },
+  }, null);
+  workshopPairs.push("IN 12 -> OUT 24");
+  await say("Craftsman", "TWENTY-FOUR. All night I fought this thing, and you fix it with one cast. The board just logged its first honest pair. We are not done: the wire has more shapes in it.");
+  await ask({
+    prompt: "A probe with a point in it",
+    placeholder: "strength = float(raw)\nprint(strength * 2)", rows: 2,
+    seed: 'raw = "7.5"',
+    concept: ["convert", "float"],
+    task: "He cranks a half-strength probe and the wire hands you \"7.5\". Try int(raw) first if you like; the int mold refuses marks that carry a point. The right mold is float(raw): a float is a number that keeps its point. Cast, then print strength * 2.",
+    validate: (r) => {
+      if (!/float\s*\(/.test(lastSrc)) return "These marks carry a point. The int mold refuses them; cast with float(raw).";
+      if (typeof r.vars.strength !== "number") return "strength should come out a number: strength = float(raw).";
+      return r.stdout.includes("15.0") ? null : "Print strength * 2. Watch closely: the answer will carry a point.";
+    },
+  }, null);
+  await say("Craftsman", "Fifteen POINT ZERO. A float never drops its point, even with nothing riding behind it. Now the law every smith learns the hard way. What happens when you pour a float into the int mold?");
+  await ask({
+    prompt: "Pour a float into the int mold",
+    placeholder: "whole = int(strength)\nprint(whole)\nprint(int(7.9))", rows: 3,
+    seed: "strength = 7.5",
+    concept: "convert",
+    task: "Cast strength (it holds 7.5) into the int mold as whole, and print it. Then also print int(7.9), a value sitting a hair from 8. Predict both answers before you run.",
+    validate: (r) => {
+      if (!/int\s*\(/.test(lastSrc)) return "Use the int mold: whole = int(strength).";
+      if (r.vars.whole !== 7) return "whole = int(strength). Let the mold do the cutting.";
+      const lines = r.stdout.trim().split(/\n/);
+      return lines.length >= 2 && lines[0].trim() === "7" && lines[1].trim() === "7" ? null : "Print whole, then print int(7.9). Two lines, two answers.";
+    },
+  }, null);
+  await say("Craftsman", "Seven. And seven AGAIN, from a value nearly touching eight. The int mold does not round, scout. It CUTS. Everything after the point drips off the edge of the crucible and is gone. If you ever want rounding, you must ask for rounding. The mold gives nothing for free.");
+  await ask({
+    prompt: "Label the board",
+    placeholder: 'out = 15\nlabel = "OUT " + str(out)\nprint(label)', rows: 3,
+    concept: "convert",
+    task: "The board wants a label that reads OUT 15. Try print(\"OUT \" + out) first if you like: Python refuses to glue marks to a bare number. str(out) is the mold that runs backward, numbers into marks. Build label from \"OUT \" plus str(out), then print it.",
+    validate: (r) => {
+      if (!/str\s*\(/.test(lastSrc)) return "Cast the number into marks first: str(out).";
+      if (typeof r.vars.label !== "string") return 'Store the joined marks: label = "OUT " + str(out).';
+      return r.stdout.includes("OUT 15") ? null : "Print the label. It should read: OUT 15";
+    },
+  }, null);
+  await say("Craftsman", "Three molds now. int() for whole numbers, float() for numbers with a point, str() for marks. Any value, any shape, so long as the marks fit the mold. One shape left, and for that one YOU crank.");
+  await ask({
+    prompt: "Crank your own probe",
+    placeholder: 'raw = input("signal to send:")\nsignal = int(raw)\nstrong = signal >= 10\nprint(strong)', rows: 4,
+    inputPrompt: "Your hand is on the crank. Send a whole number down the wire:", inputDefault: "14",
+    concept: ["convert", "input", "bool"],
+    task: "Your turn at the crank. input() asks YOU for the signal, and here is the trap: input() ALWAYS hands back marks, even when your fingers typed digits, because a keyboard makes marks, not numbers. Cast to int, then store the question signal >= 10 in a variable named strong, and print it.",
+    validate: (r) => {
+      if (!/input\s*\(/.test(lastSrc)) return "Take the crank: raw = input(...).";
+      if (!/int\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "input() handed you marks. Cast before you compare: signal = int(raw).";
+      if (typeof r.vars.strong !== "boolean") return "Store the question itself: strong = signal >= 10. It comes out True or False.";
+      if (r.vars.strong !== (r.vars.signal >= 10)) return "strong must hold exactly the question signal >= 10.";
+      return null;
+    },
+  }, null);
+  await say("Craftsman", "And there is the fourth shape: bool. Two values fit that mold, True and False, and nothing else ever will. The machine's whole soul, wait or move or hunt, is questions poured into that smallest mold.");
+  if (walkthroughsEnabled() && !walkthroughSeen(WT_TYPES.id)) await showWalkthrough(WT_TYPES);
+  await say("Craftsman", "Four shapes. Three molds. One law about the cut. NOW we are fit to steal its rules.");
+}
 async function playWorkshop(name) {
   await fadeTo("workshop"); char.x = els.W * 0.24; char.facing = 1; prog(name + " · 1.5");
   if (implantStep >= 3) {
@@ -1708,6 +1820,7 @@ async function playWorkshop(name) {
     await say("Craftsman", "So you are the scout. The captain's runner said you carry something that should not exist. Hand it here. Careful. CAREFUL.");
     await say("", "He sets the implant in a brass vice like it might bite, runs a patch cable down from his switchboard wall, and drags the slate board where you both can see it.");
     await say("Craftsman", "It still ANSWERS. Look. I crank a signal IN, it answers OUT. Every machine keeps rules between the in and the out. You and I are going to steal them.");
+    await playTypesArc();
     await runDecipherRounds();
   }
   await fadeTo("keep"); char.x = els.W * SCENES.keep.craftsman; char.facing = 1; setupTownsfolk();
