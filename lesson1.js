@@ -165,7 +165,7 @@ function advance() { if (awaitAdvance) { const r = awaitAdvance; awaitAdvance = 
 // ===== DEV ONLY (remove this + the #devbar block in lesson1.html before shipping) =====
 // Skip the current step by auto-running its placeholder (a valid answer for every step),
 // or advance dialogue. Section buttons reload to a scene via the URL hash.
-function skipStep() { if (currentInput) { Editor.setValue(currentInput.opts.prefill || currentInput.opts.placeholder || ""); submit(); } else if (awaitAdvance) advance(); }
+function skipStep() { if (currentInput) { Editor.setValue(currentInput.opts.placeholder || currentInput.opts.prefill || ""); submit(); } else if (awaitAdvance) advance(); }
 function wireDevBar() {
   const ds = document.getElementById("devSkip"); if (!ds) return;
   ds.onclick = skipStep;
@@ -1658,17 +1658,17 @@ const DECIPHER = [
     probes: [2, 4, 7], seed: 7, expect: (s) => s * 2 + 1, reruns: [2, 5], needsElse: false,
     prompt: "Decipher rule 1: set out from signal", rows: 2, concept: "convert",
     placeholder: "signal = int(raw)\nout = signal * 2 + 1",
-    task: "The wire hands you marks: raw holds \"7\". Cast before you calculate. The board shows what the machine did: IN 2 -> OUT 5, IN 4 -> OUT 9, IN 7 -> OUT 15. Write the steps between IN and OUT: set out from signal so your steps match EVERY pair, not just this one." },
+    task: "Already wired to your bench:\n\n    raw = \"7\"\n\nCast before you calculate. The board shows what the machine did: IN 2 -> OUT 5, IN 4 -> OUT 9, IN 7 -> OUT 15. Write the steps between IN and OUT: set out from signal so your steps match EVERY pair, not just this one." },
   { intro: "Second rule. Stranger. Watch what it does to WEAK signals.",
     probes: [4, 9, 12, 15], seed: 12, expect: (s) => (s < 10 ? 0 : s - 10), reruns: [7, 15, 20], needsElse: true,
     prompt: "Decipher rule 2: the machine ignores weak signals", rows: 5, concept: "if",
     placeholder: "signal = int(raw)\nif signal < 10:\n    out = 0\nelse:\n    out = signal - 10",
-    task: "The wire hands you marks: raw holds \"12\". Cast first. IN 4 -> OUT 0. IN 9 -> OUT 0. IN 12 -> OUT 2. IN 15 -> OUT 5. Below ten it answers nothing: out is 0. Ten and above, it answers signal minus 10. You know if. Now meet else: the if answers the YES, and the else catches every NO." },
+    task: "Already wired to your bench:\n\n    raw = \"12\"\n\nCast first. IN 4 -> OUT 0. IN 9 -> OUT 0. IN 12 -> OUT 2. IN 15 -> OUT 5. Below ten it answers nothing: out is 0. Ten and above, it answers signal minus 10. You know if. Now meet else: the if answers the YES, and the else catches every NO." },
   { intro: "Last rule. The deep one. This is where it keeps its orders.",
     probes: [3, 8, 12, 20], seed: 20, expect: (s) => (s < 10 ? s + 1 : s * 2), reruns: [6, 12, 15], needsElse: true,
     prompt: "Decipher rule 3: two behaviours, one machine", rows: 5, concept: "if",
     placeholder: "signal = int(raw)\nif signal < 10:\n    out = signal + 1\nelse:\n    out = signal * 2",
-    task: "The wire hands you marks: raw holds \"20\". Cast first. IN 3 -> OUT 4. IN 8 -> OUT 9. IN 12 -> OUT 24. IN 20 -> OUT 40. Weak signals gain one. Strong signals are doubled. One if, one else, and the machine has no secrets left." },
+    task: "Already wired to your bench:\n\n    raw = \"20\"\n\nCast first. IN 3 -> OUT 4. IN 8 -> OUT 9. IN 12 -> OUT 24. IN 20 -> OUT 40. Weak signals gain one. Strong signals are doubled. One if, one else, and the machine has no secrets left." },
 ];
 async function runDecipherRounds() {
   for (let i = 0; i < DECIPHER.length; i++) {
@@ -1729,10 +1729,10 @@ async function playTypesArc() {
   await say("Craftsman", "That shape has a name: its TYPE. And you never need to guess a value's type. You ask.");
   await ask({
     prompt: "Ask two values their shape",
-    placeholder: "print(type(raw))\nprint(type(12))", rows: 2,
-    seed: 'raw = "12"',
+    prefill: 'raw = "12"\n',
+    placeholder: 'raw = "12"\nprint(type(raw))\nprint(type(12))', rows: 3,
     concept: "types",
-    task: "type() is the craftsman's caliper: hold any value up to it and it names the shape. Print the type of raw, then the type of a bare 12, and compare what comes out.",
+    task: "type() is the craftsman's caliper: hold any value up to it and it names the shape. Line 1 already declares raw, so you can see exactly where the value comes from. Below it, print the type of raw, then the type of a bare 12, and compare what comes out.",
     validate: (r) => {
       if (!/type\s*\(/.test(lastSrc)) return "Use the caliper: type(raw) inside a print().";
       if (!r.stdout.includes("'str'")) return "One line must show raw's shape: print(type(raw)).";
@@ -1741,12 +1741,14 @@ async function playTypesArc() {
     },
   }, null);
   await say("Craftsman", "class str, class int. Marks, and a whole number. Integer, int for short: the shape arithmetic works on. Now the trick I never knew. The one where you teach ME.");
+  await say("Craftsman", "I crank twelve in. The board shows the IN and waits on the OUT, because the missing half of this circuit is YOU.");
+  workshopPairs.push("IN 12 -> OUT ?"); workshopSpark = 1;
   await ask({
     prompt: "Cast the marks into a number",
-    placeholder: "signal = int(raw)\nprint(signal * 2)", rows: 2,
-    seed: 'raw = "12"',
+    prefill: 'raw = "12"\n',
+    placeholder: 'raw = "12"\nsignal = int(raw)\nprint(signal * 2)', rows: 3,
     concept: "convert",
-    task: "In this trade we CAST: pour metal into a mold and it takes the mold's shape. int(raw) is Python casting. The parentheses are the crucible: marks go in, a true int comes out. Cast raw into a variable named signal, then print signal * 2.",
+    task: "In this trade we CAST: pour metal into a mold and it takes the mold's shape. int(raw) is Python casting. The parentheses are the crucible: marks go in, a true int comes out. The declaration sits on line 1 where you can see it. Beneath it, cast raw into a variable named signal, then print signal * 2.",
     validate: (r) => {
       if (!/\bint\s*\(/.test(lastSrc)) return "Pour it through the mold: signal = int(raw).";
       if (typeof r.vars.signal !== "number") return "signal is still marks. Cast it: signal = int(raw).";
@@ -1754,27 +1756,29 @@ async function playTypesArc() {
       return r.stdout.trim() === "24" ? null : "Now print signal * 2 and let the machine answer with real arithmetic.";
     },
   }, null);
-  workshopPairs.push("IN 12 -> OUT 24");
+  workshopPairs[workshopPairs.length - 1] = "IN 12 -> OUT 24";
   await say("Craftsman", "TWENTY-FOUR. All night I fought this thing, and you fix it with one cast. The board just logged its first honest pair. We are not done: the wire has more shapes in it.");
+  workshopPairs.push("IN 7.5 -> OUT ?"); workshopSpark = 1;
   await ask({
     prompt: "A probe with a point in it",
-    placeholder: "strength = float(raw)\nprint(strength * 2)", rows: 2,
-    seed: 'raw = "7.5"',
+    prefill: 'raw = "7.5"\n',
+    placeholder: 'raw = "7.5"\nstrength = float(raw)\nprint(strength * 2)', rows: 3,
     concept: ["convert", "float"],
-    task: "He cranks a half-strength probe and the wire hands you \"7.5\". Try int(raw) first if you like; the int mold refuses marks that carry a point. The right mold is float(raw): a float is a number that keeps its point. Cast, then print strength * 2.",
+    task: "He cranks a half-strength probe and the wire hands you \"7.5\". Try int(raw) first if you like; the int mold refuses marks that carry a point. The right mold is float(raw): a float is a number that keeps its point. Cast, then print strength * 2. The declaration sits on line 1 where you can see it.",
     validate: (r) => {
       if (!/float\s*\(/.test(lastSrc)) return "These marks carry a point. The int mold refuses them; cast with float(raw).";
       if (typeof r.vars.strength !== "number") return "strength should come out a number: strength = float(raw).";
       return r.stdout.includes("15.0") ? null : "Print strength * 2. Watch closely: the answer will carry a point.";
     },
   }, null);
+  workshopPairs[workshopPairs.length - 1] = "IN 7.5 -> OUT 15.0";
   await say("Craftsman", "Fifteen POINT ZERO. A float never drops its point, even with nothing riding behind it. Now the law every smith learns the hard way. What happens when you pour a float into the int mold?");
   await ask({
     prompt: "Pour a float into the int mold",
-    placeholder: "whole = int(strength)\nprint(whole)\nprint(int(7.9))", rows: 3,
-    seed: "strength = 7.5",
+    prefill: 'strength = 7.5\n',
+    placeholder: 'strength = 7.5\nwhole = int(strength)\nprint(whole)\nprint(int(7.9))', rows: 4,
     concept: "convert",
-    task: "Cast strength (it holds 7.5) into the int mold as whole, and print it. Then also print int(7.9), a value sitting a hair from 8. Predict both answers before you run.",
+    task: "Cast strength (it holds 7.5) into the int mold as whole, and print it. Then also print int(7.9), a value sitting a hair from 8. Predict both answers before you run. The declaration sits on line 1.",
     validate: (r) => {
       if (!/\bint\s*\(/.test(lastSrc)) return "Use the int mold: whole = int(strength).";
       if (r.vars.whole !== 7) return "whole = int(strength). Let the mold do the cutting.";
@@ -1785,8 +1789,8 @@ async function playTypesArc() {
   await say("Craftsman", "Seven. And seven AGAIN, from a value nearly touching eight. The int mold does not round, scout. It CUTS. Everything after the point drips off the edge of the crucible and is gone. If you ever want rounding, you must ask for rounding. The mold gives nothing for free.");
   await ask({
     prompt: "Label the board",
+    prefill: 'out = 15\n',
     placeholder: 'out = 15\nlabel = "OUT " + str(out)\nprint(label)', rows: 3,
-    seed: "out = 15",
     concept: "convert",
     task: "The board wants a label that reads OUT 15. Try print(\"OUT \" + out) first if you like: Python refuses to glue marks to a bare number. str(out) is the mold that runs backward, numbers into marks. Build label from \"OUT \" plus str(out), then print it.",
     validate: (r) => {
