@@ -53,6 +53,7 @@ let tamHiding = false; // Tam ducks behind the tower half while the mutant is up
 let knockHeard = false; // the rubble only knocks once the story says you hear it
 let implantStep = 0; // 1.5: 0 none, 1 implant in hand, 2 sent to craftsman, 3 deciphered, 4 reported
 let tamFollows = false, tamAtKeep = false, tamWalk = { x: 0, wphase: 0 }; // Tam walking out of the camp / standing by the keep gate
+let workshopPairs = [], workshopLegend = false, workshopSpark = 0; // the craftsman's probe board
 let armoryRects = null; // clickable rack items, set by drawArmory
 let armoryPicked = { boots: false, helmet: false, gauntlets: false, leggings: false, chestplate: false };
 let manifestRect = null; // clickable wall note in the storage room (set by drawStorage)
@@ -339,13 +340,21 @@ function finish(name) { dialogue = { who: "", text: `Lesson 1 complete. ${name} 
 async function play() {
   const start = (location.hash || "").slice(1);
   let name = "survivor";
-  const skip = start === "clearing" || start === "castle" || start === "keep" || start === "storage" || start === "camp" || start === "1.3c" || start === "1.4";
+  const skip = start === "clearing" || start === "castle" || start === "keep" || start === "storage" || start === "camp" || start === "1.3c" || start === "1.4" || start === "1.5";
   if (!skip) name = await playWildwood();
-  else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; scene = start === "1.3c" ? "armory" : start === "1.4" ? "fallencamp" : start; } // hash names match scene names; set sync so the scene shows before the first fade
+  else { char.hasBow = true; char.items = { sticks: 0, string: 0 }; scene = start === "1.3c" ? "armory" : start === "1.5" ? "keep" : start === "1.4" ? "fallencamp" : start; } // hash names match scene names; set sync so the scene shows before the first fade
   if (start === "1.4") { // DEV: the Iron Guard's forward camp, armored up, orders in hand
     questStep = 5; lesson1Done = true; char.gold = 1.3; char.maxHearts = 6; char.hearts = 6;
     for (const k of KIT_PIECES) char.kit[k] = true;
     await playFallenCamp(name); await playKeep(name, true); return;
+  }
+  if (start === "1.5") { // DEV: back at the keep, implant in the pack, Tam by the gate
+    questStep = 5; lesson1Done = true; char.gold = 1.3; char.maxHearts = 6; char.hearts = 6;
+    for (const k of KIT_PIECES) char.kit[k] = true;
+    implantStep = 1; tamAtKeep = true; giveItem(IMPLANT_NOTE);
+    char.x = els.W * 0.06; char.facing = 1; setupTownsfolk(); prog(name + " · 1.5");
+    setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber", "proving"]);
+    await playKeep(name, true); return;
   }
   if (start === "1.3c") { // DEV: straight into the armory booth, paid up and cleared to shop
     questStep = 3; armoryOpen = true; char.gold = 3.8; char.x = els.W * 0.8; char.facing = 1; setupTownsfolk();
@@ -487,6 +496,7 @@ function update(dt) {
   }
   ARROWS = ARROWS.filter((a) => !a.hit);
   shootT = Math.max(0, shootT - dt);
+  if (workshopSpark > 0) workshopSpark = Math.max(0, workshopSpark - dt * 1.4);
   for (const p of FX) { p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 380 * dt; }
   FX = FX.filter((p) => p.t > 0);
   for (const z of zoms) {
@@ -667,7 +677,7 @@ function drawKeep(c, W, gy, now) {
     c.strokeStyle = "#2a3a4a"; c.stroke(); c.fillStyle = "#9fd9ff"; c.fillText(cmd, x, cy + 1);
     // name label below; locked stalls wear a padlock until later chapters
     c.fillStyle = "#cdd8e6"; c.font = "10px 'IBM Plex Mono',monospace"; c.fillText(KEEP_LABEL[name], x, gy + 18);
-    if (name !== "armorsmith") lockBadge(c, x, gy - 24 * CH);
+    if (name !== "armorsmith" && !(name === "craftsman" && implantStep >= 2)) lockBadge(c, x, gy - 24 * CH);
   }
   for (const bx of [W * 0.1, W * 0.82]) { px(c, bx - 4, gy - 26, 8, 20, "#a8832a"); const fl = 0.6 + 0.4 * Math.sin(now * 12 + bx); c.shadowColor = "#ffb14d"; c.shadowBlur = 18 * fl; circ(c, bx, gy - 28, 7 * fl, "#ffb14d"); circ(c, bx, gy - 29, 4 * fl, "#ffe066"); c.shadowBlur = 0; }
   // townsfolk — bubbles raised above the (scaled) heads so they don't clip
@@ -677,9 +687,10 @@ function drawKeep(c, W, gy, now) {
     c.font = "11px 'IBM Plex Mono',monospace"; c.textAlign = "center"; const cmd = 'you.walk("knight")', cw = c.measureText(cmd).width, cy = gy - 49 * CH - 8;
     c.fillStyle = "rgba(8,12,18,0.8)"; rr(c, kx - cw / 2 - 7, cy - 12, cw + 14, 18, 5); c.fill(); c.strokeStyle = "#5a4a18"; c.stroke(); c.fillStyle = "#ffd98a"; c.fillText(cmd, kx, cy + 1);
     // quest marker only when the knight actually has something for you
-    if (questStep === 0 || questStep === 2 || questStep === 4) { c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", kx, cy - 18 + Math.sin(now * 3) * 3); }
+    if (questStep === 0 || questStep === 2 || questStep === 4 || implantStep === 1 || implantStep === 3) { c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", kx, cy - 18 + Math.sin(now * 3) * 3); }
     // and it moves to the armorsmith while the shopping task is his
-    if (armoryOpen && questStep === 3) { const ax2 = W * SCENES.keep.armorsmith; c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", ax2, gy - 44 * CH + Math.sin(now * 3) * 3); } }
+    if (armoryOpen && questStep === 3) { const ax2 = W * SCENES.keep.armorsmith; c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", ax2, gy - 44 * CH + Math.sin(now * 3) * 3); }
+    if (implantStep === 2) { const cx4 = W * SCENES.keep.craftsman; c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", cx4, gy - 44 * CH + Math.sin(now * 3) * 3); } }
   if (tamAtKeep) { const tx5 = W * 0.035; c.save(); c.translate(tx5, gy); c.scale(CH, CH); tamBody(c); c.restore();
     c.fillStyle = "#cdd8e6"; c.font = "10px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText("TAM", tx5, gy + 18); }
   if (survivor) P(c, survivor.x, gy, (cc) => npc(cc, 0, 0, "#37b24d", "#c89060", "#241018")); // the escorted survivor saying goodbye
@@ -1070,6 +1081,67 @@ function drawArmory(c, W, gy, now) {
     px(c, -4, 5, 4, 3, char.kit.boots ? "#9aa3ad" : "#241a10"); px(c, 1, 5, 4, 3, char.kit.boots ? "#9aa3ad" : "#241a10");
     px(c, -6, -22, 12, 20, char.kit.chestplate ? "#8a939e" : "#6b8e23"); px(c, -6, -8, 12, 3, "#3a2c18");
     px(c, -5, -33, 11, 11, "#e0a070"); px(c, -6, -35, 12, 5, char.kit.helmet ? "#7a828c" : "#3a2c18");
+    c.restore(); }
+}
+// ---- the craftsman's workshop (1.5): bench, vice, crank rig, probe board ----
+function drawWorkshop(c, W, gy, now) {
+  const H = els.H;
+  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#171a24"); g.addColorStop(1, "#1f2330"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  px(c, 0, H * 0.1, W, 5, "#a8832a"); px(c, 0, H * 0.1 + 5, W, 2, "#ffd43b");
+  for (let i = 0; i < 6; i++) { const cx = W * (0.08 + i * 0.17); px(c, cx - 11, 0, 22, H, "#2c303b"); }
+  const floorY = H * 0.8;
+  for (let x = 0; x < W; x += 30) px(c, x, floorY, 30, H - floorY, (x / 30 | 0) % 2 ? "#2a2d36" : "#262931");
+  c.fillStyle = "rgba(4,6,10,.5)"; c.fillRect(0, 0, W, H);
+  const bx = W / 2, bw = Math.min(860, W * 0.68), half = bw / 2, top = H * 0.09, counterY = floorY - 44;
+  px(c, bx - half - 16, top + 40, 18, counterY - top - 8, "#5a4424"); px(c, bx + half - 2, top + 40, 18, counterY - top - 8, "#5a4424");
+  px(c, bx - half - 16, top + 40, 6, counterY - top - 8, "#7a5a30"); px(c, bx + half - 2, top + 40, 6, counterY - top - 8, "#7a5a30");
+  px(c, bx - half, top + 48, bw, counterY - top - 52, "#241c11");
+  for (let y = top + 48; y < counterY - 6; y += 20) px(c, bx - half, y, bw, 2, "#1a140c");
+  // green scalloped awning (the craftsman's stall color)
+  for (let s = -half - 30; s < half + 30; s += 52) px(c, bx + s, top, 52, 46, ((s / 52) | 0) % 2 ? "#2f9e44" : "#f1f3f5");
+  for (let s = -half - 30; s < half + 30; s += 52) { c.fillStyle = ((s / 52) | 0) % 2 ? "#2f9e44" : "#f1f3f5"; c.beginPath(); c.arc(bx + s + 26, top + 46, 26, 0, Math.PI); c.fill(); }
+  px(c, bx - half - 36, top - 6, bw + 72, 8, "#8a6d3b"); px(c, bx - half - 36, top - 6, bw + 72, 3, "#a9844a");
+  px(c, bx - 88, top + 66, 176, 40, "#6b4f2a"); px(c, bx - 88, top + 66, 176, 4, "#8a6d3b");
+  c.fillStyle = "#e8dcc0"; c.font = "bold 19px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("CRAFTSMAN", bx, top + 92);
+  // the probe board: slate panel, IN/OUT lines, legend once revealed
+  { const bw2 = Math.min(300, bw * 0.36), bx0 = bx - half + 24, by0 = top + 116, bh2 = counterY - by0 - 26;
+    px(c, bx0 - 8, by0 - 8, bw2 + 16, bh2 + 16, "#54422a"); px(c, bx0 - 8, by0 - 8, bw2 + 16, 3, "#6b5636");
+    px(c, bx0, by0, bw2, bh2, "#10141c");
+    c.font = "bold 12px 'IBM Plex Mono',monospace"; c.textAlign = "left"; c.fillStyle = "#8a97a8";
+    c.fillText("PROBE LOG", bx0 + 10, by0 + 20);
+    c.font = "13px 'IBM Plex Mono',monospace";
+    workshopPairs.slice(-9).forEach((ln, i) => {
+      c.fillStyle = ln.includes("HUNT") ? "#ff6b6b" : ln.includes("->") ? "#9fd9ff" : "#ffd43b";
+      c.fillText(ln, bx0 + 10, by0 + 42 + i * 19);
+    });
+    if (workshopLegend) { c.fillStyle = "#ffd43b"; c.font = "bold 12px 'IBM Plex Mono',monospace"; c.fillText("1 = WAIT   2 = MOVE   4 = HUNT", bx0 + 10, by0 + bh2 - 12); } }
+  // the bench: brass vice holding the implant, wired to a crank rig of copper and glass
+  { const wx = bx + half * 0.08, wy = counterY - 8;
+    px(c, wx - 26, wy - 20, 52, 8, "#8a6d3b"); px(c, wx - 20, wy - 27, 40, 9, "#6a727c"); px(c, wx - 20, wy - 27, 40, 2, "#8a939e");
+    px(c, wx - 7, wy - 35, 14, 9, "#9aa3ad"); px(c, wx - 7, wy - 35, 14, 3, "#c9d4e4");
+    const pulse = 0.5 + 0.5 * Math.sin(now * 3);
+    c.shadowColor = "#4dabf7"; c.shadowBlur = 10 * pulse; px(c, wx - 2, wy - 32, 4, 3, "#4dabf7"); c.shadowBlur = 0;
+    const rx = wx + 120;
+    px(c, rx - 16, wy - 46, 32, 46, "#3a2c18"); px(c, rx - 16, wy - 46, 32, 3, "#54422a");
+    c.strokeStyle = "#b87333"; c.lineWidth = 3;
+    for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(rx, wy - 26, 7 + i * 3, 0.4, Math.PI * 2 - 0.4); c.stroke(); }
+    px(c, rx + 24, wy - 28, 12, 28, "rgba(160,220,255,0.25)"); px(c, rx + 24, wy - 28, 12, 3, "#9aa3ad");
+    c.strokeStyle = "#caa24a"; c.lineWidth = 2; c.beginPath(); c.moveTo(rx - 16, wy - 24); c.lineTo(wx + 8, wy - 31); c.stroke();
+    if (workshopSpark > 0) { const sp = 1 - workshopSpark; const sx2 = rx - 16 + (wx + 8 - (rx - 16)) * sp; c.shadowColor = "#ffd43b"; c.shadowBlur = 12; px(c, sx2 - 2, wy - 33, 5, 5, "#ffe066"); c.shadowBlur = 0; } }
+  // counter
+  px(c, bx - half - 28, counterY, bw + 56, 14, "#8a6d3b"); px(c, bx - half - 28, counterY, bw + 56, 4, "#a9844a");
+  px(c, bx - half - 28, counterY + 14, bw + 56, 34, "#6b4f2a");
+  for (let x = bx - half - 28; x < bx + half + 28; x += 52) px(c, x, counterY + 14, 3, 34, "#4a3a22");
+  // the craftsman: wiry, grey-haired, spectacles, leather apron, gentle bob
+  { const sc = 5, bob = Math.sin(now * 1.5) * 0.5; c.save(); c.translate(bx + half * 0.42, counterY + 2 - bob); c.scale(sc, sc);
+    px(c, -7, -26, 14, 18, "#2f5a35"); px(c, -7, -26, 3, 18, "rgba(255,255,255,.14)");
+    px(c, -5, -21, 10, 13, "#5a4426"); px(c, -5, -21, 10, 2, "#6e5430");
+    px(c, -10, -24, 3, 14, "#2f5a35"); px(c, 7, -24, 3, 14, "#2f5a35");
+    px(c, -12, -11, 5, 4, "#d8a878"); px(c, 7, -11, 5, 4, "#d8a878");
+    px(c, -5, -37, 11, 11, "#d8a878"); px(c, -6, -39, 13, 4, "#8a8f96");
+    px(c, -4, -33, 4, 3, "#c9d4e4"); px(c, 1, -33, 4, 3, "#c9d4e4");
+    px(c, -3, -32, 1, 1, "#1c1208"); px(c, 2, -32, 1, 1, "#1c1208");
+    px(c, -3, -28.5, 7, 1.5, "#8a6242");
     c.restore(); }
 }
 // ---- Lesson 1.3 questline scenes + beats ----
@@ -1512,6 +1584,37 @@ async function shopVisit() {
   await fadeTo("keep");
 }
 
+// ---- 1.5: the implant reaches the keep ----
+async function playImplantHandIn(name) {
+  await say("Knight-Captain", "Back already, scout. And with a face that says the camp is worse than I feared. Report.");
+  await say("", "You lay it out: a camp taken without one arrow loosed, a boy alive under the storehouse, a thing that stepped around your shots. Then you set the implant in his gauntlet.");
+  await say("Knight-Captain", "Metal and glass, grown into a dead man's spine. Twenty years I have watched this plague ruin bodies. I have never once seen it WIRED.");
+  await say("Tam", "It moved like it was told to move, sir. Like the whole night was somebody's plan.");
+  await say("Knight-Captain", "This could be something big. Bigger than the camp. Bigger than this keep. And I need better eyes than mine on it.");
+  await say("Knight-Captain", "The craftsman. He reads broken machines the way clerks read ledgers. His stall is open to you, scout. Go.");
+  implantStep = 2;
+  await say("", 'The padlock comes off the craftsman\'s stall. you.walk("craftsman").');
+}
+async function playSignalEpilogue(name) {
+  await say("Knight-Captain", "The craftsman sent his boy running ahead. Orders, he said. Numbers with MEANINGS in them. Tell me he is wrong.");
+  await say("", "You tell him the rest: weak signals ignored, strong signals obeyed, and the last stream pulled off the dead thing's spine reading HUNT, HUNT, HUNT.");
+  await say("Knight-Captain", "Then the dead are not wandering. They are DEPLOYED. Somebody up that road is speaking to them in numbers, and the camp was not a tragedy. It was a maneuver.");
+  await say("Knight-Captain", "Rest tonight, scout. You have earned it twice over. Tomorrow, we find out who is on the other end of that signal... (to be continued)");
+  implantStep = 4;
+  if (Sv) awardXP(30);
+}
+async function playWorkshop(name) {
+  await fadeTo("workshop"); char.x = els.W * 0.24; char.facing = 1; prog(name + " · 1.5");
+  if (implantStep >= 3) {
+    await say("Craftsman", "The rules are with the knight and the little horror is locked in my strongbox, where it can pulse at nobody. Go on, scout. He is waiting.");
+  } else {
+    await say("Craftsman", "So you are the scout. The captain's runner said you carry something that should not exist. Hand it here. Careful. CAREFUL.");
+    await say("", "He sets the implant in a brass vice like it might bite, wires it to a crank rig of copper and glass, and drags a slate board where you both can see it.");
+    await say("Craftsman", "It still ANSWERS. Look. I crank a signal IN, it answers OUT. Every machine keeps rules between the in and the out. You and I are going to steal them.");
+    await say("Craftsman", "Give me time to rig the probes. Come back and we will pry it open together.");
+  }
+  await fadeTo("keep"); char.x = els.W * SCENES.keep.craftsman; char.facing = 1; setupTownsfolk();
+}
 async function playKeep(name, quiet = false) {
   if (!quiet) {
     await fadeTo("keep"); char.x = els.W * 0.06; char.facing = 1; zoms = []; ARROWS = []; setupTownsfolk(); prog(name + " · 1.3"); setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber", "proving"]);
@@ -1526,8 +1629,9 @@ async function playKeep(name, quiet = false) {
     logCmd(`you.walk("${r.walk}")`, true);
     await goTo(r.walk);
     if (r.walk === "road") {
-      if (questStep >= 5) { await playFallenCamp(name); continue; }
-      await say("", "The road waits, but your business in the keep is not done.");
+      if (implantStep >= 1) await say("", "The road can wait. The thing in your pack cannot.");
+      else if (questStep >= 5) { await playFallenCamp(name); continue; }
+      else await say("", "The road waits, but your business in the keep is not done.");
     } else if (r.walk === "proving") {
       if (!provingUnlocked) await say("Drillmaster", "The proving grounds open to seasoned scouts, not fresh ones. Your training here comes later.");
       else {
@@ -1539,17 +1643,21 @@ async function playKeep(name, quiet = false) {
       if (chamberUnlocked) await say("", "The great doors swing open onto the king's chamber…");
       else { await say("", "You climb the stairs. The king's chamber doors are bound shut with a heavy gold lock."); await say("Guard", "None pass to the king. These doors open later in your story, survivor."); }
     } else if (r.walk === "knight") {
-      if (questStep === 0) await startQuest(name);
+      if (implantStep === 1) await playImplantHandIn(name);
+      else if (implantStep === 3) await playSignalEpilogue(name);
+      else if (implantStep === 4) await say("Knight-Captain", "Sleep, scout. Tomorrow we hunt the voice behind the signal.");
+      else if (questStep === 0) await startQuest(name);
       else if (questStep === 2) await playBeat3(name);
       else if (questStep === 3) await say("Knight-Captain", "The armoury's open. See the armorsmith for your scout kit before you report back.");
       else if (questStep === 4) await playBeatWrap(name);
       else if (questStep >= 5) await say("Knight-Captain", "You've earned the keep's trust, scout. Rest. The north gate is tomorrow's worry.");
       else await say("Knight-Captain", "The cart won't pack itself. Off with you.");
     } else {
-      if (r.walk === "armorsmith" && armoryOpen && questStep < 5) await playBeat4(name);
+      if (r.walk === "craftsman" && implantStep >= 2) await playWorkshop(name);
+      else if (r.walk === "armorsmith" && armoryOpen && questStep < 5) await playBeat4(name);
       else if (r.walk === "armorsmith" && questStep >= 5) await shopVisit();
       else if (r.walk === "armorsmith") await say(KEEP_VENDOR.armorsmith[0], "The captain hasn't cleared you to trade yet. See the knight.");
-      else await say(LOCKED_STALL[r.walk][0], LOCKED_STALL[r.walk][1]); // craftsman/forhire/blacksmith stay locked until later chapters
+      else await say(LOCKED_STALL[r.walk][0], LOCKED_STALL[r.walk][1]); // forhire/blacksmith stay locked until later chapters
     }
   }
 }
@@ -1599,6 +1707,7 @@ function draw(now) {
   else if (scene === "raft") drawRaft(c, W, gy, now);
   else if (scene === "armory") drawArmory(c, W, gy, now);
   else if (scene === "fallencamp") drawFallenCamp(c, W, gy, now);
+  else if (scene === "workshop") drawWorkshop(c, W, gy, now);
   else drawCastle(c, W, gy, now);
 
   // arrows
@@ -2011,6 +2120,7 @@ function speakerAnchor(who, W, gy) {
   if (w === "survivor") return survivor ? { x: survivor.x, y: gy + (survivor.y || 0) - 36 * CH } : null;
   if (w === "gatekeeper" && scene === "castle") return { x: W * 0.78 - 118 + 50, y: gy - 168 - 20 - 44 }; // peeking over the battlements
   if (w === "armorsmith" && scene === "armory") { const half = Math.min(860, W * 0.68) / 2; return { x: W / 2 + half * 0.42, y: els.H * 0.8 - 44 - 200 }; } // behind his counter
+  if (w === "craftsman" && scene === "workshop") { const half = Math.min(860, W * 0.68) / 2; return { x: W / 2 + half * 0.42, y: els.H * 0.8 - 44 - 200 }; }
   if (w === "tam" && scene === "keep" && tamAtKeep) return { x: W * 0.035, y: gy - 30 * CH };
   if (w === "tam" && scene === "fallencamp" && tamFollows) return { x: tamWalk.x, y: gy - 30 * CH };
   const key = SPEAKER_KEY[w];
