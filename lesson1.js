@@ -1603,6 +1603,57 @@ async function playSignalEpilogue(name) {
   implantStep = 4;
   if (Sv) awardXP(30);
 }
+// ---- the decipher rounds: watch pairs on the board, write the steps between ----
+async function probePair(inn, out, word) {
+  workshopPairs.push(`IN ${inn}`); workshopSpark = 1; await wait(0.55);
+  workshopPairs[workshopPairs.length - 1] = `IN ${inn} -> OUT ${out}${word ? "   " + word : ""}`; await wait(0.35);
+}
+const DECIPHER = [
+  { intro: "First rule. The shallow one. Watch the board.",
+    probes: [2, 4, 7], seed: 7, expect: (s) => s * 2 + 1, reruns: [2, 5], needsElse: false,
+    prompt: "Decipher rule 1: set out from signal", rows: 1, concept: "variable",
+    placeholder: "out = signal * 2 + 1",
+    task: "The board shows what the machine did: IN 2 -> OUT 5, IN 4 -> OUT 9, IN 7 -> OUT 15. The variable signal is seeded with 7. Write the steps between IN and OUT: set out from signal so your steps match EVERY pair, not just this one." },
+  { intro: "Second rule. Stranger. Watch what it does to WEAK signals.",
+    probes: [4, 9, 12, 15], seed: 12, expect: (s) => (s < 10 ? 0 : s - 10), reruns: [7, 15, 20], needsElse: true,
+    prompt: "Decipher rule 2: the machine ignores weak signals", rows: 4, concept: "if",
+    placeholder: "if signal < 10:\n    out = 0\nelse:\n    out = signal - 10",
+    task: "IN 4 -> OUT 0. IN 9 -> OUT 0. IN 12 -> OUT 2. IN 15 -> OUT 5. Below ten it answers nothing: out is 0. Ten and above, it answers signal minus 10. You know if. Now meet else: the if answers the YES, and the else catches every NO. signal is seeded with 12." },
+  { intro: "Last rule. The deep one. This is where it keeps its orders.",
+    probes: [3, 8, 12, 20], seed: 20, expect: (s) => (s < 10 ? s + 1 : s * 2), reruns: [6, 12, 15], needsElse: true,
+    prompt: "Decipher rule 3: two behaviours, one machine", rows: 4, concept: "if",
+    placeholder: "if signal < 10:\n    out = signal + 1\nelse:\n    out = signal * 2",
+    task: "IN 3 -> OUT 4. IN 8 -> OUT 9. IN 12 -> OUT 24. IN 20 -> OUT 40. Weak signals gain one. Strong signals are doubled. One if, one else, and the machine has no secrets left. signal is seeded with 20." },
+];
+async function runDecipherRounds() {
+  for (let i = 0; i < DECIPHER.length; i++) {
+    const R = DECIPHER[i];
+    await say("Craftsman", R.intro);
+    for (const p of R.probes) await probePair(p, R.expect(p));
+    await ask({
+      prompt: R.prompt, placeholder: R.placeholder, rows: R.rows, seed: "signal = " + R.seed, concept: R.concept, task: R.task,
+      validate: (r) => {
+        if (R.needsElse && !/\bif\b[^\n]*\bsignal\b[^\n]*:/.test(lastSrc)) return "Ask the question first: an if line about signal, ending with a colon.";
+        if (R.needsElse && !/\belse\s*:/.test(lastSrc)) return "The if answers the yes. You still need an else: for every no.";
+        if (Number(r.vars.out) !== R.expect(R.seed)) return `The board disagrees. IN ${R.seed} must come OUT ${R.expect(R.seed)}; your steps made ${r.vars.out === undefined ? "nothing" : r.vars.out}. Set out from signal.`;
+        for (const h of R.reruns) {
+          let rr2; try { rr2 = JSON.parse(runUser(lastSrc, "signal = " + h, "")); } catch (e) { return "Something broke re-running your steps. Try again."; }
+          if (rr2.err) return translate(rr2.err);
+          if (Number(rr2.vars.out) !== R.expect(h)) return `The craftsman cranks a fresh probe: IN ${h}. Your steps say ${rr2.vars.out === undefined ? "nothing" : rr2.vars.out}. The machine says ${R.expect(h)}. It answers EVERY signal, not just one.`;
+        }
+        return null;
+      },
+    }, null);
+    await say("Craftsman", i === 0 ? "That is it. That is exactly it. Two rules left." : i === 1 ? "An if with an else. You just taught a machine's whole heart to hold a coin. One left." : "All three rules, stolen clean. Now for the part that has kept my hands shaking.");
+  }
+  workshopLegend = true;
+  await say("Craftsman", "The plate keeps a BUFFER: the last orders it was ever fed. I pulled three of them. The legend is on the board. Hold on to something.");
+  await probePair(3, 4, "HUNT"); await probePair(3, 4, "HUNT"); await probePair(3, 4, "HUNT");
+  await say("Craftsman", "Weak signals wait. Strong signals move. And the last thing anyone ever said to this creature was HUNT. HUNT. HUNT.");
+  await say("Craftsman", "This is not plague, scout. This is COMMAND. Somebody out there is speaking to the dead in numbers, and the dead are LISTENING.");
+  implantStep = 3;
+  await say("", 'The knight must hear this now. you.walk("knight").');
+}
 async function playWorkshop(name) {
   await fadeTo("workshop"); char.x = els.W * 0.24; char.facing = 1; prog(name + " · 1.5");
   if (implantStep >= 3) {
@@ -1611,7 +1662,7 @@ async function playWorkshop(name) {
     await say("Craftsman", "So you are the scout. The captain's runner said you carry something that should not exist. Hand it here. Careful. CAREFUL.");
     await say("", "He sets the implant in a brass vice like it might bite, wires it to a crank rig of copper and glass, and drags a slate board where you both can see it.");
     await say("Craftsman", "It still ANSWERS. Look. I crank a signal IN, it answers OUT. Every machine keeps rules between the in and the out. You and I are going to steal them.");
-    await say("Craftsman", "Give me time to rig the probes. Come back and we will pry it open together.");
+    await runDecipherRounds();
   }
   await fadeTo("keep"); char.x = els.W * SCENES.keep.craftsman; char.facing = 1; setupTownsfolk();
 }
