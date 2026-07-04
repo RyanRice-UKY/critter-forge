@@ -77,6 +77,16 @@ export const CONCEPTS = {
     teach: "Two operators split things into whole shares. Floor division, written //, finds how many whole times one number fits inside another. Modulo, written %, gives what is left over after those whole shares.",
     remind: "Use // for whole shares and % for the remainder.",
   },
+  types: {
+    journal: "types", link: "data types",
+    teach: "Every value in Python has a SHAPE, called its type. \"12\" in quotes is a str: a string of text marks. 12 bare is an int: a whole number arithmetic works on. 7.5 is a float: a number that carries a point. True is a bool: one of exactly two values. The shape decides what a value can DO: multiply an int and you get arithmetic, multiply a str and the marks just repeat. Hold any value up to type() and it names the shape.",
+    remind: "Check the shape with type().",
+  },
+  convert: {
+    journal: "convert", link: "casting",
+    teach: "Casting pours a value into a new mold: int(raw) makes a whole number from marks, float(raw) keeps the point, str(out) makes marks from a number. Two laws. The int mold CUTS, it never rounds: int(7.9) is 7. And input() always hands you marks, even when your fingers typed digits, so cast before you calculate.",
+    remind: "Cast first: int(raw) before arithmetic.",
+  },
 };
 
 // blank the answers out of a ghost answer, keeping the structure:

@@ -199,6 +199,29 @@ export const JOURNAL_SECTIONS = [
       },
     ],
   },
+  {
+    name: "Values",
+    entries: [
+      {
+        id: "types", label: "type()", section: "Values",
+        match: /type\s*\(/,
+        summary: "Every value has a shape (its type): str, int, float, or bool. type() names it.",
+        syntax: "type(value)",
+        parts: [["type", "the caliper"], ["( )", "hold any value up to it"], ["value", "what to measure"]],
+        usage: ['print(type("12"))', "print(type(12))", "print(type(7.5))"],
+        tryCode: 'print(type("12"))',
+      },
+      {
+        id: "convert", label: "int() / float() / str()", section: "Values",
+        match: /\b(?:int|float|str)\s*\(/,
+        summary: "Casting pours a value into a new mold. The int mold cuts, it never rounds. input() always gives marks, so cast before math.",
+        syntax: "int(marks)",
+        parts: [["int / float / str", "the mold to pour into"], ["( )", "the crucible"], ["marks", "the value being recast"]],
+        usage: ['signal = int("12")', 'volts = float("7.5")', 'label = "OUT " + str(15)'],
+        tryCode: 'print(int("12") * 2)',
+      },
+    ],
+  },
 ];
 
 export function allEntries() {

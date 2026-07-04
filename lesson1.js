@@ -284,6 +284,8 @@ xpPill();
 function translate(err) {
   const m = err.match(/name '(\w+)' is not defined/);
   if (m) return `Python doesn't know “${m[1]}”. Strings need quotes (e.g. you.walk("tree")) and variables must be set first.`;
+  if (err.includes("invalid literal for int()")) return "The int mold only takes whole-number marks. These marks carry a point in them; cast with float() instead.";
+  if (err.includes("can only concatenate str") || err.includes("unsupported operand type(s) for +")) return "You mixed bare numbers with marks. Cast the number into marks first: str(out).";
   if (err.includes("SyntaxError")) return "SyntaxError: check quotes, colons and indentation.";
   if (err.includes("IndentationError")) return "IndentationError: the line under a for loop must be indented 4 spaces.";
   return err;
