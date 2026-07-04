@@ -51,6 +51,8 @@ const KIT_PIECES = ["boots", "helmet", "gauntlets", "leggings", "chestplate"];
 let tamFreed = false; // the survivor beneath the storehouse rubble
 let tamHiding = false; // Tam ducks behind the tower half while the mutant is up
 let knockHeard = false; // the rubble only knocks once the story says you hear it
+let implantStep = 0; // 1.5: 0 none, 1 implant in hand, 2 sent to craftsman, 3 deciphered, 4 reported
+let tamFollows = false, tamAtKeep = false, tamWalk = { x: 0, wphase: 0 }; // Tam walking out of the camp / standing by the keep gate
 let armoryRects = null; // clickable rack items, set by drawArmory
 let armoryPicked = { boots: false, helmet: false, gauntlets: false, leggings: false, chestplate: false };
 let manifestRect = null; // clickable wall note in the storage room (set by drawStorage)
@@ -91,6 +93,7 @@ const ORDERS_NOTE = {
   name: "Sealed Orders", icon: "📜",
   note: "KNIGHT-CAPTAIN'S ORDERS\n\nBearer carries the north-watch supplies.\nGrant them passage to the army camp.\n\nThe guard answers to no stranger.\nSpeak this watchword at the shore:\n\n        ironwatch\n\nGuard these orders well.",
 };
+const IMPLANT_NOTE = { icon: "⚙", name: "Spinal Implant", note: "A coin-sized plate of metal and glass, pulled from the mutant's spine. Still warm. A hair-thin filament trails from one edge, and a faint blue light pulses under the glass, steady as a heartbeat. Someone MADE this. Machines mean makers, and makers can be found." };
 let dialogue = null, awaitAdvance = null, currentInput = null;
 let lastSaid = null; // the last spoken line stays on screen while the IDE waits for your code
 let survivor = null, survivorFollow = false, survivorHide = false;
@@ -342,7 +345,7 @@ async function play() {
   if (start === "1.4") { // DEV: the Iron Guard's forward camp, armored up, orders in hand
     questStep = 5; lesson1Done = true; char.gold = 1.3; char.maxHearts = 6; char.hearts = 6;
     for (const k of KIT_PIECES) char.kit[k] = true;
-    await playFallenCamp(name); return;
+    await playFallenCamp(name); await playKeep(name, true); return;
   }
   if (start === "1.3c") { // DEV: straight into the armory booth, paid up and cleared to shop
     questStep = 3; armoryOpen = true; char.gold = 3.8; char.x = els.W * 0.8; char.facing = 1; setupTownsfolk();
@@ -498,6 +501,7 @@ function update(dt) {
     else survivor.x += Math.sign(dx) * st;
   }
   if (survivor && survivor.state === "beside" && survivorFollow) { const tx = char.x - 34 * char.facing; if (Math.abs(survivor.x - tx) > 4) { survivor.x += Math.sign(tx - survivor.x) * 110 * dt; survivor.wphase += dt * 9; } } // trail BEHIND the hero, never in the firing line
+  if (tamFollows && scene === "fallencamp") { const tx = char.x - 40 * char.facing; if (Math.abs(tamWalk.x - tx) > 6) { tamWalk.x += Math.sign(tx - tamWalk.x) * 105 * dt; tamWalk.wphase += dt * 9; } } // Tam keeps up on the way out
   // a zombie that reaches you deals 1 heart of damage, then is knocked back
   if (invinc > 0) invinc -= dt;
   if (dmgFlash > 0) dmgFlash -= dt * 2;
@@ -676,6 +680,8 @@ function drawKeep(c, W, gy, now) {
     if (questStep === 0 || questStep === 2 || questStep === 4) { c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", kx, cy - 18 + Math.sin(now * 3) * 3); }
     // and it moves to the armorsmith while the shopping task is his
     if (armoryOpen && questStep === 3) { const ax2 = W * SCENES.keep.armorsmith; c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", ax2, gy - 44 * CH + Math.sin(now * 3) * 3); } }
+  if (tamAtKeep) { const tx5 = W * 0.035; c.save(); c.translate(tx5, gy); c.scale(CH, CH); tamBody(c); c.restore();
+    c.fillStyle = "#cdd8e6"; c.font = "10px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText("TAM", tx5, gy + 18); }
   if (survivor) P(c, survivor.x, gy, (cc) => npc(cc, 0, 0, "#37b24d", "#c89060", "#241018")); // the escorted survivor saying goodbye
 }
 // ---- the Iron Guard's forward camp, destroyed (Lesson 1.4 investigation) ----
@@ -688,6 +694,14 @@ function fallenGuard(c, x, y, f = 1) { // a guard where he fell
   px(c, -15, -8, 6, 5, "#c89a72"); // head, turned away
   px(c, -23, -7, 7, 5, "#7a828c"); px(c, -23, -7, 7, 2, "#9aa3ad"); // helm, rolled off
   c.restore();
+}
+function tamBody(c, sw = 0) { // Tam the clerk, satchel hugged tight; sw = walk swing
+  px(c, -4, -4 + Math.max(0, sw) * 2, 4, 10 - Math.max(0, sw) * 2, "#4a3a26"); px(c, 1, -4 + Math.max(0, -sw) * 2, 4, 10 - Math.max(0, -sw) * 2, "#4a3a26");
+  px(c, -4, 4, 4, 3, "#241a10"); px(c, 1, 4, 4, 3, "#241a10");
+  px(c, -6, -22, 12, 18, "#8a6d3b"); px(c, -6, -22, 3, 18, "rgba(255,255,255,0.12)");
+  px(c, -8, -14, 7, 9, "#5a4426"); px(c, -8, -14, 7, 2, "#6e5430");
+  px(c, -5, -32, 11, 11, "#d8a878"); px(c, -6, -34, 12, 4, "#6e4a22");
+  px(c, -3, -28, 2, 2, "#1c1208"); px(c, 2, -28, 2, 2, "#1c1208");
 }
 function drawFallenCamp(c, W, gy, now) {
   const H = els.H;
@@ -734,13 +748,12 @@ function drawFallenCamp(c, W, gy, now) {
     px(c, sx3 - 74, gy + 3, 20, 3, "#c9b89a"); px(c, sx3 + 132, gy + 10, 16, 3, "#c9b89a"); // spilled grain
     drawBarrel(c, sx3 - 84, gy + 4, 16, 20); // survived barrel, absurdly upright
     if (knockHeard && !tamFreed && Math.sin(now * 2.2) > 0.75) px(c, sx3 + 34, gy - 24, 4, 4, "#e8dcc0"); // a knuckle rapping from beneath
-    if (tamFreed && !tamHiding) { // Tam, out of the rubble: a clerk, no armor, satchel hugged tight
-      const tx4 = sx3 - 66; c.save(); c.translate(tx4, gy); c.scale(CH, CH);
-      px(c, -4, -4, 4, 10, "#4a3a26"); px(c, 1, -4, 4, 10, "#4a3a26"); px(c, -4, 4, 4, 3, "#241a10"); px(c, 1, 4, 4, 3, "#241a10");
-      px(c, -6, -22, 12, 18, "#8a6d3b"); px(c, -6, -22, 3, 18, "rgba(255,255,255,0.12)");
-      px(c, -8, -14, 7, 9, "#5a4426"); px(c, -8, -14, 7, 2, "#6e5430"); // the satchel, held to his chest
-      px(c, -5, -32, 11, 11, "#d8a878"); px(c, -6, -34, 12, 4, "#6e4a22"); px(c, -3, -28, 2, 2, "#1c1208"); px(c, 2, -28, 2, 2, "#1c1208");
-      c.restore(); }
+    if (tamFreed && !tamHiding && !tamFollows) { // Tam, out of the rubble: a clerk, no armor, satchel hugged tight
+      c.save(); c.translate(sx3 - 66, gy); c.scale(CH, CH); tamBody(c); c.restore();
+    }
+    if (tamFollows) { // Tam trailing the hero out of the camp
+      c.save(); c.translate(tamWalk.x, gy); c.scale(CH, CH); tamBody(c, Math.sin(tamWalk.wphase)); c.restore();
+    }
     if (tamFreed && tamHiding) { // just his head, peeking around the standing tower half
       const hx2 = sx3 - tw / 2 - 8;
       px(c, hx2, gy - 38, 10, 9, "#d8a878"); px(c, hx2 - 1, gy - 40, 11, 4, "#6e4a22");
@@ -841,11 +854,26 @@ async function playFallenCamp(name) {
   await ask({ prompt: "Get to the storehouse", placeholder: 'you.walk("rubble")', concept: "walk", validate: (rr) => (rr.walk === "rubble" ? null : 'The knocking came from the storehouse: you.walk("rubble").') }, null);
   await goTo("rubble"); logCmd('you.walk("rubble")', true);
   await playTam(name);
-  while (true) { // linger by the wreck with Tam
-    await ask({ prompt: "…(to be continued)", placeholder: 'you.walk("rubble")', concept: "walk", validate: (rr) => (rr.walk === "rubble" ? null : 'Stay close: you.walk("rubble").') }, null);
-    logCmd('you.walk("rubble")', true); await goTo("rubble");
-    await say("Tam", "I'm not going back under there. Whatever comes next, I'm coming with you.");
-  }
+  // ---- 1.5 opens: the body has one more thing to say ----
+  await say("Tam", "Is it dead? It is dead. Tell me it is dead.");
+  if (zoms[0]) await walkToX(zoms[0].x + 30);
+  await say("", "You crouch over the thing. Under the pauldron scrap, something GLINTS. Not bone. Not steel from any forge you know.");
+  await say("", "A coin-sized plate of metal and glass, still warm, a hair-thin filament running up into the spine. Under the glass, a faint blue light. Pulsing. Steady as a heartbeat.");
+  await say("", "Someone MADE this thing what it is. And a plate that receives can be spoken to. Someone could be steering them.");
+  giveItem(IMPLANT_NOTE); implantStep = 1;
+  logCmd("# taken: the spinal implant", false);
+  await say("Tam", "That is not plague. Plague does not solder. I am done shaking, scout. That thing in your pack is PROOF.");
+  setLocations(["keep"]);
+  await say("Tam", "Take it to your knight. And take me with you. I am not staying with the crows.");
+  await ask({ prompt: "Back to the keep", placeholder: 'you.walk("keep")', concept: "walk", validate: (rr) => (rr.walk === "keep" ? null : 'The keep needs to see this: you.walk("keep").') }, null);
+  logCmd('you.walk("keep")', true);
+  tamFollows = true; tamWalk = { x: char.x - 60, wphase: 0 };
+  await walkTo(0.03); await wait(0.4);
+  tamFollows = false; tamAtKeep = true;
+  await fadeTo("keep"); char.x = els.W * 0.06; char.facing = 1; zoms = []; ARROWS = []; setupTownsfolk(); prog(name + " · 1.5");
+  setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber", "proving"]);
+  await say("Tam", "Stone walls. I forgot what safe feels like. I will be by the gate, catching my breath.");
+  await say("", 'The implant sits heavy in your pack. The knight needs to see it. you.walk("knight").');
 }
 // ---- Tam, the survivor beneath the rubble: three riddles, then the ledger ----
 const TAM_RIDDLES = [
@@ -932,7 +960,7 @@ async function playMutant() {
   tamHiding = false;
   await say("Tam", "...it could not dodge that. You WAITED. The arrow only existed once it could no longer be dodged.");
   await say("Tam", "That is what took the camp. Things like that. And it was headed the same way you are.");
-  await say("", "One arrow, held until the if said now. Whatever is out on that road, you do not meet it by firing early... (to be continued)");
+  await say("", "One arrow, held until the if said now. And in the quiet after, the body is not done telling you things.");
 }
 // ---- the armory booth scene ----
 function armorIcon(c, kind, s) {
@@ -1484,13 +1512,15 @@ async function shopVisit() {
   await fadeTo("keep");
 }
 
-async function playKeep(name) {
-  await fadeTo("keep"); char.x = els.W * 0.06; char.facing = 1; zoms = []; ARROWS = []; setupTownsfolk(); prog(name + " · 1.3"); setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber", "proving"]);
-  if (survivorFollow) { survivor = { x: char.x + 36, y: 0, state: "beside", wphase: 0 }; await say("Survivor", "You've brought me to safety. I won't forget it. Thank you, friend."); survivor = null; survivorFollow = false; }
-  else survivor = null;
-  await say("", "Inside the keep at last. Townsfolk mill about; four traders keep stalls along the back wall.");
-  await say("", "A red carpet runs up the centre to a grand staircase, and the sealed doors of the king's chamber above it.");
-  await say("", 'An armoured knight stands watch to the east, a quest-marker above him. Wander: walk to a stall, the knight, or the chamber, e.g. you.walk("knight").');
+async function playKeep(name, quiet = false) {
+  if (!quiet) {
+    await fadeTo("keep"); char.x = els.W * 0.06; char.facing = 1; zoms = []; ARROWS = []; setupTownsfolk(); prog(name + " · 1.3"); setLocations(["craftsman", "forhire", "blacksmith", "armorsmith", "knight", "chamber", "proving"]);
+    if (survivorFollow) { survivor = { x: char.x + 36, y: 0, state: "beside", wphase: 0 }; await say("Survivor", "You've brought me to safety. I won't forget it. Thank you, friend."); survivor = null; survivorFollow = false; }
+    else survivor = null;
+    await say("", "Inside the keep at last. Townsfolk mill about; four traders keep stalls along the back wall.");
+    await say("", "A red carpet runs up the centre to a grand staircase, and the sealed doors of the king's chamber above it.");
+    await say("", 'An armoured knight stands watch to the east, a quest-marker above him. Wander: walk to a stall, the knight, or the chamber, e.g. you.walk("knight").');
+  }
   while (true) {
     const r = await ask({ prompt: 'Explore the keep, e.g. you.walk("knight") or you.walk("proving"):', placeholder: 'you.walk("knight")', concept: "walk", validate: (rr) => { if (!rr.walk) return 'Type a you.walk("...") command.'; if (!SCENES.keep[rr.walk]) return "Walk to: craftsman, forhire, blacksmith, armorsmith, knight, chamber, or proving."; return null; } }, null);
     logCmd(`you.walk("${r.walk}")`, true);
@@ -1981,6 +2011,8 @@ function speakerAnchor(who, W, gy) {
   if (w === "survivor") return survivor ? { x: survivor.x, y: gy + (survivor.y || 0) - 36 * CH } : null;
   if (w === "gatekeeper" && scene === "castle") return { x: W * 0.78 - 118 + 50, y: gy - 168 - 20 - 44 }; // peeking over the battlements
   if (w === "armorsmith" && scene === "armory") { const half = Math.min(860, W * 0.68) / 2; return { x: W / 2 + half * 0.42, y: els.H * 0.8 - 44 - 200 }; } // behind his counter
+  if (w === "tam" && scene === "keep" && tamAtKeep) return { x: W * 0.035, y: gy - 30 * CH };
+  if (w === "tam" && scene === "fallencamp" && tamFollows) return { x: tamWalk.x, y: gy - 30 * CH };
   const key = SPEAKER_KEY[w];
   if (!key || !SCENES[scene] || SCENES[scene][key] == null) return null;
   return { x: W * SCENES[scene][key], y: gy - 36 * CH };
