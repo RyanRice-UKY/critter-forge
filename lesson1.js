@@ -691,7 +691,7 @@ function drawKeep(c, W, gy, now) {
     // and it moves to the armorsmith while the shopping task is his
     if (armoryOpen && questStep === 3) { const ax2 = W * SCENES.keep.armorsmith; c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", ax2, gy - 44 * CH + Math.sin(now * 3) * 3); }
     if (implantStep === 2) { const cx4 = W * SCENES.keep.craftsman; c.fillStyle = "#ffd43b"; c.font = "bold 22px 'Chakra Petch',sans-serif"; c.fillText("!", cx4, gy - 44 * CH + Math.sin(now * 3) * 3); } }
-  if (tamAtKeep) { const tx5 = W * 0.035; c.save(); c.translate(tx5, gy); c.scale(CH, CH); tamBody(c); c.restore();
+  if (tamAtKeep) { const tx5 = W * 0.085; c.save(); c.translate(tx5, gy); c.scale(CH, CH); tamBody(c); c.restore();
     c.fillStyle = "#cdd8e6"; c.font = "10px 'IBM Plex Mono',monospace"; c.textAlign = "center"; c.fillText("TAM", tx5, gy + 18); }
   if (survivor) P(c, survivor.x, gy, (cc) => npc(cc, 0, 0, "#37b24d", "#c89060", "#241018")); // the escorted survivor saying goodbye
 }
@@ -759,7 +759,7 @@ function drawFallenCamp(c, W, gy, now) {
     px(c, sx3 - 74, gy + 3, 20, 3, "#c9b89a"); px(c, sx3 + 132, gy + 10, 16, 3, "#c9b89a"); // spilled grain
     drawBarrel(c, sx3 - 84, gy + 4, 16, 20); // survived barrel, absurdly upright
     if (knockHeard && !tamFreed && Math.sin(now * 2.2) > 0.75) px(c, sx3 + 34, gy - 24, 4, 4, "#e8dcc0"); // a knuckle rapping from beneath
-    if (tamFreed && !tamHiding && !tamFollows) { // Tam, out of the rubble: a clerk, no armor, satchel hugged tight
+    if (tamFreed && !tamHiding && !tamFollows && !tamAtKeep) { // Tam, out of the rubble: a clerk, no armor, satchel hugged tight
       c.save(); c.translate(sx3 - 66, gy); c.scale(CH, CH); tamBody(c); c.restore();
     }
     if (tamFollows) { // Tam trailing the hero out of the camp
@@ -1629,6 +1629,7 @@ async function runDecipherRounds() {
   for (let i = 0; i < DECIPHER.length; i++) {
     const R = DECIPHER[i];
     await say("Craftsman", R.intro);
+    workshopPairs.push("RULE " + (i + 1));
     for (const p of R.probes) await probePair(p, R.expect(p));
     await ask({
       prompt: R.prompt, placeholder: R.placeholder, rows: R.rows, seed: "signal = " + R.seed, concept: R.concept, task: R.task,
@@ -1648,8 +1649,8 @@ async function runDecipherRounds() {
   }
   workshopLegend = true;
   await say("Craftsman", "The plate keeps a BUFFER: the last orders it was ever fed. I pulled three of them. The legend is on the board. Hold on to something.");
-  await probePair(3, 4, "HUNT"); await probePair(3, 4, "HUNT"); await probePair(3, 4, "HUNT");
-  await say("Craftsman", "Weak signals wait. Strong signals move. And the last thing anyone ever said to this creature was HUNT. HUNT. HUNT.");
+  for (let k = 0; k < 3; k++) { workshopPairs.push("ORDER 4   HUNT"); workshopSpark = 1; await wait(0.7); }
+  await say("Craftsman", "Three orders in the buffer. Three. And every one of them decodes the same. HUNT. HUNT. HUNT.");
   await say("Craftsman", "This is not plague, scout. This is COMMAND. Somebody out there is speaking to the dead in numbers, and the dead are LISTENING.");
   implantStep = 3;
   await say("", 'The knight must hear this now. you.walk("knight").');
@@ -1680,7 +1681,7 @@ async function playKeep(name, quiet = false) {
     logCmd(`you.walk("${r.walk}")`, true);
     await goTo(r.walk);
     if (r.walk === "road") {
-      if (implantStep >= 1) await say("", "The road can wait. The thing in your pack cannot.");
+      if (implantStep >= 1) await say("", implantStep === 1 ? "The road can wait. The thing in your pack cannot." : implantStep === 4 ? "Tomorrow, the captain said. Rest first." : "The road can wait. The craftsman cannot.");
       else if (questStep >= 5) { await playFallenCamp(name); continue; }
       else await say("", "The road waits, but your business in the keep is not done.");
     } else if (r.walk === "proving") {
@@ -1697,6 +1698,7 @@ async function playKeep(name, quiet = false) {
       if (implantStep === 1) await playImplantHandIn(name);
       else if (implantStep === 3) await playSignalEpilogue(name);
       else if (implantStep === 4) await say("Knight-Captain", "Sleep, scout. Tomorrow we hunt the voice behind the signal.");
+      else if (implantStep === 2) await say("Knight-Captain", "The craftsman has it, scout. Go. I want to know what that plate says.");
       else if (questStep === 0) await startQuest(name);
       else if (questStep === 2) await playBeat3(name);
       else if (questStep === 3) await say("Knight-Captain", "The armoury's open. See the armorsmith for your scout kit before you report back.");
@@ -2172,7 +2174,7 @@ function speakerAnchor(who, W, gy) {
   if (w === "gatekeeper" && scene === "castle") return { x: W * 0.78 - 118 + 50, y: gy - 168 - 20 - 44 }; // peeking over the battlements
   if (w === "armorsmith" && scene === "armory") { const half = Math.min(860, W * 0.68) / 2; return { x: W / 2 + half * 0.42, y: els.H * 0.8 - 44 - 200 }; } // behind his counter
   if (w === "craftsman" && scene === "workshop") { const half = Math.min(860, W * 0.68) / 2; return { x: W / 2 + half * 0.42, y: els.H * 0.8 - 44 - 200 }; }
-  if (w === "tam" && scene === "keep" && tamAtKeep) return { x: W * 0.035, y: gy - 30 * CH };
+  if (w === "tam" && scene === "keep" && tamAtKeep) return { x: W * 0.085, y: gy - 30 * CH };
   if (w === "tam" && scene === "fallencamp" && tamFollows) return { x: tamWalk.x, y: gy - 30 * CH };
   const key = SPEAKER_KEY[w];
   if (!key || !SCENES[scene] || SCENES[scene][key] == null) return null;
