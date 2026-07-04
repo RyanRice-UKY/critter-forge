@@ -230,7 +230,7 @@ async function submit() {
   if (opts.requireOp && !src.includes(opts.requireOp)) { setStatus(`Use the “${opts.requireOp}” operator.`, "err"); return; }
   const runSrc = src + (opts.append ? "\n" + opts.append : "");      // append a read-only check to run (not shown/logged)
   let inputval = "";
-  if (opts.inputPrompt) inputval = window.prompt(opts.inputPrompt, opts.inputDefault || "") || "";  // interactive input(); may arrive pre-filled to accept
+  if (opts.inputPrompt) { const p = window.prompt(opts.inputPrompt, opts.inputDefault || ""); inputval = p === null ? (opts.inputDefault || "") : p; }  // interactive input(); cancel falls back to the suggested default
   let r;
   try { r = JSON.parse(runUser(runSrc, opts.seed || "", inputval)); }
   catch (e) { setStatus(String(e.message || e), "err"); return; }
@@ -1658,17 +1658,17 @@ const DECIPHER = [
     probes: [2, 4, 7], seed: 7, expect: (s) => s * 2 + 1, reruns: [2, 5], needsElse: false,
     prompt: "Decipher rule 1: set out from signal", rows: 2, concept: "convert",
     placeholder: "signal = int(raw)\nout = signal * 2 + 1",
-    task: "The wire hands you marks: raw holds \"7\". Cast before you calculate. The board shows what the machine did: IN 2 -> OUT 5, IN 4 -> OUT 9, IN 7 -> OUT 15. The variable signal is seeded with 7. Write the steps between IN and OUT: set out from signal so your steps match EVERY pair, not just this one." },
+    task: "The wire hands you marks: raw holds \"7\". Cast before you calculate. The board shows what the machine did: IN 2 -> OUT 5, IN 4 -> OUT 9, IN 7 -> OUT 15. Write the steps between IN and OUT: set out from signal so your steps match EVERY pair, not just this one." },
   { intro: "Second rule. Stranger. Watch what it does to WEAK signals.",
     probes: [4, 9, 12, 15], seed: 12, expect: (s) => (s < 10 ? 0 : s - 10), reruns: [7, 15, 20], needsElse: true,
     prompt: "Decipher rule 2: the machine ignores weak signals", rows: 5, concept: "if",
     placeholder: "signal = int(raw)\nif signal < 10:\n    out = 0\nelse:\n    out = signal - 10",
-    task: "The wire hands you marks: raw holds \"12\". Cast first. IN 4 -> OUT 0. IN 9 -> OUT 0. IN 12 -> OUT 2. IN 15 -> OUT 5. Below ten it answers nothing: out is 0. Ten and above, it answers signal minus 10. You know if. Now meet else: the if answers the YES, and the else catches every NO. signal is seeded with 12." },
+    task: "The wire hands you marks: raw holds \"12\". Cast first. IN 4 -> OUT 0. IN 9 -> OUT 0. IN 12 -> OUT 2. IN 15 -> OUT 5. Below ten it answers nothing: out is 0. Ten and above, it answers signal minus 10. You know if. Now meet else: the if answers the YES, and the else catches every NO." },
   { intro: "Last rule. The deep one. This is where it keeps its orders.",
     probes: [3, 8, 12, 20], seed: 20, expect: (s) => (s < 10 ? s + 1 : s * 2), reruns: [6, 12, 15], needsElse: true,
     prompt: "Decipher rule 3: two behaviours, one machine", rows: 5, concept: "if",
     placeholder: "signal = int(raw)\nif signal < 10:\n    out = signal + 1\nelse:\n    out = signal * 2",
-    task: "The wire hands you marks: raw holds \"20\". Cast first. IN 3 -> OUT 4. IN 8 -> OUT 9. IN 12 -> OUT 24. IN 20 -> OUT 40. Weak signals gain one. Strong signals are doubled. One if, one else, and the machine has no secrets left. signal is seeded with 20." },
+    task: "The wire hands you marks: raw holds \"20\". Cast first. IN 3 -> OUT 4. IN 8 -> OUT 9. IN 12 -> OUT 24. IN 20 -> OUT 40. Weak signals gain one. Strong signals are doubled. One if, one else, and the machine has no secrets left." },
 ];
 async function runDecipherRounds() {
   for (let i = 0; i < DECIPHER.length; i++) {
@@ -1679,7 +1679,7 @@ async function runDecipherRounds() {
     await ask({
       prompt: R.prompt, placeholder: R.placeholder, rows: R.rows, seed: 'raw = "' + R.seed + '"', concept: R.concept, task: R.task,
       validate: (r) => {
-        if (!/int\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "The wire gave you marks, not a number. Cast before you calculate: signal = int(raw).";
+        if (!/\bint\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "The wire gave you marks, not a number. Cast before you calculate: signal = int(raw).";
         if (R.needsElse && !/\bif\b[^\n]*\bsignal\b[^\n]*:/.test(lastSrc)) return "Ask the question first: an if line about signal, ending with a colon.";
         if (R.needsElse && !/\belse\s*:/.test(lastSrc)) return "The if answers the yes. You still need an else: for every no.";
         if (Number(r.vars.out) !== R.expect(R.seed)) return `The board disagrees. IN ${R.seed} must come OUT ${R.expect(R.seed)}; your steps made ${r.vars.out === undefined ? "nothing" : r.vars.out}. Set out from signal.`;
@@ -1748,7 +1748,7 @@ async function playTypesArc() {
     concept: "convert",
     task: "In this trade we CAST: pour metal into a mold and it takes the mold's shape. int(raw) is Python casting. The parentheses are the crucible: marks go in, a true int comes out. Cast raw into a variable named signal, then print signal * 2.",
     validate: (r) => {
-      if (!/int\s*\(/.test(lastSrc)) return "Pour it through the mold: signal = int(raw).";
+      if (!/\bint\s*\(/.test(lastSrc)) return "Pour it through the mold: signal = int(raw).";
       if (typeof r.vars.signal !== "number") return "signal is still marks. Cast it: signal = int(raw).";
       if (r.vars.signal !== 12) return "Cast raw itself; do not type your own number.";
       return r.stdout.trim() === "24" ? null : "Now print signal * 2 and let the machine answer with real arithmetic.";
@@ -1776,7 +1776,7 @@ async function playTypesArc() {
     concept: "convert",
     task: "Cast strength (it holds 7.5) into the int mold as whole, and print it. Then also print int(7.9), a value sitting a hair from 8. Predict both answers before you run.",
     validate: (r) => {
-      if (!/int\s*\(/.test(lastSrc)) return "Use the int mold: whole = int(strength).";
+      if (!/\bint\s*\(/.test(lastSrc)) return "Use the int mold: whole = int(strength).";
       if (r.vars.whole !== 7) return "whole = int(strength). Let the mold do the cutting.";
       const lines = r.stdout.trim().split(/\n/);
       return lines.length >= 2 && lines[0].trim() === "7" && lines[1].trim() === "7" ? null : "Print whole, then print int(7.9). Two lines, two answers.";
@@ -1786,6 +1786,7 @@ async function playTypesArc() {
   await ask({
     prompt: "Label the board",
     placeholder: 'out = 15\nlabel = "OUT " + str(out)\nprint(label)', rows: 3,
+    seed: "out = 15",
     concept: "convert",
     task: "The board wants a label that reads OUT 15. Try print(\"OUT \" + out) first if you like: Python refuses to glue marks to a bare number. str(out) is the mold that runs backward, numbers into marks. Build label from \"OUT \" plus str(out), then print it.",
     validate: (r) => {
@@ -1803,7 +1804,7 @@ async function playTypesArc() {
     task: "Your turn at the crank. input() asks YOU for the signal, and here is the trap: input() ALWAYS hands back marks, even when your fingers typed digits, because a keyboard makes marks, not numbers. Cast to int, then store the question signal >= 10 in a variable named strong, and print it.",
     validate: (r) => {
       if (!/input\s*\(/.test(lastSrc)) return "Take the crank: raw = input(...).";
-      if (!/int\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "input() handed you marks. Cast before you compare: signal = int(raw).";
+      if (!/\bint\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "input() handed you marks. Cast before you compare: signal = int(raw).";
       if (typeof r.vars.strong !== "boolean") return "Store the question itself: strong = signal >= 10. It comes out True or False.";
       if (r.vars.strong !== (r.vars.signal >= 10)) return "strong must hold exactly the question signal >= 10.";
       return null;
