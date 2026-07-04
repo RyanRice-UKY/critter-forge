@@ -1083,28 +1083,54 @@ function drawArmory(c, W, gy, now) {
     px(c, -5, -33, 11, 11, "#e0a070"); px(c, -6, -35, 12, 5, char.kit.helmet ? "#7a828c" : "#3a2c18");
     c.restore(); }
 }
-// ---- the craftsman's workshop (1.5): bench, vice, crank rig, probe board ----
+// ---- the craftsman's workshop (1.5): the Maker's Hall — thirty years of craft meets the new obsession ----
 function drawWorkshop(c, W, gy, now) {
-  const H = els.H;
+  const H = els.H, floorY = H * 0.8;
+  // keep-interior gloom behind a pitched work tent
   const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#171a24"); g.addColorStop(1, "#1f2330"); c.fillStyle = g; c.fillRect(0, 0, W, H);
-  px(c, 0, H * 0.1, W, 5, "#a8832a"); px(c, 0, H * 0.1 + 5, W, 2, "#ffd43b");
-  for (let i = 0; i < 6; i++) { const cx = W * (0.08 + i * 0.17); px(c, cx - 11, 0, 22, H, "#2c303b"); }
-  const floorY = H * 0.8;
   for (let x = 0; x < W; x += 30) px(c, x, floorY, 30, H - floorY, (x / 30 | 0) % 2 ? "#2a2d36" : "#262931");
-  c.fillStyle = "rgba(4,6,10,.5)"; c.fillRect(0, 0, W, H);
-  const bx = W / 2, bw = Math.min(860, W * 0.68), half = bw / 2, top = H * 0.09, counterY = floorY - 44;
-  px(c, bx - half - 16, top + 40, 18, counterY - top - 8, "#5a4424"); px(c, bx + half - 2, top + 40, 18, counterY - top - 8, "#5a4424");
-  px(c, bx - half - 16, top + 40, 6, counterY - top - 8, "#7a5a30"); px(c, bx + half - 2, top + 40, 6, counterY - top - 8, "#7a5a30");
-  px(c, bx - half, top + 48, bw, counterY - top - 52, "#241c11");
-  for (let y = top + 48; y < counterY - 6; y += 20) px(c, bx - half, y, bw, 2, "#1a140c");
-  // green scalloped awning (the craftsman's stall color)
-  for (let s = -half - 30; s < half + 30; s += 52) px(c, bx + s, top, 52, 46, ((s / 52) | 0) % 2 ? "#2f9e44" : "#f1f3f5");
-  for (let s = -half - 30; s < half + 30; s += 52) { c.fillStyle = ((s / 52) | 0) % 2 ? "#2f9e44" : "#f1f3f5"; c.beginPath(); c.arc(bx + s + 26, top + 46, 26, 0, Math.PI); c.fill(); }
-  px(c, bx - half - 36, top - 6, bw + 72, 8, "#8a6d3b"); px(c, bx - half - 36, top - 6, bw + 72, 3, "#a9844a");
-  px(c, bx - 88, top + 66, 176, 40, "#6b4f2a"); px(c, bx - 88, top + 66, 176, 4, "#8a6d3b");
-  c.fillStyle = "#e8dcc0"; c.font = "bold 19px 'Chakra Petch',sans-serif"; c.textAlign = "center"; c.fillText("CRAFTSMAN", bx, top + 92);
-  // the probe board: slate panel, IN/OUT lines, legend once revealed
-  { const bw2 = Math.min(300, bw * 0.36), bx0 = bx - half + 24, by0 = top + 116, bh2 = counterY - by0 - 26;
+  c.fillStyle = "#33452e"; c.beginPath(); c.moveTo(0, H); c.lineTo(0, H * 0.34); c.lineTo(W * 0.16, H * 0.06); c.lineTo(W * 0.2, H); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(W, H); c.lineTo(W, H * 0.34); c.lineTo(W * 0.84, H * 0.06); c.lineTo(W * 0.8, H); c.closePath(); c.fill();
+  c.fillStyle = "#3d5437"; c.beginPath(); c.moveTo(W * 0.16, H * 0.06); c.lineTo(W * 0.84, H * 0.06); c.lineTo(W * 0.8, H); c.lineTo(W * 0.2, H); c.closePath(); c.fill();
+  c.fillStyle = "rgba(0,0,0,0.35)"; c.fillRect(0, 0, W, H);
+  for (let i = 0; i < 5; i++) { c.strokeStyle = "rgba(20,26,18,0.5)"; c.lineWidth = 2; c.beginPath(); c.moveTo(W * (0.24 + i * 0.13), H * 0.06); c.lineTo(W * (0.23 + i * 0.135), floorY); c.stroke(); }
+  // helpers
+  const wire2 = (x1, y1, x2, y2, sag, col, lw) => { c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); c.moveTo(x1, y1); c.quadraticCurveTo((x1 + x2) / 2, Math.max(y1, y2) + sag, x2, y2); c.stroke(); };
+  const lampRow2 = (x, y, n, seed) => { for (let i = 0; i < n; i++) { const on = Math.sin(now * (1.3 + ((i * 7 + seed) % 5) * 0.5) + i * 1.7 + seed) > 0; const col = i % 3 === 0 ? "#ff6b6b" : i % 3 === 1 ? "#ffb14d" : "#62d27a"; if (on) { c.shadowColor = col; c.shadowBlur = 7; } px(c, x + i * 14, y, 7, 7, on ? col : "#2a2f38"); c.shadowBlur = 0; } };
+  // ---- the old craft (left) ----
+  { const pbx = W * 0.16, pby = H * 0.16, pbw = W * 0.17, pbh = H * 0.28; // woodworking pegboard
+    px(c, pbx, pby, pbw, pbh, "#3a2c18"); px(c, pbx, pby, pbw, 6, "#5a4424");
+    const sxx = pbx + 20, syy = pby + 26; // hand saw
+    px(c, sxx, syy, 12, 34, "#7a5a30"); c.fillStyle = "#8a939e"; c.beginPath(); c.moveTo(sxx + 5, syy + 34); c.lineTo(sxx + 16, syy + 96); c.lineTo(sxx - 6, syy + 90); c.closePath(); c.fill();
+    for (let k = 0; k < 6; k++) px(c, sxx - 5 + k * 1.6, syy + 90 - k * 9, 3, 3, "#6a727c");
+    const hxx = pbx + 70, hyy = pby + 28; px(c, hxx, hyy, 6, 52, "#7a5a30"); px(c, hxx - 9, hyy - 3, 24, 12, "#6a727c"); // hammer
+    for (let i = 0; i < 3; i++) { const cxx = pbx + 116 + i * 20; px(c, cxx, pby + 28, 6, 32, "#7a5a30"); px(c, cxx, pby + 60, 6, 12, "#9aa3ad"); } // chisels
+    const pxx = pbx + 70, pyy = pby + 104; px(c, pxx, pyy, 52, 18, "#7a5a30"); px(c, pxx + 12, pyy - 9, 12, 9, "#3a2c18"); px(c, pxx + 6, pyy + 6, 40, 5, "#6a727c"); } // plane
+  { const shx = W * 0.185, shy = floorY; // sawhorse, leaning plank, shavings
+    px(c, shx - 40, shy - 40, 80, 9, "#7a5a30");
+    c.strokeStyle = "#5a4424"; c.lineWidth = 7; c.beginPath(); c.moveTo(shx - 28, shy - 34); c.lineTo(shx - 40, shy); c.moveTo(shx + 28, shy - 34); c.lineTo(shx + 40, shy); c.stroke();
+    c.save(); c.translate(shx + 46, shy); c.rotate(-0.5); px(c, 0, -9, 130, 10, "#7a5a30"); px(c, 0, -9, 130, 3, "#8a6a3c"); c.restore();
+    for (let i = 0; i < 6; i++) px(c, shx - 30 + i * 12, shy - 4 + (i % 2) * 3, 8, 4, "#c9b89a"); }
+  { const wx2 = W * 0.46, wy2 = floorY - 3; // finished wagon wheel by the bench
+    c.strokeStyle = "#7a5a30"; c.lineWidth = 8; c.beginPath(); c.arc(wx2, wy2 - 40, 37, 0, Math.PI * 2); c.stroke();
+    c.lineWidth = 4; for (let k = 0; k < 4; k++) { c.beginPath(); c.moveTo(wx2 + Math.cos(k * Math.PI / 4) * 34, wy2 - 40 + Math.sin(k * Math.PI / 4) * 34); c.lineTo(wx2 - Math.cos(k * Math.PI / 4) * 34, wy2 - 40 - Math.sin(k * Math.PI / 4) * 34); c.stroke(); }
+    c.fillStyle = "#6a727c"; c.beginPath(); c.arc(wx2, wy2 - 40, 6, 0, Math.PI * 2); c.fill(); }
+  { const kx = W * 0.44, ky = H * 0.12; // the pendulum clock he built (bridge piece)
+    px(c, kx - 18, ky, 36, 88, "#5a4424"); px(c, kx - 18, ky, 36, 4, "#7a5a30"); px(c, kx - 13, ky + 66, 26, 18, "#241c11");
+    c.fillStyle = "#e8dcc0"; c.beginPath(); c.arc(kx, ky + 24, 13, 0, Math.PI * 2); c.fill(); c.strokeStyle = "#3a2c18"; c.lineWidth = 2; c.stroke();
+    const pang = Math.sin(now * 2.4) * 0.5;
+    c.save(); c.translate(kx, ky + 44); c.rotate(pang); c.strokeStyle = "#c9a24a"; c.lineWidth = 3; c.beginPath(); c.moveTo(0, 0); c.lineTo(0, 32); c.stroke(); c.fillStyle = "#c9a24a"; c.beginPath(); c.arc(0, 35, 6, 0, Math.PI * 2); c.fill(); c.restore();
+    c.strokeStyle = "#3a3f46"; c.lineWidth = 2; c.beginPath(); c.moveTo(kx, ky + 24); c.lineTo(kx + Math.cos(now * 0.5) * 9, ky + 24 + Math.sin(now * 0.5) * 9); c.stroke(); }
+  // ---- the new obsession (right): the switchboard wall ----
+  const sx = W * 0.5, sy = H * 0.12, sw = W * 0.33, sh = H * 0.46;
+  px(c, sx - 10, sy - 10, sw + 20, sh + 20, "#3a2c18"); px(c, sx, sy, sw, sh, "#242830"); px(c, sx, sy, sw, 6, "#33383f");
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 7; k++) px(c, sx + 18 + k * (sw - 36) / 6 - 3, sy + 22 + r * 30, 7, 7, "#0c0e12");
+  { const plug = (k1, r1, k2, r2, col) => { const xA = sx + 18 + k1 * (sw - 36) / 6, yA = sy + 25 + r1 * 30, xB = sx + 18 + k2 * (sw - 36) / 6, yB = sy + 25 + r2 * 30; wire2(xA, yA, xB, yB, 30, col, 3); px(c, xA - 4, yA - 4, 8, 8, col); px(c, xB - 4, yB - 4, 8, 8, col); };
+    plug(0, 0, 3, 2, "#c94f4f"); plug(1, 1, 5, 0, "#caa24a"); plug(3, 3, 6, 1, "#4f8fc9"); plug(0, 3, 5, 3, "#5aa06a"); }
+  lampRow2(sx + 14, sy + sh - 46, 10, 0); lampRow2(sx + 14, sy + sh - 28, 10, 5);
+  for (let i = 0; i < 2; i++) { const kx = sx + sw - 62 + i * 26; px(c, kx, sy + sh - 52, 5, 26, "#b87333"); c.save(); c.translate(kx + 2.5, sy + sh - 52); c.rotate(-0.6 + (Math.sin(now * 0.7 + i) > 0.6 ? 0.6 : 0)); px(c, -2.5, -18, 5, 18, "#9aa3ad"); c.restore(); }
+  // ---- the probe board (same state hooks as before) ----
+  { const bw2 = Math.min(330, W * 0.21), bx0 = W * 0.2, by0 = H * 0.5, bh2 = floorY - by0 - 52;
     px(c, bx0 - 8, by0 - 8, bw2 + 16, bh2 + 16, "#54422a"); px(c, bx0 - 8, by0 - 8, bw2 + 16, 3, "#6b5636");
     px(c, bx0, by0, bw2, bh2, "#10141c");
     c.font = "bold 12px 'IBM Plex Mono',monospace"; c.textAlign = "left"; c.fillStyle = "#8a97a8";
@@ -1115,33 +1141,50 @@ function drawWorkshop(c, W, gy, now) {
       c.fillText(ln, bx0 + 10, by0 + 42 + i * 19);
     });
     if (workshopLegend) { c.fillStyle = "#ffd43b"; c.font = "bold 12px 'IBM Plex Mono',monospace"; c.fillText("1 = WAIT   2 = MOVE   4 = HUNT", bx0 + 10, by0 + bh2 - 12); } }
-  // the bench: brass vice holding the implant, wired to a crank rig of copper and glass
-  { const wx = bx + half * 0.08, wy = counterY - 8;
-    px(c, wx - 26, wy - 20, 52, 8, "#8a6d3b"); px(c, wx - 20, wy - 27, 40, 9, "#6a727c"); px(c, wx - 20, wy - 27, 40, 2, "#8a939e");
-    px(c, wx - 7, wy - 35, 14, 9, "#9aa3ad"); px(c, wx - 7, wy - 35, 14, 3, "#c9d4e4");
-    const pulse = 0.5 + 0.5 * Math.sin(now * 3);
-    c.shadowColor = "#4dabf7"; c.shadowBlur = 10 * pulse; px(c, wx - 2, wy - 32, 4, 3, "#4dabf7"); c.shadowBlur = 0;
-    const rx = wx + 120;
-    px(c, rx - 16, wy - 46, 32, 46, "#3a2c18"); px(c, rx - 16, wy - 46, 32, 3, "#54422a");
-    c.strokeStyle = "#b87333"; c.lineWidth = 3;
-    for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(rx, wy - 26, 7 + i * 3, 0.4, Math.PI * 2 - 0.4); c.stroke(); }
-    px(c, rx + 24, wy - 28, 12, 28, "rgba(160,220,255,0.25)"); px(c, rx + 24, wy - 28, 12, 3, "#9aa3ad");
-    c.strokeStyle = "#caa24a"; c.lineWidth = 2; c.beginPath(); c.moveTo(rx - 16, wy - 24); c.lineTo(wx + 8, wy - 31); c.stroke();
-    if (workshopSpark > 0) { const sp = 1 - workshopSpark; const sx2 = rx - 16 + (wx + 8 - (rx - 16)) * sp; c.shadowColor = "#ffd43b"; c.shadowBlur = 12; px(c, sx2 - 2, wy - 33, 5, 5, "#ffe066"); c.shadowBlur = 0; } }
-  // counter
-  px(c, bx - half - 28, counterY, bw + 56, 14, "#8a6d3b"); px(c, bx - half - 28, counterY, bw + 56, 4, "#a9844a");
-  px(c, bx - half - 28, counterY + 14, bw + 56, 34, "#6b4f2a");
-  for (let x = bx - half - 28; x < bx + half + 28; x += 52) px(c, x, counterY + 14, 3, 34, "#4a3a22");
-  // the craftsman: wiry, grey-haired, spectacles, leather apron, gentle bob
-  { const sc = 5, bob = Math.sin(now * 1.5) * 0.5; c.save(); c.translate(bx + half * 0.42, counterY + 2 - bob); c.scale(sc, sc);
+  // ---- the bench: vice + implant, fed by the switchboard ----
+  const bY = floorY - 64, bX = W * 0.5, bW = W * 0.3;
+  px(c, bX, bY, bW, 10, "#a9844a"); px(c, bX, bY + 10, bW, 28, "#6b4f2a");
+  for (let i = 0; i < bW; i += 52) px(c, bX + i, bY + 10, 3, 28, "#4a3a22");
+  for (let i = 0; i < 4; i++) px(c, bX + 30 + i * 16, bY - 3, 8, 4, "#c9b89a"); // shavings on the electric bench: both lives, one surface
+  const vx = bX + bW * 0.55, vy = bY - 2;
+  px(c, vx - 22, vy - 10, 44, 10, "#6a727c"); px(c, vx - 16, vy - 18, 32, 8, "#8a939e"); // brass vice
+  px(c, vx - 9, vy - 28, 18, 11, "#9aa3ad"); px(c, vx - 9, vy - 28, 18, 4, "#c9d4e4"); // the implant
+  { const pulse = 0.5 + 0.5 * Math.sin(now * 3);
+    c.shadowColor = "#4dabf7"; c.shadowBlur = 12 * pulse; px(c, vx - 3, vy - 25, 6, 4, "#4dabf7"); c.shadowBlur = 0; }
+  // main cable: switchboard -> implant; workshopSpark travels it (probePair's hook)
+  const cx1 = sx + sw, cy1 = sy + sh * 0.55, cx2 = vx + 4, cy2 = vy - 22;
+  wire2(cx1, cy1, cx2, cy2, 46, "#3a3f46", 4); wire2(cx1, cy1 + 8, cx2 - 8, cy2 + 6, 54, "#4a3a22", 3);
+  if (workshopSpark > 0) {
+    const p = 1 - workshopSpark, mx = (cx1 + cx2) / 2, my = Math.max(cy1, cy2) + 46;
+    const q = (a, b, cc, tt) => (1 - tt) * (1 - tt) * a + 2 * (1 - tt) * tt * b + tt * tt * cc;
+    c.shadowColor = "#ffd43b"; c.shadowBlur = 12; px(c, q(cx1, mx, cx2, p) - 3, q(cy1, my, cy2, p) - 3, 6, 6, "#ffe066"); c.shadowBlur = 0;
+  }
+  // floor cable runs
+  for (let i = 0; i < 3; i++) wire2(W * 0.56 + i * 8, floorY + 6, W * 0.72 - i * 12, floorY + 6, 8 + i * 4, i % 2 ? "#3a3f46" : "#4a3a22", 3);
+  // ---- the craftsman (sc 5, unchanged sprite) ----
+  { const sc = 5, bob = Math.sin(now * 1.5) * 0.5; c.save(); c.translate(W * 0.88, floorY - bob); c.scale(sc, sc);
+    px(c, -4, -8, 3, 8, "#2a2014"); px(c, 2, -8, 3, 8, "#241c10");
     px(c, -7, -26, 14, 18, "#2f5a35"); px(c, -7, -26, 3, 18, "rgba(255,255,255,.14)");
     px(c, -5, -21, 10, 13, "#5a4426"); px(c, -5, -21, 10, 2, "#6e5430");
-    px(c, -10, -24, 3, 14, "#2f5a35"); px(c, 7, -24, 3, 14, "#2f5a35");
-    px(c, -12, -11, 5, 4, "#d8a878"); px(c, 7, -11, 5, 4, "#d8a878");
+    px(c, -10, -24, 3, 12, "#2f5a35"); px(c, 7, -24, 3, 14, "#2f5a35");
+    px(c, -12, -13, 5, 4, "#d8a878"); px(c, 7, -11, 5, 4, "#d8a878");
+    px(c, -14, -14, 6, 2, "#3a2c18"); c.shadowColor = "#ffb14d"; c.shadowBlur = 6 + Math.sin(now * 7) * 3; px(c, -16, -14, 3, 2, "#ffb14d"); c.shadowBlur = 0; // hot-tip probe in hand
     px(c, -5, -37, 11, 11, "#d8a878"); px(c, -6, -39, 13, 4, "#8a8f96");
-    px(c, -4, -33, 4, 3, "#c9d4e4"); px(c, 1, -33, 4, 3, "#c9d4e4");
+    px(c, -4, -33, 4, 3, "#c9d4e4"); px(c, 1, -33, 4, 3, "#c9d4e4"); px(c, 0, -32, 1, 1, "#3a3f46");
     px(c, -3, -32, 1, 1, "#1c1208"); px(c, 2, -32, 1, 1, "#1c1208");
     px(c, -3, -28.5, 7, 1.5, "#8a6242");
+    c.restore(); }
+  // ---- the posed hero, booth scale (armory's 4.4), full 1.5 kit, facing the craftsman ----
+  { const sc = 4.4, b = Math.sin(now * 1.8) * 0.6; c.save(); c.translate(W * 0.09, floorY); c.scale(sc, sc);
+    px(c, -4, -12, 4, 12, "#9aa3ad"); px(c, 1, -12, 4, 12, "#7a828c");
+    px(c, -4, -3, 4, 3, "#9aa3ad"); px(c, 1, -3, 4, 3, "#9aa3ad");
+    px(c, -6, -30 - b, 12, 20, "#8a939e"); px(c, -6, -30 - b, 3, 20, "#a5aeb8");
+    px(c, -1, -30 - b, 2, 14, "#6a727c"); px(c, -6, -30 - b, 12, 2, "#c9a24a");
+    px(c, -6, -16 - b, 12, 3, "#3a2c18"); px(c, -1, -16 - b, 2, 3, "#c9a24a");
+    px(c, -5, -41 - b, 11, 11, "#e0a070");
+    px(c, -6, -44 - b, 12, 5, "#7a828c"); px(c, -6, -44 - b, 12, 2, "#9aa3ad"); px(c, -6, -35 - b, 12, 2, "#6a727c");
+    px(c, 3, -37 - b, 2, 2, "#1c1208"); // eye toward the craftsman
+    px(c, 5, -28 - b, 3, 12, "#8a939e"); px(c, 5, -17 - b, 4, 3, "#9aa3ad");
     c.restore(); }
 }
 // ---- Lesson 1.3 questline scenes + beats ----
@@ -1776,8 +1819,8 @@ function draw(now) {
     c.restore();
   }
   // hero — rises smoothly while waking; blinks briefly after taking a hit.
-  // (skip in raft/armory — those scenes draw their own posed hero)
-  if (scene !== "raft" && scene !== "armory" && !(invinc > 0 && Math.floor(now * 12) % 2)) {
+  // (skip in raft/armory/workshop — those scenes draw their own posed hero)
+  if (scene !== "raft" && scene !== "armory" && scene !== "workshop" && !(invinc > 0 && Math.floor(now * 12) % 2)) {
     const vs = scene === "wildwood" ? 0.32 + 0.68 * char.rise : 1;
     c.save(); c.translate(char.x, heroGroundY(gy)); c.scale(CH, CH * vs); hero(c, 0, 0); c.restore();
   }
@@ -2173,7 +2216,7 @@ function speakerAnchor(who, W, gy) {
   if (w === "survivor") return survivor ? { x: survivor.x, y: gy + (survivor.y || 0) - 36 * CH } : null;
   if (w === "gatekeeper" && scene === "castle") return { x: W * 0.78 - 118 + 50, y: gy - 168 - 20 - 44 }; // peeking over the battlements
   if (w === "armorsmith" && scene === "armory") { const half = Math.min(860, W * 0.68) / 2; return { x: W / 2 + half * 0.42, y: els.H * 0.8 - 44 - 200 }; } // behind his counter
-  if (w === "craftsman" && scene === "workshop") { const half = Math.min(860, W * 0.68) / 2; return { x: W / 2 + half * 0.42, y: els.H * 0.8 - 44 - 200 }; }
+  if (w === "craftsman" && scene === "workshop") return { x: W * 0.88, y: els.H * 0.8 - 5 * 39 - 14 }; // above his head at the bench
   if (w === "tam" && scene === "keep" && tamAtKeep) return { x: W * 0.085, y: gy - 30 * CH };
   if (w === "tam" && scene === "fallencamp" && tamFollows) return { x: tamWalk.x, y: gy - 30 * CH };
   const key = SPEAKER_KEY[w];
