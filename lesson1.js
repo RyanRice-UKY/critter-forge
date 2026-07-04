@@ -1704,7 +1704,7 @@ async function playWorkshop(name) {
     await say("Craftsman", "The rules are with the knight and the little horror is locked in my strongbox, where it can pulse at nobody. Go on, scout. He is waiting.");
   } else {
     await say("Craftsman", "So you are the scout. The captain's runner said you carry something that should not exist. Hand it here. Careful. CAREFUL.");
-    await say("", "He sets the implant in a brass vice like it might bite, wires it to a crank rig of copper and glass, and drags a slate board where you both can see it.");
+    await say("", "He sets the implant in a brass vice like it might bite, runs a patch cable down from his switchboard wall, and drags the slate board where you both can see it.");
     await say("Craftsman", "It still ANSWERS. Look. I crank a signal IN, it answers OUT. Every machine keeps rules between the in and the out. You and I are going to steal them.");
     await runDecipherRounds();
   }
