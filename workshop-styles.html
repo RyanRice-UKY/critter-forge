@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Survive the Stack — craftsman's workshop / pick a design</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #080b11; --panel: #0d121b; --line: #1a2433;
+        --ink: #d7e2ee; --muted: #6b7c90; --grid: rgba(70, 110, 160, 0.07);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; }
+      body {
+        background: var(--bg); color: var(--ink); font-family: "IBM Plex Mono", monospace;
+        background-image: linear-gradient(var(--grid) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+          radial-gradient(1200px 700px at 50% -10%, #11203200, #060810 80%);
+        background-size: 32px 32px, 32px 32px, 100% 100%;
+        min-height: 100vh;
+      }
+      body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 5;
+        background: repeating-linear-gradient(0deg, rgba(0,0,0,0.13) 0, rgba(0,0,0,0.13) 1px, transparent 1px, transparent 3px);
+        mix-blend-mode: multiply; opacity: 0.5; }
+      header { padding: 40px 32px 12px; max-width: 1340px; margin: 0 auto; }
+      .kicker { font-size: 12px; letter-spacing: 4px; color: var(--muted); text-transform: uppercase; }
+      h1 { font-family: "Chakra Petch", sans-serif; font-weight: 700;
+        font-size: clamp(30px, 5vw, 56px); margin: 6px 0 4px; letter-spacing: 1px;
+        text-shadow: 0 0 30px rgba(77, 171, 247, 0.25); }
+      h1 .slash { color: #4dabf7; }
+      .sub { color: var(--muted); font-size: 14px; max-width: 700px; line-height: 1.6; }
+      .cursor { display: inline-block; width: 9px; height: 16px; background: #4dabf7; margin-left: 4px; vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+      @keyframes blink { 50% { opacity: 0; } }
+      .grid { max-width: 1340px; margin: 22px auto 80px; padding: 0 32px;
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(600px, 1fr)); gap: 20px; }
+      @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+      .card { background: linear-gradient(180deg, var(--panel), #0a0e15);
+        border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+        position: relative; transition: transform .2s, border-color .2s, box-shadow .2s; }
+      .card:hover { transform: translateY(-3px); border-color: var(--ac); box-shadow: 0 16px 50px -16px var(--acglow); }
+      .card .id { position: absolute; top: 12px; left: 14px; z-index: 2; font-size: 11px; letter-spacing: 2px; color: var(--muted); }
+      canvas { display: block; width: 100%; height: 340px; }
+      .meta { padding: 14px 16px 16px; }
+      .meta h2 { font-family: "Chakra Petch", sans-serif; font-size: 19px; margin: 0 0 4px; letter-spacing: .5px; }
+      .meta h2 b { color: var(--ac); }
+      .meta p { color: var(--muted); font-size: 12.5px; line-height: 1.55; margin: 0 0 12px; min-height: 36px; }
+      .types { display: flex; gap: 14px; font-size: 10.5px; color: var(--muted); margin-bottom: 4px; letter-spacing: 1px; flex-wrap: wrap; }
+      .types span::before { content: "●"; color: var(--ac); margin-right: 4px; font-size: 8px; vertical-align: 2px; }
+      footer { max-width: 1340px; margin: 0 auto 60px; padding: 0 32px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+      footer b { color: var(--ink); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="kicker">Survive the Stack · the keep · workshop redesign</div>
+      <h1>THE CRAFTSMAN <span class="slash">//</span> pick a workshop<span class="cursor"></span></h1>
+      <p class="sub">Four treatments of the craftsman's space, all fixing the scale problem: you and the craftsman now stand at matched size (armory-style zoom), and every design buries him in the wires, parts, and salvage of a man who never stopped taking machines apart. Everything animates: lamps blink, sparks run the wires, needles twitch.</p>
+    </header>
+    <div class="grid" id="grid"></div>
+    <footer>
+      All code-drawn in the game palette. Every design keeps the working pieces: the PROBE LOG slate, the brass vice with the blue-pulsing implant, and room for the crank rig.
+      Tell me a letter (or mix parts, like "B's wall with A's hanging bulbs") and I'll wire it into <b>lesson1.js</b>.
+    </footer>
+    <script src="./workshop-styles.js"></script>
+  </body>
+</html>
