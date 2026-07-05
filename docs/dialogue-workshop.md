@@ -113,7 +113,7 @@ ANSWER:
     raw = "7.5"
     strength = float(raw)
     print(strength * 2)
-PANEL: "7.5" is text with a decimal point in it. int() only accepts whole numbers. Feed it "7.5" and it errors. float() is the right tool. A float is a number that keeps its decimal point. 7.5 doubled is 15.0, point and all.
+PANEL: "7.5" is text with a decimal point in it. When int() reads text, every character must be a digit. The dot is not a digit, and int() refuses to guess whether "7.5" should become 7 or 8, so it stops with an error. float() knows how to read the dot. A float is a number that keeps its decimal point. 7.5 doubled is 15.0, point and all.
 
 TASK:
 Line 1 is already written: raw = "7.5"
@@ -121,7 +121,7 @@ Line 1 is already written: raw = "7.5"
 2. Change it to: strength = float(raw)
 3. Add: print(strength * 2)
 4. Run it. You should get 15.0.
-HINTS: "These marks carry a point. Cast with float(raw)." / "strength should come out a number: strength = float(raw)." / "Print strength * 2. The answer keeps its point." / (naive int(raw) attempt, error cast) "int() only takes whole numbers. This one has a point. Use float()."
+HINTS: "These marks carry a point. Cast with float(raw)." / "strength should come out a number: strength = float(raw)." / "Print strength * 2. The answer keeps its point." / (naive int(raw) attempt, error cast) "int() was reading text and hit the dot. It refuses to guess between 7 and 8, so it stops. float() knows how to read the point: strength = float(raw)."
 
   [board completes: IN 7.5 -> OUT 15.0]
 CRAFTSMAN (after): Fifteen POINT ZERO. The float keeps its point. So what happens when you pour it into the int mold?
@@ -134,7 +134,7 @@ ANSWER:
     whole = int(strength)
     print(whole)
     print(int(7.9))
-PANEL: int() does NOT round. It cuts. Everything after the decimal point is thrown away. int(7.5) is 7. int(7.9) is also 7, even though 7.9 is almost 8. If you want rounding, you must ask for rounding. int() never gives it.
+PANEL: Reading text is one job. Converting a real number is another. int() refused the TEXT "7.5", but hand it the NUMBER 7.5 and it converts: it does NOT round. It cuts. Everything after the decimal point is thrown away. int(7.5) is 7. int(7.9) is also 7, even though 7.9 is almost 8. If you want rounding, you must ask for rounding. int() never gives it.
 
 TASK:
 Line 1 is already written: strength = 7.5

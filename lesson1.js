@@ -286,7 +286,7 @@ xpPill();
 function translate(err) {
   const m = err.match(/name '(\w+)' is not defined/);
   if (m) return `Python doesn't know “${m[1]}”. Strings need quotes (e.g. you.walk("tree")) and variables must be set first.`;
-  if (err.includes("invalid literal for int()")) return "int() only takes whole numbers. This one has a point. Use float().";
+  if (err.includes("invalid literal for int()")) return "int() was reading text and hit the dot. It refuses to guess between 7 and 8, so it stops. float() knows how to read the point: strength = float(raw).";
   if (err.includes("can only concatenate str") || err.includes("unsupported operand type(s) for +")) return "You mixed a bare number with text. Cast it: str(out).";
   if (err.includes("SyntaxError")) return "SyntaxError: check quotes, colons and indentation.";
   if (err.includes("IndentationError")) return "IndentationError: the line under a for loop must be indented 4 spaces.";
@@ -1797,7 +1797,7 @@ async function playTypesArc() {
     prefill: 'raw = "7.5"\n',
     placeholder: 'raw = "7.5"\nstrength = float(raw)\nprint(strength * 2)', rows: 3,
     concept: ["convert", "float"],
-    task: "\"7.5\" is text with a decimal point in it. int() only accepts whole numbers. Feed it \"7.5\" and it errors. float() is the right tool. A float is a number that keeps its decimal point. 7.5 doubled is 15.0, point and all.\n\nTASK:\nLine 1 is already written: raw = \"7.5\"\n1. First try: strength = int(raw). Run it. Watch it fail.\n2. Change it to: strength = float(raw)\n3. Add: print(strength * 2)\n4. Run it. You should get 15.0.",
+    task: "\"7.5\" is text with a decimal point in it. When int() reads text, every character must be a digit. The dot is not a digit, and int() refuses to guess whether \"7.5\" should become 7 or 8, so it stops with an error. float() knows how to read the dot. A float is a number that keeps its decimal point. 7.5 doubled is 15.0, point and all.\n\nTASK:\nLine 1 is already written: raw = \"7.5\"\n1. First try: strength = int(raw). Run it. Watch it fail.\n2. Change it to: strength = float(raw)\n3. Add: print(strength * 2)\n4. Run it. You should get 15.0.",
     validate: (r) => {
       if (!/float\s*\(/.test(lastSrc)) return "This text carries a point. Cast with float(raw).";
       if (typeof r.vars.strength !== "number") return "strength should come out a number: strength = float(raw).";
@@ -1811,7 +1811,7 @@ async function playTypesArc() {
     prefill: 'strength = 7.5\n',
     placeholder: 'strength = 7.5\nwhole = int(strength)\nprint(whole)\nprint(int(7.9))', rows: 4,
     concept: "convert",
-    task: "int() does NOT round. It cuts. Everything after the decimal point is thrown away. int(7.5) is 7. int(7.9) is also 7, even though 7.9 is almost 8. If you want rounding, you must ask for rounding. int() never gives it.\n\nTASK:\nLine 1 is already written: strength = 7.5\n1. Add: whole = int(strength)\n2. Add: print(whole)\n3. Add: print(int(7.9))\nGuess both answers before you press Run.",
+    task: "Reading text is one job. Converting a real number is another. int() refused the TEXT \"7.5\", but hand it the NUMBER 7.5 and it converts: it does NOT round. It cuts. Everything after the decimal point is thrown away. int(7.5) is 7. int(7.9) is also 7, even though 7.9 is almost 8. If you want rounding, you must ask for rounding. int() never gives it.\n\nTASK:\nLine 1 is already written: strength = 7.5\n1. Add: whole = int(strength)\n2. Add: print(whole)\n3. Add: print(int(7.9))\nGuess both answers before you press Run.",
     validate: (r) => {
       if (!/\bint\s*\(/.test(lastSrc)) return "Use the int mold: whole = int(strength).";
       if (r.vars.whole !== 7) return "whole = int(strength).";
