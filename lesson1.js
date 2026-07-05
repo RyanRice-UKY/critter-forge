@@ -1799,7 +1799,7 @@ async function playTypesArc() {
     concept: ["convert", "float"],
     task: "\"7.5\" is text with a decimal point in it. int() only accepts whole numbers. Feed it \"7.5\" and it errors. float() is the right tool. A float is a number that keeps its decimal point. 7.5 doubled is 15.0, point and all.\n\nTASK:\nLine 1 is already written: raw = \"7.5\"\n1. First try: strength = int(raw). Run it. Watch it fail.\n2. Change it to: strength = float(raw)\n3. Add: print(strength * 2)\n4. Run it. You should get 15.0.",
     validate: (r) => {
-      if (!/float\s*\(/.test(lastSrc)) return "These marks carry a point. Cast with float(raw).";
+      if (!/float\s*\(/.test(lastSrc)) return "This text carries a point. Cast with float(raw).";
       if (typeof r.vars.strength !== "number") return "strength should come out a number: strength = float(raw).";
       return r.stdout.includes("15.0") ? null : "Print strength * 2. The answer keeps its point.";
     },
