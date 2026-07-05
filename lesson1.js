@@ -236,6 +236,7 @@ async function submit() {
   try { r = JSON.parse(runUser(runSrc, opts.seed || "", inputval)); }
   catch (e) { setStatus(String(e.message || e), "err"); return; }
   if (r.err) { setStatus(translate(r.err), "err"); return; }
+  if (scene === "workshop" && r.stdout.trim()) for (const ln of r.stdout.trim().split(/\n/).slice(0, 4)) workshopPairs.push("> " + ln); // the machine speaks: run output lands on the probe board
   const msg = opts.validate ? opts.validate(r) : null;
   if (msg) { setStatus(msg, "err"); return; }
   logCmd(src, true);
@@ -1657,7 +1658,7 @@ async function playSignalEpilogue(name) {
 // ---- the decipher rounds: watch pairs on the board, write the steps between ----
 async function probePair(inn, out, word) {
   workshopPairs.push(`IN ${inn}`); workshopSpark = 1; await wait(0.55);
-  workshopPairs[workshopPairs.length - 1] = `IN ${inn} -> OUT ${out}${word ? "   " + word : ""}`; await wait(0.35);
+  { const pi = workshopPairs.lastIndexOf(`IN ${inn}`); if (pi >= 0) workshopPairs[pi] = `IN ${inn} -> OUT ${out}${word ? "   " + word : ""}`; } await wait(0.35);
 }
 const DECIPHER = [
   { intro: "First rule. The shallow one. Watch the board.",
@@ -1700,7 +1701,7 @@ async function runDecipherRounds() {
         return null;
       },
     }, null);
-    workshopPairs[workshopPairs.length - 1] = "IN " + R.seed + " -> OUT " + R.expect(R.seed);
+    { const pi = workshopPairs.lastIndexOf("IN " + R.seed + " -> OUT ?"); if (pi >= 0) workshopPairs[pi] = "IN " + R.seed + " -> OUT " + R.expect(R.seed); }
     await say("Craftsman", i === 0 ? "That is it. That is exactly it. Two rules left." : i === 1 ? "An if with an else. You just taught a machine's whole heart to hold a coin. One left." : "All three rules, stolen clean. Now for the part that has kept my hands shaking.");
   }
   workshopLegend = true;
@@ -1736,21 +1737,25 @@ async function playTypesArc() {
     validate: (r) => (r.stdout.trim() === "1212" ? null : "Just press Run; the code is already written."),
   }, null);
   await say("Craftsman", "One-two-one-two. Do you see it now? \"12\" in quotes is not a number. It is a str, a STRING of text marks. Multiply marks and Python politely repeats them.");
-  await say("Craftsman", "Do not take my word for it. PROVE it. Do what I did with your own marks: pick any two-digit number, wrap it in quotes, multiply it by two.");
+  await say("Craftsman", "Do not take my word for it. PROVE it. And this time YOU feed the wire: input() will ask for your marks. Type any two-digit number when it does.");
   await ask({
     prompt: "Recreate the stutter with your own marks",
-    placeholder: 'marks = "34"\nprint(marks * 2)', rows: 2,
-    concept: "types",
-    task: "Write the craftsman's experiment yourself, slightly differently: declare your own variable holding a TWO-DIGIT number in quotes (any number, any name), then print it multiplied by 2. Predict the answer before you run.",
+    prefill: "marks = input()\n",
+    placeholder: "marks = input()\nprint(marks * 2)\nprint(type(marks))", rows: 3,
+    inputPrompt: "The crank is yours. Type any two-digit number:", inputDefault: "34",
+    concept: ["types", "input"],
+    task: "Line 1 is written: marks = input() takes whatever you type. Here is the trap: even when your fingers type digits, input() hands back MARKS, text, a str. Print marks * 2 and watch the stutter happen with YOUR number, then print type(marks) to see the shape with your own eyes. Do NOT cast anything yet.",
     validate: (r) => {
-      const m2 = lastSrc.match(/["'](\d\d)["']/);
-      if (!m2) return 'Put a two-digit number in quotes, like "34". The quotes are the whole experiment.';
-      const twice = m2[1] + m2[1];
-      return r.stdout.trim() === twice ? null : `Multiply your marks by 2 and print the result. With "${m2[1]}" the machine should echo ${twice}.`;
+      if (typeof r.vars.marks !== "string" || !/^\d\d$/.test(r.vars.marks)) return "Type a two-digit number when the box appears (line 1 does the asking).";
+      if (/\bint\s*\(/.test(lastSrc)) return "No casting yet. This beat is about what happens WITHOUT the mold.";
+      const twice = r.vars.marks + r.vars.marks;
+      if (!r.stdout.includes(twice)) return `Print marks * 2. With your ${r.vars.marks} the machine should stutter ${twice}.`;
+      return r.stdout.includes("'str'") ? null : "Now print type(marks) and read the shape it names.";
     },
   }, null);
-  await say("Craftsman", "There it is, in your own hand. Any marks, same stutter. What a value CAN DO is decided by its shape, and that shape has a name: its TYPE.");
-  await say("Craftsman", "Here is your experiment back. I stripped the print and wired three more values beside it, and my one line shows you the caliper: type() names any value's shape. Check the rest.");
+  await say("Craftsman", "There it is, on the board, in your own hand: your digits doubled into LONGER MARKS, and the caliper naming the shape. str. input() ALWAYS hands you marks, scout. A keyboard makes marks, not numbers.");
+  await say("Craftsman", "What a value CAN DO is decided by its shape, and that shape has a name: its TYPE. And marks is only the first of the shapes.");
+  await say("Craftsman", "Here is your experiment back. I stripped the prints and wired three more values beside it, with the marks check already written. Check the rest.");
   await ask({
     prompt: "Check the shape of every variable",
     prefill: 'marks = "34"\necho = marks * 2\ncount = 34\nvolts = 7.5\narmed = True\nprint(type(marks))\n',
@@ -1783,7 +1788,7 @@ async function playTypesArc() {
       return r.stdout.trim() === "24" ? null : "Now print signal * 2 and let the machine answer with real arithmetic.";
     },
   }, null);
-  workshopPairs[workshopPairs.length - 1] = "IN 12 -> OUT 24";
+  { const pi = workshopPairs.lastIndexOf("IN 12 -> OUT ?"); if (pi >= 0) workshopPairs[pi] = "IN 12 -> OUT 24"; }
   await say("Craftsman", "TWENTY-FOUR. All night I fought this thing, and you fix it with one cast. The board just logged its first honest pair. We are not done: the wire has more shapes in it.");
   workshopPairs.push("IN 7.5 -> OUT ?"); workshopSpark = 1;
   await ask({
@@ -1798,7 +1803,7 @@ async function playTypesArc() {
       return r.stdout.includes("15.0") ? null : "Print strength * 2. Watch closely: the answer will carry a point.";
     },
   }, null);
-  workshopPairs[workshopPairs.length - 1] = "IN 7.5 -> OUT 15.0";
+  { const pi = workshopPairs.lastIndexOf("IN 7.5 -> OUT ?"); if (pi >= 0) workshopPairs[pi] = "IN 7.5 -> OUT 15.0"; }
   await say("Craftsman", "Fifteen POINT ZERO. A float never drops its point, even with nothing riding behind it. Now the law every smith learns the hard way. What happens when you pour a float into the int mold?");
   await ask({
     prompt: "Pour a float into the int mold",
@@ -1832,7 +1837,7 @@ async function playTypesArc() {
     placeholder: 'raw = input("signal to send:")\nsignal = int(raw)\nstrong = signal >= 10\nprint(strong)', rows: 4,
     inputPrompt: "Your hand is on the crank. Send a whole number down the wire:", inputDefault: "14",
     concept: ["convert", "input", "bool"],
-    task: "Your turn at the crank. input() asks YOU for the signal, and here is the trap: input() ALWAYS hands back marks, even when your fingers typed digits, because a keyboard makes marks, not numbers. Cast to int, then store the question signal >= 10 in a variable named strong, and print it.",
+    task: "Your turn at the crank again, and this time you know the trap: input() hands back marks even when you type digits, so cast before you compare. Take the signal, cast it to int, then store the question signal >= 10 in a variable named strong, and print it.",
     validate: (r) => {
       if (!/input\s*\(/.test(lastSrc)) return "Take the crank: raw = input(...).";
       if (!/\bint\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "input() handed you marks. Cast before you compare: signal = int(raw).";
