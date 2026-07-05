@@ -98,7 +98,7 @@ Line 1 is already written: raw = "12"
 2. Now add: signal = int(raw)
 3. Change your print to: print(signal * 2)
 4. Run it. You should get 24.
-HINTS (staged): uncast run showing 1212 gets "There is the stutter, on the board. Now cast it: signal = int(raw) and print signal * 2 instead." / uncast run with no stutter gets "See the stutter first: print(raw * 2). Then cast it: signal = int(raw)." / "signal is still text. Cast it: signal = int(raw)." / "Cast raw itself. Do not type your own number." / "Change your print to: print(signal * 2). You should get 24."
+HINTS (staged): uncast run showing 1212 gets "There is the stutter, on the board. Now cast the text to a number: signal = int(raw), then print signal * 2." / uncast run with no stutter gets "See the stutter first: print(raw * 2). Then cast it: signal = int(raw)." / "Almost. Cast raw and multiply the RESULT by 2. The last thing you print should be 24."
 
   [board completes: IN 12 -> OUT 24]
 CRAFTSMAN (after): TWENTY-FOUR. All night I fought this thing, and you fix it with one cast.
@@ -121,7 +121,7 @@ Line 1 is already written: raw = "7.5"
 2. Change it to: strength = float(raw)
 3. Add: print(strength * 2)
 4. Run it. You should get 15.0.
-HINTS: "These marks carry a point. Cast with float(raw)." / "strength should come out a number: strength = float(raw)." / "Print strength * 2. The answer keeps its point." / (naive int(raw) attempt, error cast) "int() was reading text and hit the dot. It refuses to guess between 7 and 8, so it stops. float() knows how to read the point: strength = float(raw)."
+HINTS: "int() cannot read \"7.5\": the dot is not a digit. Cast with float(raw) instead." / "Now multiply your float by 2 and print it. The answer should be 15.0, point and all." / (naive int(raw) attempt, error cast) "int() was reading text and hit the dot. It refuses to guess between 7 and 8, so it stops. float() knows how to read the point: strength = float(raw)."
 
   [board completes: IN 7.5 -> OUT 15.0]
 CRAFTSMAN (after): Fifteen POINT ZERO. The float keeps its point. So what happens when you pour it into the int mold?
@@ -142,7 +142,7 @@ Line 1 is already written: strength = 7.5
 2. Add: print(whole)
 3. Add: print(int(7.9))
 Guess both answers before you press Run.
-HINTS: "Use the int mold: whole = int(strength)." / "whole = int(strength)." / "Print whole, then print int(7.9). Two lines, two answers."
+HINTS: "Pour the float into int(): whole = int(strength)." / "Print int(strength) first, then print int(7.9). Both lines should say 7."
 
 CRAFTSMAN (after): Seven, and seven AGAIN from a value nearly touching eight. The mold cuts. It never rounds.
 
@@ -161,7 +161,7 @@ Line 1 is already written: out = 15
 2. Add: label = "OUT " + str(out)
 3. Add: print(label)
 4. Run it. It should read: OUT 15
-HINTS: "Turn the number into text first: str(out)." / "Store it: label = \"OUT \" + str(out)." / "Print the label. It should read: OUT 15" / (naive glue attempt, error cast) "You mixed a bare number with text. Cast it: str(out)."
+HINTS: "Turn the number into text first: str(out)." / "Join the text: \"OUT \" + str(out), then print it. It should read: OUT 15" / (naive glue attempt, error cast) "You mixed a bare number with text. Cast it: str(out)."
 
 CRAFTSMAN (after): Three molds now: int(), float(), str().
 
@@ -224,7 +224,7 @@ Line 1 is already written: raw = input()   (the machine feeds 7)
 2. Study the pairs. Find the one rule that fits all three.
 3. Set out from signal so every pair matches.
 You can store the answer in out or just print it.
-HINTS: "The wire gave you text. Cast first: signal = int(raw)." / "The board disagrees. IN 7 must come OUT 15. Your steps made X." / "Fresh probe: IN 2. Your steps say 15. The machine says 5. Your rule must answer EVERY signal."
+HINTS: "input() gave you text, and the code never casts it to a number. Wrap it: int(raw), then do the math on that." / "Your code runs but never gives an answer. Store the result in out, or print it." / "Check the math: IN 7 should give OUT 15, but your code answered X. Compare against the pairs on the board." / "Your rule works for IN 7 but not for EVERY signal. The machine tried IN 2: the correct answer is 5, your code answered X." (any variable names accepted)
 
 CRAFTSMAN (after): That is it. That is exactly it. Two rules left.
 
@@ -249,7 +249,7 @@ Line 1 is already written: raw = input()   (the machine feeds 12)
    Below ten the machine answers 0. Ten and above, it answers signal minus 10.
 3. Write it: an if for the weak signals, an else for the rest.
 You can store the answer in out or just print it.
-HINTS: cast hint (as R1) / "Ask the question first: an if line about signal, ending with a colon." / "The if answers the yes. You still need an else for every no." / board-disagrees + fresh-probe (as R1).
+HINTS: cast hint (as R1) / "This rule needs a decision. Write an if line that compares your number, ending with a colon, like: if signal < 10:" / "Your if covers one side. Add an else: for the other side." / no-answer + check-the-math + every-signal hints (as R1, any variable names accepted).
 
 CRAFTSMAN (after): An if with an else. You just taught a machine's whole heart to hold a coin. One left.
 

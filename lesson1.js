@@ -1690,16 +1690,17 @@ async function runDecipherRounds() {
       inputValue: String(R.seed),
       validate: (r) => {
         const lastLine = (o) => { const t = (o.stdout || "").trim(); return t ? Number(t.split(/\n/).pop()) : NaN; };
-        if (!/\bint\s*\(/.test(lastSrc) || (r.vars.signal !== undefined && typeof r.vars.signal !== "number")) return "The wire gave you text. Cast first: signal = int(raw).";
-        if (R.needsElse && !/\bif\b[^\n]*\bsignal\b[^\n]*:/.test(lastSrc)) return "Ask the question first: an if line about signal, ending with a colon.";
-        if (R.needsElse && !/\belse\s*:/.test(lastSrc)) return "The if answers the yes. You still need an else for every no.";
+        if (!/\bint\s*\(/.test(lastSrc)) return "input() gave you text, and the code never casts it to a number. Wrap it: int(raw), then do the math on that.";
+        if (R.needsElse && !/\bif\b[^\n]*:/.test(lastSrc)) return "This rule needs a decision. Write an if line that compares your number, ending with a colon, like: if signal < 10:";
+        if (R.needsElse && !/\belse\s*:/.test(lastSrc)) return "Your if covers one side. Add an else: for the other side.";
         const got = r.vars.out !== undefined ? Number(r.vars.out) : lastLine(r);
-        if (got !== R.expect(R.seed)) return `The board disagrees. IN ${R.seed} must come OUT ${R.expect(R.seed)}. Your steps made ${Number.isNaN(got) ? "nothing" : got}.`;
+        if (Number.isNaN(got)) return "Your code runs but never gives an answer. Store the result in out, or print it.";
+        if (got !== R.expect(R.seed)) return `Check the math: IN ${R.seed} should give OUT ${R.expect(R.seed)}, but your code answered ${got}. Compare against the pairs on the board.`;
         for (const h of R.reruns) {
           let rr2; try { rr2 = JSON.parse(runUser(lastSrc, "", String(h))); } catch (e) { return "Something broke re-running your steps. Try again."; }
           if (rr2.err) return translate(rr2.err);
           const rgot = rr2.vars.out !== undefined ? Number(rr2.vars.out) : lastLine(rr2);
-          if (rgot !== R.expect(h)) return `Fresh probe: IN ${h}. Your steps say ${Number.isNaN(rgot) ? "nothing" : rgot}. The machine says ${R.expect(h)}. Your rule must answer EVERY signal.`;
+          if (rgot !== R.expect(h)) return `Your rule works for IN ${R.seed} but not for EVERY signal. The machine tried IN ${h}: the correct answer is ${R.expect(h)}, your code answered ${Number.isNaN(rgot) ? "nothing" : rgot}.`;
         }
         return null;
       },
@@ -1783,12 +1784,10 @@ async function playTypesArc() {
     task: "Casting converts a value from one type to another. int(raw) takes the text \"12\" and turns it into the number 12. Once it is a real number, math works.\n\nTASK:\nLine 1 is already written: raw = \"12\"\n1. First add print(raw * 2) and run it. Watch the stutter: 1212.\n2. Now add: signal = int(raw)\n3. Change your print to: print(signal * 2)\n4. Run it. You should get 24.",
     validate: (r) => {
       if (!/\bint\s*\(/.test(lastSrc)) {
-        if (r.stdout.includes("1212")) return "There is the stutter, on the board. Now cast it: signal = int(raw) and print signal * 2 instead.";
+        if (r.stdout.includes("1212")) return "There is the stutter, on the board. Now cast the text to a number: signal = int(raw), then print signal * 2.";
         return "See the stutter first: print(raw * 2). Then cast it: signal = int(raw).";
       }
-      if (typeof r.vars.signal !== "number") return "signal is still text. Cast it: signal = int(raw).";
-      if (r.vars.signal !== 12) return "Cast raw itself. Do not type your own number.";
-      return /(^|\n)24\s*$/.test(r.stdout.trim()) ? null : "Change your print to: print(signal * 2). You should get 24.";
+      return /(^|\n)24\s*$/.test(r.stdout.trim()) ? null : "Almost. Cast raw and multiply the RESULT by 2. The last thing you print should be 24.";
     },
   }, null);
   { const pi = workshopPairs.lastIndexOf("IN 12 -> OUT ?"); if (pi >= 0) workshopPairs[pi] = "IN 12 -> OUT 24"; }
@@ -1802,9 +1801,8 @@ async function playTypesArc() {
     concept: ["convert", "float"],
     task: "\"7.5\" is text with a decimal point in it. When int() reads text, every character must be a digit. The dot is not a digit, and int() refuses to guess whether \"7.5\" should become 7 or 8, so it stops with an error. float() knows how to read the dot. A float is a number that keeps its decimal point. 7.5 doubled is 15.0, point and all.\n\nTASK:\nLine 1 is already written: raw = \"7.5\"\n1. First try: strength = int(raw). Run it. Watch it fail.\n2. Change it to: strength = float(raw)\n3. Add: print(strength * 2)\n4. Run it. You should get 15.0.",
     validate: (r) => {
-      if (!/float\s*\(/.test(lastSrc)) return "This text carries a point. Cast with float(raw).";
-      if (typeof r.vars.strength !== "number") return "strength should come out a number: strength = float(raw).";
-      return r.stdout.includes("15.0") ? null : "Print strength * 2. The answer keeps its point.";
+      if (!/float\s*\(/.test(lastSrc)) return 'int() cannot read "7.5": the dot is not a digit. Cast with float(raw) instead.';
+      return r.stdout.includes("15.0") ? null : "Now multiply your float by 2 and print it. The answer should be 15.0, point and all.";
     },
   }, null);
   { const pi = workshopPairs.lastIndexOf("IN 7.5 -> OUT ?"); if (pi >= 0) workshopPairs[pi] = "IN 7.5 -> OUT 15.0"; }
@@ -1816,10 +1814,9 @@ async function playTypesArc() {
     concept: "convert",
     task: "Reading text is one job. Converting a real number is another. int() refused the TEXT \"7.5\", but hand it the NUMBER 7.5 and it converts: it does NOT round. It cuts. Everything after the decimal point is thrown away. int(7.5) is 7. int(7.9) is also 7, even though 7.9 is almost 8. If you want rounding, you must ask for rounding. int() never gives it.\n\nTASK:\nLine 1 is already written: strength = 7.5\n1. Add: whole = int(strength)\n2. Add: print(whole)\n3. Add: print(int(7.9))\nGuess both answers before you press Run.",
     validate: (r) => {
-      if (!/\bint\s*\(/.test(lastSrc)) return "Use the int mold: whole = int(strength).";
-      if (r.vars.whole !== 7) return "whole = int(strength).";
+      if (!/\bint\s*\(/.test(lastSrc)) return "Pour the float into int(): whole = int(strength).";
       const lines = r.stdout.trim().split(/\n/);
-      return lines.length >= 2 && lines[0].trim() === "7" && lines[1].trim() === "7" ? null : "Print whole, then print int(7.9). Two lines, two answers.";
+      return lines.length >= 2 && lines[0].trim() === "7" && lines[1].trim() === "7" ? null : "Print int(strength) first, then print int(7.9). Both lines should say 7.";
     },
   }, null);
   await say("Craftsman", "Seven, and seven AGAIN from a value nearly touching eight. The mold cuts. It never rounds.");
@@ -1831,8 +1828,7 @@ async function playTypesArc() {
     task: "You cannot glue text and a number together with +. \"OUT \" + 15 errors because one side is text and the other is a number. str() runs the other direction: it turns the number 15 into the text \"15\". Once both sides are text, + joins them.\n\nTASK:\nLine 1 is already written: out = 15\n1. First try: print(\"OUT \" + out). Run it. Watch it fail.\n2. Add: label = \"OUT \" + str(out)\n3. Add: print(label)\n4. Run it. It should read: OUT 15",
     validate: (r) => {
       if (!/str\s*\(/.test(lastSrc)) return "Turn the number into text first: str(out).";
-      if (typeof r.vars.label !== "string") return 'Store it: label = "OUT " + str(out).';
-      return r.stdout.includes("OUT 15") ? null : "Print the label. It should read: OUT 15";
+      return r.stdout.includes("OUT 15") ? null : 'Join the text: "OUT " + str(out), then print it. It should read: OUT 15';
     },
   }, null);
   await say("Craftsman", "Three molds now: int(), float(), str().");
