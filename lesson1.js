@@ -231,6 +231,7 @@ async function submit() {
   const runSrc = src + (opts.append ? "\n" + opts.append : "");      // append a read-only check to run (not shown/logged)
   let inputval = "";
   if (opts.inputPrompt) { const p = window.prompt(opts.inputPrompt, opts.inputDefault || ""); inputval = p === null ? (opts.inputDefault || "") : p; }  // interactive input(); cancel falls back to the suggested default
+  else if (opts.inputValue != null) inputval = String(opts.inputValue);  // machine-fed input(): no popup, the scene supplies the value
   let r;
   try { r = JSON.parse(runUser(runSrc, opts.seed || "", inputval)); }
   catch (e) { setStatus(String(e.message || e), "err"); return; }
@@ -1656,19 +1657,19 @@ async function probePair(inn, out, word) {
 const DECIPHER = [
   { intro: "First rule. The shallow one. Watch the board.",
     probes: [2, 4, 7], seed: 7, expect: (s) => s * 2 + 1, reruns: [2, 5], needsElse: false,
-    prompt: "Decipher rule 1: set out from signal", rows: 2, concept: "convert",
-    placeholder: "signal = int(raw)\nout = signal * 2 + 1",
-    task: "Already wired to your bench:\n\n    raw = \"7\"\n\nCast before you calculate. The board shows what the machine did: IN 2 -> OUT 5, IN 4 -> OUT 9, IN 7 -> OUT 15. Write the steps between IN and OUT: set out from signal so your steps match EVERY pair, not just this one." },
+    prompt: "Decipher rule 1: set out from signal", rows: 3, concept: "convert",
+    placeholder: "raw = input()\nsignal = int(raw)\nout = signal * 2 + 1",
+    task: "The wire feeds your code through input(): line 1 is already written. The crank is sending 7. Cast before you calculate. The board shows what the machine did: IN 2 -> OUT 5, IN 4 -> OUT 9, IN 7 -> OUT 15. Write the steps between IN and OUT: set out from signal so your steps match EVERY pair, not just this one." },
   { intro: "Second rule. Stranger. Watch what it does to WEAK signals.",
     probes: [4, 9, 12, 15], seed: 12, expect: (s) => (s < 10 ? 0 : s - 10), reruns: [7, 15, 20], needsElse: true,
-    prompt: "Decipher rule 2: the machine ignores weak signals", rows: 5, concept: "if",
-    placeholder: "signal = int(raw)\nif signal < 10:\n    out = 0\nelse:\n    out = signal - 10",
-    task: "Already wired to your bench:\n\n    raw = \"12\"\n\nCast first. IN 4 -> OUT 0. IN 9 -> OUT 0. IN 12 -> OUT 2. IN 15 -> OUT 5. Below ten it answers nothing: out is 0. Ten and above, it answers signal minus 10. You know if. Now meet else: the if answers the YES, and the else catches every NO." },
+    prompt: "Decipher rule 2: the machine ignores weak signals", rows: 6, concept: "if",
+    placeholder: "raw = input()\nsignal = int(raw)\nif signal < 10:\n    out = 0\nelse:\n    out = signal - 10",
+    task: "The wire feeds your code through input(): line 1 is already written. The crank is sending 12. Cast first. IN 4 -> OUT 0. IN 9 -> OUT 0. IN 12 -> OUT 2. IN 15 -> OUT 5. Below ten it answers nothing: out is 0. Ten and above, it answers signal minus 10. You know if. Now meet else: the if answers the YES, and the else catches every NO." },
   { intro: "Last rule. The deep one. This is where it keeps its orders.",
     probes: [3, 8, 12, 20], seed: 20, expect: (s) => (s < 10 ? s + 1 : s * 2), reruns: [6, 12, 15], needsElse: true,
-    prompt: "Decipher rule 3: two behaviours, one machine", rows: 5, concept: "if",
-    placeholder: "signal = int(raw)\nif signal < 10:\n    out = signal + 1\nelse:\n    out = signal * 2",
-    task: "Already wired to your bench:\n\n    raw = \"20\"\n\nCast first. IN 3 -> OUT 4. IN 8 -> OUT 9. IN 12 -> OUT 24. IN 20 -> OUT 40. Weak signals gain one. Strong signals are doubled. One if, one else, and the machine has no secrets left." },
+    prompt: "Decipher rule 3: two behaviours, one machine", rows: 6, concept: "if",
+    placeholder: "raw = input()\nsignal = int(raw)\nif signal < 10:\n    out = signal + 1\nelse:\n    out = signal * 2",
+    task: "The wire feeds your code through input(): line 1 is already written. The crank is sending 20. Cast first. IN 3 -> OUT 4. IN 8 -> OUT 9. IN 12 -> OUT 24. IN 20 -> OUT 40. Weak signals gain one. Strong signals are doubled. One if, one else, and the machine has no secrets left." },
 ];
 async function runDecipherRounds() {
   for (let i = 0; i < DECIPHER.length; i++) {
@@ -1676,21 +1677,25 @@ async function runDecipherRounds() {
     await say("Craftsman", R.intro);
     workshopPairs.push("RULE " + (i + 1));
     for (const p of R.probes) await probePair(p, R.expect(p));
+    workshopPairs.push("IN " + R.seed + " -> OUT ?"); workshopSpark = 1;
     await ask({
-      prompt: R.prompt, placeholder: R.placeholder, rows: R.rows, seed: 'raw = "' + R.seed + '"', concept: R.concept, task: R.task,
+      prompt: R.prompt, placeholder: R.placeholder, rows: R.rows, concept: R.concept, task: R.task,
+      prefill: "raw = input()\n",
+      inputValue: String(R.seed),
       validate: (r) => {
         if (!/\bint\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "The wire gave you marks, not a number. Cast before you calculate: signal = int(raw).";
         if (R.needsElse && !/\bif\b[^\n]*\bsignal\b[^\n]*:/.test(lastSrc)) return "Ask the question first: an if line about signal, ending with a colon.";
         if (R.needsElse && !/\belse\s*:/.test(lastSrc)) return "The if answers the yes. You still need an else: for every no.";
         if (Number(r.vars.out) !== R.expect(R.seed)) return `The board disagrees. IN ${R.seed} must come OUT ${R.expect(R.seed)}; your steps made ${r.vars.out === undefined ? "nothing" : r.vars.out}. Set out from signal.`;
         for (const h of R.reruns) {
-          let rr2; try { rr2 = JSON.parse(runUser(lastSrc, 'raw = "' + h + '"', "")); } catch (e) { return "Something broke re-running your steps. Try again."; }
+          let rr2; try { rr2 = JSON.parse(runUser(lastSrc, "", String(h))); } catch (e) { return "Something broke re-running your steps. Try again."; }
           if (rr2.err) return translate(rr2.err);
           if (Number(rr2.vars.out) !== R.expect(h)) return `The craftsman cranks a fresh probe: IN ${h}. Your steps say ${rr2.vars.out === undefined ? "nothing" : rr2.vars.out}. The machine says ${R.expect(h)}. It answers EVERY signal, not just one.`;
         }
         return null;
       },
     }, null);
+    workshopPairs[workshopPairs.length - 1] = "IN " + R.seed + " -> OUT " + R.expect(R.seed);
     await say("Craftsman", i === 0 ? "That is it. That is exactly it. Two rules left." : i === 1 ? "An if with an else. You just taught a machine's whole heart to hold a coin. One left." : "All three rules, stolen clean. Now for the part that has kept my hands shaking.");
   }
   workshopLegend = true;
