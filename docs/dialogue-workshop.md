@@ -223,6 +223,7 @@ Line 1 is already written: raw = input()   (the machine feeds 7)
 1. Cast first: signal = int(raw)
 2. Study the pairs. Find the one rule that fits all three.
 3. Set out from signal so every pair matches.
+You can store the answer in out or just print it.
 HINTS: "The wire gave you text. Cast first: signal = int(raw)." / "The board disagrees. IN 7 must come OUT 15. Your steps made X." / "Fresh probe: IN 2. Your steps say 15. The machine says 5. Your rule must answer EVERY signal."
 
 CRAFTSMAN (after): That is it. That is exactly it. Two rules left.
@@ -247,6 +248,7 @@ Line 1 is already written: raw = input()   (the machine feeds 12)
 2. Read the pairs: IN 4 -> 0. IN 9 -> 0. IN 12 -> 2. IN 15 -> 5.
    Below ten the machine answers 0. Ten and above, it answers signal minus 10.
 3. Write it: an if for the weak signals, an else for the rest.
+You can store the answer in out or just print it.
 HINTS: cast hint (as R1) / "Ask the question first: an if line about signal, ending with a colon." / "The if answers the yes. You still need an else for every no." / board-disagrees + fresh-probe (as R1).
 
 CRAFTSMAN (after): An if with an else. You just taught a machine's whole heart to hold a coin. One left.
@@ -271,6 +273,7 @@ Line 1 is already written: raw = input()   (the machine feeds 20)
 2. Read the pairs: IN 3 -> 4. IN 8 -> 9. IN 12 -> 24. IN 20 -> 40.
    Weak signals gain one. Strong signals double.
 3. Write both behaviors with one if and one else.
+You can store the answer in out or just print it.
 HINTS: same family as Round 2.
 
 CRAFTSMAN (after): All three rules, stolen clean. Now for the part that has kept my hands shaking.

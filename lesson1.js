@@ -135,7 +135,7 @@ async function boot() {
   };
   document.getElementById("wallNoteExplain").onclick = () => showWalkthrough(WT_MANIFEST); // ❓ replays the explainer any time
   els.run.onclick = submit;
-  els.hint.onclick = () => { if (currentInput) Editor.toggleHint(currentInput.opts.placeholder || ""); };
+  els.hint.onclick = () => { if (currentInput) { Editor.toggleHint(currentInput.opts.placeholder || ""); Editor.focus(); } };
   Editor.init({ onSubmit: submit, onChange: (lines) => els.ide.classList.toggle("wide", lines > 8) }); // grow wide before tall at the bottom dock
   wireDevBar();
   if (window.Journal) window.Journal.init({ pyodide: null });
@@ -1665,17 +1665,17 @@ const DECIPHER = [
     probes: [2, 4, 7], seed: 7, expect: (s) => s * 2 + 1, reruns: [2, 5], needsElse: false,
     prompt: "Steal rule 1", rows: 3, concept: "convert",
     placeholder: "raw = input()\nsignal = int(raw)\nout = signal * 2 + 1",
-    task: "The board shows pairs the machine already answered:\nIN 2 -> OUT 5. IN 4 -> OUT 9. IN 7 -> OUT 15.\nYour steps must turn IN into OUT for EVERY pair, not just one.\n\nTASK:\nLine 1 is already written: raw = input()   (the machine feeds 7)\n1. Cast first: signal = int(raw)\n2. Study the pairs. Find the one rule that fits all three.\n3. Set out from signal so every pair matches." },
+    task: "The board shows pairs the machine already answered:\nIN 2 -> OUT 5. IN 4 -> OUT 9. IN 7 -> OUT 15.\nYour steps must turn IN into OUT for EVERY pair, not just one.\n\nTASK:\nLine 1 is already written: raw = input()   (the machine feeds 7)\n1. Cast first: signal = int(raw)\n2. Study the pairs. Find the one rule that fits all three.\n3. Set out from signal so every pair matches.\nYou can store the answer in out or just print it." },
   { intro: "Second rule. Stranger. Watch what it does to WEAK signals.",
     probes: [4, 9, 12, 15], seed: 12, expect: (s) => (s < 10 ? 0 : s - 10), reruns: [7, 15, 20], needsElse: true,
     prompt: "Steal rule 2", rows: 6, concept: "if",
     placeholder: "raw = input()\nsignal = int(raw)\nif signal < 10:\n    out = 0\nelse:\n    out = signal - 10",
-    task: "if runs its lines only when a question is True. else runs when the question is False. One if plus one else covers every possible signal.\n\nTASK:\nLine 1 is already written: raw = input()   (the machine feeds 12)\n1. Cast first: signal = int(raw)\n2. Read the pairs: IN 4 -> 0. IN 9 -> 0. IN 12 -> 2. IN 15 -> 5.\n   Below ten the machine answers 0. Ten and above, it answers signal minus 10.\n3. Write it: an if for the weak signals, an else for the rest." },
+    task: "if runs its lines only when a question is True. else runs when the question is False. One if plus one else covers every possible signal.\n\nTASK:\nLine 1 is already written: raw = input()   (the machine feeds 12)\n1. Cast first: signal = int(raw)\n2. Read the pairs: IN 4 -> 0. IN 9 -> 0. IN 12 -> 2. IN 15 -> 5.\n   Below ten the machine answers 0. Ten and above, it answers signal minus 10.\n3. Write it: an if for the weak signals, an else for the rest.\nYou can store the answer in out or just print it." },
   { intro: "Last rule. The deep one. This is where it keeps its orders.",
     probes: [3, 8, 12, 20], seed: 20, expect: (s) => (s < 10 ? s + 1 : s * 2), reruns: [6, 12, 15], needsElse: true,
     prompt: "Steal rule 3", rows: 6, concept: "if",
     placeholder: "raw = input()\nsignal = int(raw)\nif signal < 10:\n    out = signal + 1\nelse:\n    out = signal * 2",
-    task: "One machine can hold two behaviors at once. The if decides which one runs. That is the whole trick.\n\nTASK:\nLine 1 is already written: raw = input()   (the machine feeds 20)\n1. Cast first: signal = int(raw)\n2. Read the pairs: IN 3 -> 4. IN 8 -> 9. IN 12 -> 24. IN 20 -> 40.\n   Weak signals gain one. Strong signals double.\n3. Write both behaviors with one if and one else." },
+    task: "One machine can hold two behaviors at once. The if decides which one runs. That is the whole trick.\n\nTASK:\nLine 1 is already written: raw = input()   (the machine feeds 20)\n1. Cast first: signal = int(raw)\n2. Read the pairs: IN 3 -> 4. IN 8 -> 9. IN 12 -> 24. IN 20 -> 40.\n   Weak signals gain one. Strong signals double.\n3. Write both behaviors with one if and one else.\nYou can store the answer in out or just print it." },
 ];
 async function runDecipherRounds() {
   for (let i = 0; i < DECIPHER.length; i++) {
@@ -1689,14 +1689,17 @@ async function runDecipherRounds() {
       prefill: "raw = input()\n",
       inputValue: String(R.seed),
       validate: (r) => {
-        if (!/\bint\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "The wire gave you text. Cast first: signal = int(raw).";
+        const lastLine = (o) => { const t = (o.stdout || "").trim(); return t ? Number(t.split(/\n/).pop()) : NaN; };
+        if (!/\bint\s*\(/.test(lastSrc) || (r.vars.signal !== undefined && typeof r.vars.signal !== "number")) return "The wire gave you text. Cast first: signal = int(raw).";
         if (R.needsElse && !/\bif\b[^\n]*\bsignal\b[^\n]*:/.test(lastSrc)) return "Ask the question first: an if line about signal, ending with a colon.";
         if (R.needsElse && !/\belse\s*:/.test(lastSrc)) return "The if answers the yes. You still need an else for every no.";
-        if (Number(r.vars.out) !== R.expect(R.seed)) return `The board disagrees. IN ${R.seed} must come OUT ${R.expect(R.seed)}. Your steps made ${r.vars.out === undefined ? "nothing" : r.vars.out}.`;
+        const got = r.vars.out !== undefined ? Number(r.vars.out) : lastLine(r);
+        if (got !== R.expect(R.seed)) return `The board disagrees. IN ${R.seed} must come OUT ${R.expect(R.seed)}. Your steps made ${Number.isNaN(got) ? "nothing" : got}.`;
         for (const h of R.reruns) {
           let rr2; try { rr2 = JSON.parse(runUser(lastSrc, "", String(h))); } catch (e) { return "Something broke re-running your steps. Try again."; }
           if (rr2.err) return translate(rr2.err);
-          if (Number(rr2.vars.out) !== R.expect(h)) return `Fresh probe: IN ${h}. Your steps say ${rr2.vars.out === undefined ? "nothing" : rr2.vars.out}. The machine says ${R.expect(h)}. Your rule must answer EVERY signal.`;
+          const rgot = rr2.vars.out !== undefined ? Number(rr2.vars.out) : lastLine(rr2);
+          if (rgot !== R.expect(h)) return `Fresh probe: IN ${h}. Your steps say ${Number.isNaN(rgot) ? "nothing" : rgot}. The machine says ${R.expect(h)}. Your rule must answer EVERY signal.`;
         }
         return null;
       },

@@ -78,8 +78,9 @@
       .editor .CodeMirror-cursor { border-left:2px solid var(--amber); }
       .editor .CodeMirror-selected { background:#1e2c46; }
       .editor .CodeMirror-placeholder { color:#5d6a7d; font-style:italic; }
-      .editor .cm-ghost-rest { color:#55627a; font-style:italic; white-space:pre; }
-      .editor .cm-ghost-block { margin:0; padding:0 0 0 4px; color:#55627a; font-style:italic; font-family:inherit; font-size:inherit; line-height:inherit; background:none; border:none; }
+      .editor .cm-ghost-rest { color:#55627a; font-style:italic; white-space:pre; pointer-events:none; }
+      .editor .cm-ghost-block { margin:0; padding:0 0 0 4px; color:#55627a; font-style:italic; font-family:inherit; font-size:inherit; line-height:inherit; background:none; border:none; pointer-events:none; }
+      .editor .CodeMirror-linewidget { pointer-events:none; } /* the ghost block is our only line widget; let clicks fall through to the editor */
       .cm-s-default .cm-keyword { color:#7ec9ff; }
       .cm-s-default .cm-def { color:#e7c878; }
       .cm-s-default .cm-builtin { color:#e7c878; }
