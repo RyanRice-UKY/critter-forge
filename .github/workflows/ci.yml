@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Syntax-check every JS module
+        run: git ls-files '*.js' '*.mjs' | xargs -n1 node --check
+      - name: Critter levels (35 canonicals x 60 seeds)
+        run: node verify.mjs
+      - name: Tower levels
+        run: node tower-verify.mjs
+      - name: Trials (canonicals pass, cheats rejected)
+        run: node trials-verify.mjs
+      - name: Save/XP logic
+        run: node docs/superpowers/plans/_savetest.mjs
+      - name: Trial grader logic
+        run: node docs/superpowers/plans/_gradetest.mjs
+      - name: Keep questline logic
+        run: node docs/superpowers/plans/_keeptest.mjs
+
+  smoke:
+    name: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install playwright-core (uses the runner's Chrome)
+        run: npm install playwright-core
+      - name: Serve the game
+        run: python -m http.server 8931 &
+      - name: Boot the game headless (Pyodide + no page errors)
+        run: node ci/smoke.mjs
