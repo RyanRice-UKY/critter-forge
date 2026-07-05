@@ -1725,22 +1725,39 @@ async function playTypesArc() {
     task: "This is exactly what the craftsman ran all night. Read it before you run it: the quotes around \"12\" matter. Run it and watch what the machine answers.",
     validate: (r) => (r.stdout.trim() === "1212" ? null : "Just press Run; the code is already written."),
   }, null);
-  await say("Craftsman", "One-two-one-two. Do you see it now? \"12\" in quotes is not a number. It is a str, a STRING of text marks. Multiply marks and Python politely repeats them. What a value CAN DO is decided by its shape.");
-  await say("Craftsman", "That shape has a name: its TYPE. And you never need to guess a value's type. You ask.");
+  await say("Craftsman", "One-two-one-two. Do you see it now? \"12\" in quotes is not a number. It is a str, a STRING of text marks. Multiply marks and Python politely repeats them.");
+  await say("Craftsman", "Do not take my word for it. PROVE it. Do what I did with your own marks: pick any two-digit number, wrap it in quotes, multiply it by two.");
   await ask({
-    prompt: "Ask two values their shape",
-    prefill: 'raw = "12"\n',
-    placeholder: 'raw = "12"\nprint(type(raw))\nprint(type(12))', rows: 3,
+    prompt: "Recreate the stutter with your own marks",
+    placeholder: 'marks = "34"\nprint(marks * 2)', rows: 2,
     concept: "types",
-    task: "type() is the craftsman's caliper: hold any value up to it and it names the shape. Line 1 already declares raw, so you can see exactly where the value comes from. Below it, print the type of raw, then the type of a bare 12, and compare what comes out.",
+    task: "Write the craftsman's experiment yourself, slightly differently: declare your own variable holding a TWO-DIGIT number in quotes (any number, any name), then print it multiplied by 2. Predict the answer before you run.",
     validate: (r) => {
-      if (!/type\s*\(/.test(lastSrc)) return "Use the caliper: type(raw) inside a print().";
-      if (!r.stdout.includes("'str'")) return "One line must show raw's shape: print(type(raw)).";
-      if (!r.stdout.includes("'int'")) return "One line must show a bare number's shape: print(type(12)).";
+      const m2 = lastSrc.match(/["'](\d\d)["']/);
+      if (!m2) return 'Put a two-digit number in quotes, like "34". The quotes are the whole experiment.';
+      const twice = m2[1] + m2[1];
+      return r.stdout.trim() === twice ? null : `Multiply your marks by 2 and print the result. With "${m2[1]}" the machine should echo ${twice}.`;
+    },
+  }, null);
+  await say("Craftsman", "There it is, in your own hand. Any marks, same stutter. What a value CAN DO is decided by its shape, and that shape has a name: its TYPE.");
+  await say("Craftsman", "Here is your experiment back. I stripped the print and wired three more values beside it, and my one line shows you the caliper: type() names any value's shape. Check the rest.");
+  await ask({
+    prompt: "Check the shape of every variable",
+    prefill: 'marks = "34"\necho = marks * 2\ncount = 34\nvolts = 7.5\narmed = True\nprint(type(marks))\n',
+    placeholder: 'marks = "34"\necho = marks * 2\ncount = 34\nvolts = 7.5\narmed = True\nprint(type(marks))\nprint(type(echo))\nprint(type(count))\nprint(type(volts))\nprint(type(armed))', rows: 10,
+    concept: "types",
+    task: "The first six lines are given: your experiment, three new values, and one caliper line already checking marks. Add caliper lines for the REST: echo, count, volts, armed. The shapes on the board are the clue to how this machine thinks.",
+    validate: (r) => {
+      if (!/type\s*\(\s*echo\s*\)/.test(lastSrc)) return "Check echo too: print(type(echo)).";
+      if (!/type\s*\(\s*count\s*\)/.test(lastSrc)) return "Check count too: print(type(count)).";
+      if (!/type\s*\(\s*volts\s*\)/.test(lastSrc)) return "Check volts too: print(type(volts)).";
+      if (!/type\s*\(\s*armed\s*\)/.test(lastSrc)) return "Check armed too: print(type(armed)).";
+      if (!r.stdout.includes("'int'") || !r.stdout.includes("'float'") || !r.stdout.includes("'bool'")) return "Run all five checks and read the shapes off the board.";
       return null;
     },
   }, null);
-  await say("Craftsman", "class str, class int. Marks, and a whole number. Integer, int for short: the shape arithmetic works on. Now the trick I never knew. The one where you teach ME.");
+  await say("Craftsman", "READ them, scout. marks is str, and echo is str too: marks times two is just LONGER MARKS. But count is int, volts is float, armed is bool. Four shapes.");
+  await say("Craftsman", "There is the clue. The machine repeats TEXT and calculates NUMBERS. Everything it does flows from which shape it holds. Now the trick I never knew. The one where you teach ME.");
   await say("Craftsman", "I crank twelve in. The board shows the IN and waits on the OUT, because the missing half of this circuit is YOU.");
   workshopPairs.push("IN 12 -> OUT ?"); workshopSpark = 1;
   await ask({
