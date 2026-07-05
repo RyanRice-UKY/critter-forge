@@ -236,7 +236,7 @@ async function submit() {
   try { r = JSON.parse(runUser(runSrc, opts.seed || "", inputval)); }
   catch (e) { setStatus(String(e.message || e), "err"); return; }
   if (r.err) { setStatus(translate(r.err), "err"); return; }
-  if (scene === "workshop" && r.stdout.trim()) for (const ln of r.stdout.trim().split(/\n/).slice(0, 4)) workshopPairs.push("> " + ln); // the machine speaks: run output lands on the probe board
+  if (scene === "workshop" && r.stdout.trim()) for (const ln of r.stdout.trim().split(/\n/).slice(0, 6)) workshopPairs.push("> " + ln); // the machine speaks: run output lands on the probe board
   const msg = opts.validate ? opts.validate(r) : null;
   if (msg) { setStatus(msg, "err"); return; }
   logCmd(src, true);
@@ -1746,8 +1746,8 @@ async function playTypesArc() {
     concept: ["types", "input"],
     task: "Line 1 is written: marks = input() takes whatever you type. Here is the trap: even when your fingers type digits, input() hands back MARKS, text, a str. Print marks * 2 and watch the stutter happen with YOUR number, then print type(marks) to see the shape with your own eyes. Do NOT cast anything yet.",
     validate: (r) => {
-      if (typeof r.vars.marks !== "string" || !/^\d\d$/.test(r.vars.marks)) return "Type a two-digit number when the box appears (line 1 does the asking).";
       if (/\bint\s*\(/.test(lastSrc)) return "No casting yet. This beat is about what happens WITHOUT the mold.";
+      if (typeof r.vars.marks !== "string" || !/^\d\d$/.test(r.vars.marks)) return "Type a two-digit number when the box appears (line 1 does the asking).";
       const twice = r.vars.marks + r.vars.marks;
       if (!r.stdout.includes(twice)) return `Print marks * 2. With your ${r.vars.marks} the machine should stutter ${twice}.`;
       return r.stdout.includes("'str'") ? null : "Now print type(marks) and read the shape it names.";
