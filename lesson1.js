@@ -1663,19 +1663,19 @@ async function probePair(inn, out, word) {
 const DECIPHER = [
   { intro: "First rule. The shallow one. Watch the board.",
     probes: [2, 4, 7], seed: 7, expect: (s) => s * 2 + 1, reruns: [2, 5], needsElse: false,
-    prompt: "Decipher rule 1: set out from signal", rows: 3, concept: "convert",
+    prompt: "Steal rule 1", rows: 3, concept: "convert",
     placeholder: "raw = input()\nsignal = int(raw)\nout = signal * 2 + 1",
-    task: "The wire feeds your code through input(): line 1 is already written. The crank is sending 7. Cast before you calculate. The board shows what the machine did: IN 2 -> OUT 5, IN 4 -> OUT 9, IN 7 -> OUT 15. Write the steps between IN and OUT: set out from signal so your steps match EVERY pair, not just this one." },
+    task: "The board shows pairs the machine already answered:\nIN 2 -> OUT 5. IN 4 -> OUT 9. IN 7 -> OUT 15.\nYour steps must turn IN into OUT for EVERY pair, not just one.\n\nTASK:\nLine 1 is already written: raw = input()   (the machine feeds 7)\n1. Cast first: signal = int(raw)\n2. Study the pairs. Find the one rule that fits all three.\n3. Set out from signal so every pair matches." },
   { intro: "Second rule. Stranger. Watch what it does to WEAK signals.",
     probes: [4, 9, 12, 15], seed: 12, expect: (s) => (s < 10 ? 0 : s - 10), reruns: [7, 15, 20], needsElse: true,
-    prompt: "Decipher rule 2: the machine ignores weak signals", rows: 6, concept: "if",
+    prompt: "Steal rule 2", rows: 6, concept: "if",
     placeholder: "raw = input()\nsignal = int(raw)\nif signal < 10:\n    out = 0\nelse:\n    out = signal - 10",
-    task: "The wire feeds your code through input(): line 1 is already written. The crank is sending 12. Cast first. IN 4 -> OUT 0. IN 9 -> OUT 0. IN 12 -> OUT 2. IN 15 -> OUT 5. Below ten it answers nothing: out is 0. Ten and above, it answers signal minus 10. You know if. Now meet else: the if answers the YES, and the else catches every NO." },
+    task: "if runs its lines only when a question is True. else runs when the question is False. One if plus one else covers every possible signal.\n\nTASK:\nLine 1 is already written: raw = input()   (the machine feeds 12)\n1. Cast first: signal = int(raw)\n2. Read the pairs: IN 4 -> 0. IN 9 -> 0. IN 12 -> 2. IN 15 -> 5.\n   Below ten the machine answers 0. Ten and above, it answers signal minus 10.\n3. Write it: an if for the weak signals, an else for the rest." },
   { intro: "Last rule. The deep one. This is where it keeps its orders.",
     probes: [3, 8, 12, 20], seed: 20, expect: (s) => (s < 10 ? s + 1 : s * 2), reruns: [6, 12, 15], needsElse: true,
-    prompt: "Decipher rule 3: two behaviours, one machine", rows: 6, concept: "if",
+    prompt: "Steal rule 3", rows: 6, concept: "if",
     placeholder: "raw = input()\nsignal = int(raw)\nif signal < 10:\n    out = signal + 1\nelse:\n    out = signal * 2",
-    task: "The wire feeds your code through input(): line 1 is already written. The crank is sending 20. Cast first. IN 3 -> OUT 4. IN 8 -> OUT 9. IN 12 -> OUT 24. IN 20 -> OUT 40. Weak signals gain one. Strong signals are doubled. One if, one else, and the machine has no secrets left." },
+    task: "One machine can hold two behaviors at once. The if decides which one runs. That is the whole trick.\n\nTASK:\nLine 1 is already written: raw = input()   (the machine feeds 20)\n1. Cast first: signal = int(raw)\n2. Read the pairs: IN 3 -> 4. IN 8 -> 9. IN 12 -> 24. IN 20 -> 40.\n   Weak signals gain one. Strong signals double.\n3. Write both behaviors with one if and one else." },
 ];
 async function runDecipherRounds() {
   for (let i = 0; i < DECIPHER.length; i++) {
@@ -1689,14 +1689,14 @@ async function runDecipherRounds() {
       prefill: "raw = input()\n",
       inputValue: String(R.seed),
       validate: (r) => {
-        if (!/\bint\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "The wire gave you marks, not a number. Cast before you calculate: signal = int(raw).";
+        if (!/\bint\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "The wire gave you text. Cast first: signal = int(raw).";
         if (R.needsElse && !/\bif\b[^\n]*\bsignal\b[^\n]*:/.test(lastSrc)) return "Ask the question first: an if line about signal, ending with a colon.";
-        if (R.needsElse && !/\belse\s*:/.test(lastSrc)) return "The if answers the yes. You still need an else: for every no.";
-        if (Number(r.vars.out) !== R.expect(R.seed)) return `The board disagrees. IN ${R.seed} must come OUT ${R.expect(R.seed)}; your steps made ${r.vars.out === undefined ? "nothing" : r.vars.out}. Set out from signal.`;
+        if (R.needsElse && !/\belse\s*:/.test(lastSrc)) return "The if answers the yes. You still need an else for every no.";
+        if (Number(r.vars.out) !== R.expect(R.seed)) return `The board disagrees. IN ${R.seed} must come OUT ${R.expect(R.seed)}. Your steps made ${r.vars.out === undefined ? "nothing" : r.vars.out}.`;
         for (const h of R.reruns) {
           let rr2; try { rr2 = JSON.parse(runUser(lastSrc, "", String(h))); } catch (e) { return "Something broke re-running your steps. Try again."; }
           if (rr2.err) return translate(rr2.err);
-          if (Number(rr2.vars.out) !== R.expect(h)) return `The craftsman cranks a fresh probe: IN ${h}. Your steps say ${rr2.vars.out === undefined ? "nothing" : rr2.vars.out}. The machine says ${R.expect(h)}. It answers EVERY signal, not just one.`;
+          if (Number(rr2.vars.out) !== R.expect(h)) return `Fresh probe: IN ${h}. Your steps say ${rr2.vars.out === undefined ? "nothing" : rr2.vars.out}. The machine says ${R.expect(h)}. Your rule must answer EVERY signal.`;
         }
         return null;
       },
@@ -1726,138 +1726,139 @@ const WT_TYPES = {
   ],
 };
 async function playTypesArc() {
-  await say("Craftsman", "Before we steal its rules, you should know why I FAILED all night. Look at the board. I cranked twelve into it. It answered one-two-one-two. Garbage.");
+  await say("Craftsman", "Before we steal its rules, you should know why I FAILED all night. I cranked twelve in. It answered one-two-one-two. Garbage.");
   workshopPairs.push("IN 12 -> OUT 1212 ??");
-  await say("Craftsman", "And it was not the machine mocking me. It was the wire. A wire cannot hand you a NUMBER, scout. It hands you MARKS. Text. And all night, I was doing arithmetic on text.");
   await ask({
-    prompt: "Run the craftsman's failed probe",
+    prompt: "Run the failed probe",
     prefill: 'raw = "12"\nprint(raw * 2)', readonly: true, rows: 2,
     concept: "types",
-    task: "This is exactly what the craftsman ran all night. Read it before you run it: the quotes around \"12\" matter. Run it and watch what the machine answers.",
+    task: '"12" in quotes is not a number. It is text. Python calls text a str. When you multiply text by 2, Python does not do math. It repeats the text. That is why 12 came out as 1212.\n\nTASK:\nPress Run. Watch "12" * 2 print 1212.',
     validate: (r) => (r.stdout.trim() === "1212" ? null : "Just press Run; the code is already written."),
   }, null);
-  await say("Craftsman", "One-two-one-two. Do you see it now? \"12\" in quotes is not a number. It is a str, a STRING of text marks. Multiply marks and Python politely repeats them.");
-  await say("Craftsman", "Do not take my word for it. PROVE it. And this time YOU feed the wire: input() will ask for your marks. Type any two-digit number when it does.");
+  await say("Craftsman", "One-two-one-two. The wire was handing me TEXT the whole time. See for yourself.");
+  await say("Craftsman", "This time YOU feed the wire. Type any two-digit number when it asks.");
   await ask({
-    prompt: "Recreate the stutter with your own marks",
+    prompt: "Recreate the stutter yourself",
     prefill: "marks = input()\n",
     placeholder: "marks = input()\nprint(marks * 2)\nprint(type(marks))", rows: 3,
     inputPrompt: "The crank is yours. Type any two-digit number:", inputDefault: "34",
     concept: ["types", "input"],
-    task: "Line 1 is written: marks = input() takes whatever you type. Here is the trap: even when your fingers type digits, input() hands back MARKS, text, a str. Print marks * 2 and watch the stutter happen with YOUR number, then print type(marks) to see the shape with your own eyes. Do NOT cast anything yet.",
+    task: "input() asks you a question and hands back whatever you type. Here is the trap: input() ALWAYS hands back text, even when you type digits. A keyboard makes text, not numbers.\n\nTASK:\nLine 1 is already written: marks = input()\n1. Add: print(marks * 2)\n2. Add: print(type(marks))\n3. Run it. Type any two digit number in the box.\nYour number will stutter (34 becomes 3434) and type() will say str.\nDo NOT cast anything yet.",
     validate: (r) => {
-      if (/\bint\s*\(/.test(lastSrc)) return "No casting yet. This beat is about what happens WITHOUT the mold.";
-      if (typeof r.vars.marks !== "string" || !/^\d\d$/.test(r.vars.marks)) return "Type a two-digit number when the box appears (line 1 does the asking).";
+      if (/\bint\s*\(/.test(lastSrc)) return "No casting yet. We want to see the stutter first.";
+      if (typeof r.vars.marks !== "string" || !/^\d\d$/.test(r.vars.marks)) return "Type a two digit number in the box (line 1 does the asking).";
       const twice = r.vars.marks + r.vars.marks;
-      if (!r.stdout.includes(twice)) return `Print marks * 2. With your ${r.vars.marks} the machine should stutter ${twice}.`;
-      return r.stdout.includes("'str'") ? null : "Now print type(marks) and read the shape it names.";
+      if (!r.stdout.includes(twice)) return `Add print(marks * 2). Type ${r.vars.marks} and the machine prints ${twice}.`;
+      return r.stdout.includes("'str'") ? null : "Now add print(type(marks)) to see the type.";
     },
   }, null);
-  await say("Craftsman", "There it is, on the board, in your own hand: your digits doubled into LONGER MARKS, and the caliper naming the shape. str. input() ALWAYS hands you marks, scout. A keyboard makes marks, not numbers.");
-  await say("Craftsman", "What a value CAN DO is decided by its shape, and that shape has a name: its TYPE. And marks is only the first of the shapes.");
-  await say("Craftsman", "Here is your experiment back. I stripped the prints and wired three more values beside it, with the marks check already written. Check the rest.");
+  await say("Craftsman", "Your digits, doubled into longer text. A keyboard makes text, not numbers.");
+  await say("Craftsman", "Here is your experiment back, with three more values wired beside it. The marks check is written. Check the rest.");
   await ask({
-    prompt: "Check the shape of every variable",
+    prompt: "Check every type",
     prefill: 'marks = "34"\necho = marks * 2\ncount = 34\nvolts = 7.5\narmed = True\nprint(type(marks))\n',
     placeholder: 'marks = "34"\necho = marks * 2\ncount = 34\nvolts = 7.5\narmed = True\nprint(type(marks))\nprint(type(echo))\nprint(type(count))\nprint(type(volts))\nprint(type(armed))', rows: 10,
     concept: "types",
-    task: "The first six lines are given: your experiment, three new values, and one caliper line already checking marks. Add caliper lines for the REST: echo, count, volts, armed. The shapes on the board are the clue to how this machine thinks.",
+    task: "Every value in Python has a type. There are four here:\nstr: text (\"34\")\nint: a whole number (34)\nfloat: a number with a decimal point (7.5)\nbool: True or False\ntype() tells you which type a value is. The type decides what a value can do. Numbers calculate. Text repeats.\n\nTASK:\nThe check for marks is already written. Add four more lines:\n1. print(type(echo))\n2. print(type(count))\n3. print(type(volts))\n4. print(type(armed))\nRun it and read all five types off the board.",
     validate: (r) => {
-      if (!/type\s*\(\s*echo\s*\)/.test(lastSrc)) return "Check echo too: print(type(echo)).";
-      if (!/type\s*\(\s*count\s*\)/.test(lastSrc)) return "Check count too: print(type(count)).";
-      if (!/type\s*\(\s*volts\s*\)/.test(lastSrc)) return "Check volts too: print(type(volts)).";
-      if (!/type\s*\(\s*armed\s*\)/.test(lastSrc)) return "Check armed too: print(type(armed)).";
-      if (!r.stdout.includes("'int'") || !r.stdout.includes("'float'") || !r.stdout.includes("'bool'")) return "Run all five checks and read the shapes off the board.";
+      if (!/type\s*\(\s*echo\s*\)/.test(lastSrc)) return "Same pattern every time: print(type(echo)).";
+      if (!/type\s*\(\s*count\s*\)/.test(lastSrc)) return "Same pattern every time: print(type(count)).";
+      if (!/type\s*\(\s*volts\s*\)/.test(lastSrc)) return "Same pattern every time: print(type(volts)).";
+      if (!/type\s*\(\s*armed\s*\)/.test(lastSrc)) return "Same pattern every time: print(type(armed)).";
+      if (!r.stdout.includes("'int'") || !r.stdout.includes("'float'") || !r.stdout.includes("'bool'")) return "Run all five checks and read the types.";
       return null;
     },
   }, null);
-  await say("Craftsman", "READ them, scout. marks is str, and echo is str too: marks times two is just LONGER MARKS. But count is int, volts is float, armed is bool. Four shapes.");
-  await say("Craftsman", "There is the clue. The machine repeats TEXT and calculates NUMBERS. Everything it does flows from which shape it holds. Now the trick I never knew. The one where you teach ME.");
-  await say("Craftsman", "I crank twelve in. The board shows the IN and waits on the OUT, because the missing half of this circuit is YOU.");
+  await say("Craftsman", "Text repeats. Numbers calculate. There is the whole clue. Now the trick I never knew: the one where you teach ME.");
+  await say("Craftsman", "I crank twelve in. The board waits on the OUT, because the missing half of this circuit is YOU.");
   workshopPairs.push("IN 12 -> OUT ?"); workshopSpark = 1;
   await ask({
-    prompt: "Cast the marks into a number",
+    prompt: "Cast text into a number",
     prefill: 'raw = "12"\n',
     placeholder: 'raw = "12"\nsignal = int(raw)\nprint(signal * 2)', rows: 3,
     concept: "convert",
-    task: "In this trade we CAST: pour metal into a mold and it takes the mold's shape. int(raw) is Python casting. The parentheses are the crucible: marks go in, a true int comes out. The declaration sits on line 1 where you can see it. Beneath it, cast raw into a variable named signal, then print signal * 2.",
+    task: "Casting converts a value from one type to another. int(raw) takes the text \"12\" and turns it into the number 12. Once it is a real number, math works.\n\nTASK:\nLine 1 is already written: raw = \"12\"\n1. First add print(raw * 2) and run it. Watch the stutter: 1212.\n2. Now add: signal = int(raw)\n3. Change your print to: print(signal * 2)\n4. Run it. You should get 24.",
     validate: (r) => {
-      if (!/\bint\s*\(/.test(lastSrc)) return "Pour it through the mold: signal = int(raw).";
-      if (typeof r.vars.signal !== "number") return "signal is still marks. Cast it: signal = int(raw).";
-      if (r.vars.signal !== 12) return "Cast raw itself; do not type your own number.";
-      return r.stdout.trim() === "24" ? null : "Now print signal * 2 and let the machine answer with real arithmetic.";
+      if (!/\bint\s*\(/.test(lastSrc)) {
+        if (r.stdout.includes("1212")) return "There is the stutter, on the board. Now cast it: signal = int(raw) and print signal * 2 instead.";
+        return "See the stutter first: print(raw * 2). Then cast it: signal = int(raw).";
+      }
+      if (typeof r.vars.signal !== "number") return "signal is still text. Cast it: signal = int(raw).";
+      if (r.vars.signal !== 12) return "Cast raw itself. Do not type your own number.";
+      return /(^|\n)24\s*$/.test(r.stdout.trim()) ? null : "Change your print to: print(signal * 2). You should get 24.";
     },
   }, null);
   { const pi = workshopPairs.lastIndexOf("IN 12 -> OUT ?"); if (pi >= 0) workshopPairs[pi] = "IN 12 -> OUT 24"; }
-  await say("Craftsman", "TWENTY-FOUR. All night I fought this thing, and you fix it with one cast. The board just logged its first honest pair. We are not done: the wire has more shapes in it.");
+  await say("Craftsman", "TWENTY-FOUR. All night I fought this thing, and you fix it with one cast.");
+  await say("Craftsman", "Now a half-strength probe.");
   workshopPairs.push("IN 7.5 -> OUT ?"); workshopSpark = 1;
   await ask({
-    prompt: "A probe with a point in it",
+    prompt: "A number with a point in it",
     prefill: 'raw = "7.5"\n',
     placeholder: 'raw = "7.5"\nstrength = float(raw)\nprint(strength * 2)', rows: 3,
     concept: ["convert", "float"],
-    task: "He cranks a half-strength probe and the wire hands you \"7.5\". Try int(raw) first if you like; the int mold refuses marks that carry a point. The right mold is float(raw): a float is a number that keeps its point. Cast, then print strength * 2. The declaration sits on line 1 where you can see it.",
+    task: "\"7.5\" is text with a decimal point in it. int() only accepts whole numbers. Feed it \"7.5\" and it errors. float() is the right tool. A float is a number that keeps its decimal point. 7.5 doubled is 15.0, point and all.\n\nTASK:\nLine 1 is already written: raw = \"7.5\"\n1. First try: strength = int(raw). Run it. Watch it fail.\n2. Change it to: strength = float(raw)\n3. Add: print(strength * 2)\n4. Run it. You should get 15.0.",
     validate: (r) => {
-      if (!/float\s*\(/.test(lastSrc)) return "These marks carry a point. The int mold refuses them; cast with float(raw).";
+      if (!/float\s*\(/.test(lastSrc)) return "These marks carry a point. Cast with float(raw).";
       if (typeof r.vars.strength !== "number") return "strength should come out a number: strength = float(raw).";
-      return r.stdout.includes("15.0") ? null : "Print strength * 2. Watch closely: the answer will carry a point.";
+      return r.stdout.includes("15.0") ? null : "Print strength * 2. The answer keeps its point.";
     },
   }, null);
   { const pi = workshopPairs.lastIndexOf("IN 7.5 -> OUT ?"); if (pi >= 0) workshopPairs[pi] = "IN 7.5 -> OUT 15.0"; }
-  await say("Craftsman", "Fifteen POINT ZERO. A float never drops its point, even with nothing riding behind it. Now the law every smith learns the hard way. What happens when you pour a float into the int mold?");
+  await say("Craftsman", "Fifteen POINT ZERO. The float keeps its point. So what happens when you pour it into the int mold?");
   await ask({
-    prompt: "Pour a float into the int mold",
+    prompt: "Pour a float into int",
     prefill: 'strength = 7.5\n',
     placeholder: 'strength = 7.5\nwhole = int(strength)\nprint(whole)\nprint(int(7.9))', rows: 4,
     concept: "convert",
-    task: "Cast strength (it holds 7.5) into the int mold as whole, and print it. Then also print int(7.9), a value sitting a hair from 8. Predict both answers before you run. The declaration sits on line 1.",
+    task: "int() does NOT round. It cuts. Everything after the decimal point is thrown away. int(7.5) is 7. int(7.9) is also 7, even though 7.9 is almost 8. If you want rounding, you must ask for rounding. int() never gives it.\n\nTASK:\nLine 1 is already written: strength = 7.5\n1. Add: whole = int(strength)\n2. Add: print(whole)\n3. Add: print(int(7.9))\nGuess both answers before you press Run.",
     validate: (r) => {
       if (!/\bint\s*\(/.test(lastSrc)) return "Use the int mold: whole = int(strength).";
-      if (r.vars.whole !== 7) return "whole = int(strength). Let the mold do the cutting.";
+      if (r.vars.whole !== 7) return "whole = int(strength).";
       const lines = r.stdout.trim().split(/\n/);
       return lines.length >= 2 && lines[0].trim() === "7" && lines[1].trim() === "7" ? null : "Print whole, then print int(7.9). Two lines, two answers.";
     },
   }, null);
-  await say("Craftsman", "Seven. And seven AGAIN, from a value nearly touching eight. The int mold does not round, scout. It CUTS. Everything after the point drips off the edge of the crucible and is gone. If you ever want rounding, you must ask for rounding. The mold gives nothing for free.");
+  await say("Craftsman", "Seven, and seven AGAIN from a value nearly touching eight. The mold cuts. It never rounds.");
   await ask({
     prompt: "Label the board",
     prefill: 'out = 15\n',
     placeholder: 'out = 15\nlabel = "OUT " + str(out)\nprint(label)', rows: 3,
     concept: "convert",
-    task: "The board wants a label that reads OUT 15. Try print(\"OUT \" + out) first if you like: Python refuses to glue marks to a bare number. str(out) is the mold that runs backward, numbers into marks. Build label from \"OUT \" plus str(out), then print it.",
+    task: "You cannot glue text and a number together with +. \"OUT \" + 15 errors because one side is text and the other is a number. str() runs the other direction: it turns the number 15 into the text \"15\". Once both sides are text, + joins them.\n\nTASK:\nLine 1 is already written: out = 15\n1. First try: print(\"OUT \" + out). Run it. Watch it fail.\n2. Add: label = \"OUT \" + str(out)\n3. Add: print(label)\n4. Run it. It should read: OUT 15",
     validate: (r) => {
-      if (!/str\s*\(/.test(lastSrc)) return "Cast the number into marks first: str(out).";
-      if (typeof r.vars.label !== "string") return 'Store the joined marks: label = "OUT " + str(out).';
+      if (!/str\s*\(/.test(lastSrc)) return "Turn the number into text first: str(out).";
+      if (typeof r.vars.label !== "string") return 'Store it: label = "OUT " + str(out).';
       return r.stdout.includes("OUT 15") ? null : "Print the label. It should read: OUT 15";
     },
   }, null);
-  await say("Craftsman", "Three molds now. int() for whole numbers, float() for numbers with a point, str() for marks. Any value, any shape, so long as the marks fit the mold. One shape left, and for that one YOU crank.");
+  await say("Craftsman", "Three molds now: int(), float(), str().");
+  await say("Craftsman", "One type left. YOU crank.");
   await ask({
-    prompt: "Crank your own probe",
+    prompt: "Your own probe, your own question",
     placeholder: 'raw = input("signal to send:")\nsignal = int(raw)\nstrong = signal >= 10\nprint(strong)', rows: 4,
     inputPrompt: "Your hand is on the crank. Send a whole number down the wire:", inputDefault: "14",
     concept: ["convert", "input", "bool"],
-    task: "Your turn at the crank again, and this time you know the trap: input() hands back marks even when you type digits, so cast before you compare. Take the signal, cast it to int, then store the question signal >= 10 in a variable named strong, and print it.",
+    task: "A comparison like signal >= 10 is a question. Python answers with True or False. That answer is a bool, the fourth and smallest type. You can store it in a variable like any other value. Every decision a machine makes is built from this type.\n\nTASK:\n1. Take the crank: raw = input(\"signal to send:\")\n2. input() gave you text. Cast it: signal = int(raw)\n3. Store the question: strong = signal >= 10\n4. print(strong)\nRun it and type a whole number. You will see True or False.",
     validate: (r) => {
-      if (!/input\s*\(/.test(lastSrc)) return "Take the crank: raw = input(...).";
-      if (!/\bint\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "input() handed you marks. Cast before you compare: signal = int(raw).";
-      if (typeof r.vars.strong !== "boolean") return "Store the question itself: strong = signal >= 10. It comes out True or False.";
+      if (!/input\s*\(/.test(lastSrc)) return "Start with input().";
+      if (!/\bint\s*\(/.test(lastSrc) || typeof r.vars.signal !== "number") return "Cast before you compare: signal = int(raw).";
+      if (typeof r.vars.strong !== "boolean") return "Store the question itself: strong = signal >= 10.";
       if (r.vars.strong !== (r.vars.signal >= 10)) return "strong must hold exactly the question signal >= 10.";
       return null;
     },
   }, null);
-  await say("Craftsman", "And there is the fourth shape: bool. Two values fit that mold, True and False, and nothing else ever will. The machine's whole soul, wait or move or hunt, is questions poured into that smallest mold.");
+  await say("Craftsman", "True or False and nothing else: bool. The machine's whole soul is questions poured into that smallest mold.");
   if (walkthroughsEnabled() && !walkthroughSeen(WT_TYPES.id)) await showWalkthrough(WT_TYPES);
-  await say("Craftsman", "Four shapes. Three molds. One law about the cut. NOW we are fit to steal its rules.");
+  await say("Craftsman", "Four types. Three molds. One law about the cut. NOW we steal its rules.");
 }
 async function playWorkshop(name) {
   await fadeTo("workshop"); char.x = els.W * 0.24; char.facing = 1; prog(name + " · 1.5");
   if (implantStep >= 3) {
     await say("Craftsman", "The rules are with the knight and the little horror is locked in my strongbox, where it can pulse at nobody. Go on, scout. He is waiting.");
   } else {
-    await say("Craftsman", "So you are the scout. The captain's runner said you carry something that should not exist. Hand it here. Careful. CAREFUL.");
-    await say("", "He sets the implant in a brass vice like it might bite, runs a patch cable down from his switchboard wall, and drags the slate board where you both can see it.");
-    await say("Craftsman", "It still ANSWERS. Look. I crank a signal IN, it answers OUT. Every machine keeps rules between the in and the out. You and I are going to steal them.");
+    await say("Craftsman", "So you are the scout. Hand it here. Careful. CAREFUL.");
+    await say("Craftsman", "It still ANSWERS. I crank a signal in, it answers out. Every machine keeps rules between the in and the out. We are going to steal them.");
     await playTypesArc();
     await runDecipherRounds();
   }
