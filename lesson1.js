@@ -286,8 +286,8 @@ xpPill();
 function translate(err) {
   const m = err.match(/name '(\w+)' is not defined/);
   if (m) return `Python doesn't know “${m[1]}”. Strings need quotes (e.g. you.walk("tree")) and variables must be set first.`;
-  if (err.includes("invalid literal for int()")) return "The int mold only takes whole-number marks. These marks carry a point in them; cast with float() instead.";
-  if (err.includes("can only concatenate str") || err.includes("unsupported operand type(s) for +")) return "You mixed bare numbers with marks. Cast the number into marks first: str(out).";
+  if (err.includes("invalid literal for int()")) return "int() only takes whole numbers. This one has a point. Use float().";
+  if (err.includes("can only concatenate str") || err.includes("unsupported operand type(s) for +")) return "You mixed a bare number with text. Cast it: str(out).";
   if (err.includes("SyntaxError")) return "SyntaxError: check quotes, colons and indentation.";
   if (err.includes("IndentationError")) return "IndentationError: the line under a for loop must be indented 4 spaces.";
   return err;
@@ -1717,12 +1717,12 @@ const WT_TYPES = {
   id: "shapes-of-values", title: "The four shapes, on one slate",
   code: 'marks = "12"\nsignal = int(marks)\nvolts = 7.5\ncut = int(volts)\nlabel = "OUT " + str(cut)\nstrong = signal >= 10',
   steps: [
-    { lines: [1], text: "Quotes make a str, a string of text marks. \"12\" is not twelve. It is two marks standing side by side, a one and a two: text wearing a number's face." },
-    { lines: [2], text: "Casting. int(marks) pours the marks into the int mold and a true whole number comes out. The parentheses are the crucible: marks go in, a number arithmetic works on comes out." },
-    { lines: [3], text: "A bare number carrying a point is a float. It keeps the point forever: half strength is 7.5, and doubling it gives 15.0, point and all." },
-    { lines: [4], text: "Pour a float into the int mold and the mold CUTS. cut is 7. int(7.9) is also 7, though it sits a hair from 8. Everything after the point drips off the crucible's edge and is gone. The int mold never rounds." },
-    { lines: [5], text: "str() is the mold that runs backward: numbers into marks. You cannot glue marks straight onto a bare number. Cast it first, then + joins marks to marks." },
-    { lines: [6], text: "A question is a value too. signal >= 10 comes out True or False and nothing else: a bool, the smallest mold there is. Every decision the machine makes is built from this shape." },
+    { lines: [1], text: "Quotes make a str. \"12\" is text, not twelve." },
+    { lines: [2], text: "int(marks) casts text into a whole number. Now math works." },
+    { lines: [3], text: "A bare number with a point is a float. It keeps the point forever." },
+    { lines: [4], text: "int() cuts, it never rounds. int(7.9) is 7." },
+    { lines: [5], text: "str() runs backward: number into text. Cast before you glue." },
+    { lines: [6], text: "A question comes out True or False: a bool. Every decision is built from it." },
   ],
 };
 async function playTypesArc() {

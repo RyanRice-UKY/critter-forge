@@ -59,17 +59,17 @@ export const CONCEPTS = {
   },
   input: {
     journal: "input", link: "input()",
-    teach: "input() is the program asking YOU a question. The program pauses, a box pops up, and whatever you type becomes the value input() hands back.",
+    teach: "input() pauses the program and asks YOU a question. Whatever you type comes back as text, always, even digits.",
     remind: "Read the answer with input().",
   },
   float: {
     journal: "float", link: "float",
-    teach: "A float is a number with a decimal point, like 1.75. Coins smaller than one whole gold need one. Python does math on floats exactly like whole numbers.",
+    teach: "A float is a number with a decimal point, like 7.5. Math on floats works exactly like whole numbers, and the answer keeps its point.",
     remind: "It is a float. The math works the same.",
   },
   bool: {
     journal: "equals", link: "True or False",
-    teach: "A comparison is itself a value: arrows_fired > 0 comes out as True or False, and you can store it in a variable like any number. Chain comparisons with and: the whole thing is True only when BOTH sides are. This is boolean logic, and it is how programs weigh evidence.",
+    teach: "A comparison like signal > 0 comes out True or False. That is a bool. You can store it in a variable like any number. Chain questions with and: the whole thing is True only when both sides are.",
     remind: "Store the comparison itself: it is already True or False.",
   },
   intdiv: {
@@ -79,13 +79,13 @@ export const CONCEPTS = {
   },
   types: {
     journal: "types", link: "data types",
-    teach: "Every value in Python has a SHAPE, called its type. \"12\" in quotes is a str: a string of text marks. 12 bare is an int: a whole number arithmetic works on. 7.5 is a float: a number that carries a point. True is a bool: one of exactly two values. The shape decides what a value can DO: multiply an int and you get arithmetic, multiply a str and the marks just repeat. Hold any value up to type() and it names the shape.",
-    remind: "Check the shape with type().",
+    teach: "Every value has a type. str is text: \"12\". int is a whole number: 12. float keeps a decimal point: 7.5. bool is True or False. The type decides what a value can do. Numbers calculate. Text repeats. type() names the type.",
+    remind: "Check it with type().",
   },
   convert: {
     journal: "convert", link: "casting",
-    teach: "Casting pours a value into a new mold: int(raw) makes a whole number from marks, float(raw) keeps the point, str(out) makes marks from a number. Two laws. The int mold CUTS, it never rounds: int(7.9) is 7. And input() always hands you marks, even when your fingers typed digits, so cast before you calculate.",
-    remind: "Cast first: int(raw) before arithmetic.",
+    teach: "Casting converts a value to another type. int(raw) makes a whole number from text. float(raw) keeps the point. str(out) makes text from a number. Two laws: int() cuts, it never rounds. input() always hands you text, so cast before you calculate.",
+    remind: "Cast first: int(raw) before math.",
   },
 };
 
