@@ -1101,7 +1101,7 @@ function drawWorkshop(c, W, gy, now) {
   const wire2 = (x1, y1, x2, y2, sag, col, lw) => { c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); c.moveTo(x1, y1); c.quadraticCurveTo((x1 + x2) / 2, Math.max(y1, y2) + sag, x2, y2); c.stroke(); };
   const lampRow2 = (x, y, n, seed) => { for (let i = 0; i < n; i++) { const on = Math.sin(now * (1.3 + ((i * 7 + seed) % 5) * 0.5) + i * 1.7 + seed) > 0; const col = i % 3 === 0 ? "#ff6b6b" : i % 3 === 1 ? "#ffb14d" : "#62d27a"; if (on) { c.shadowColor = col; c.shadowBlur = 7; } px(c, x + i * 14, y, 7, 7, on ? col : "#2a2f38"); c.shadowBlur = 0; } };
   // ---- the old craft (left) ----
-  { const pbx = W * 0.16, pby = H * 0.16, pbw = W * 0.17, pbh = H * 0.28; // woodworking pegboard
+  { const pbx = W * 0.19, pby = H * 0.52, pbw = W * 0.15, pbh = H * 0.22; // woodworking pegboard (decor; the IDE may overlap it)
     px(c, pbx, pby, pbw, pbh, "#3a2c18"); px(c, pbx, pby, pbw, 6, "#5a4424");
     const sxx = pbx + 20, syy = pby + 26; // hand saw
     px(c, sxx, syy, 12, 34, "#7a5a30"); c.fillStyle = "#8a939e"; c.beginPath(); c.moveTo(sxx + 5, syy + 34); c.lineTo(sxx + 16, syy + 96); c.lineTo(sxx - 6, syy + 90); c.closePath(); c.fill();
@@ -1133,17 +1133,22 @@ function drawWorkshop(c, W, gy, now) {
   lampRow2(sx + 14, sy + sh - 46, 10, 0); lampRow2(sx + 14, sy + sh - 28, 10, 5);
   for (let i = 0; i < 2; i++) { const kx = sx + sw - 62 + i * 26; px(c, kx, sy + sh - 52, 5, 26, "#b87333"); c.save(); c.translate(kx + 2.5, sy + sh - 52); c.rotate(-0.6 + (Math.sin(now * 0.7 + i) > 0.6 ? 0.6 : 0)); px(c, -2.5, -18, 5, 18, "#9aa3ad"); c.restore(); }
   // ---- the probe board (same state hooks as before) ----
-  { const bw2 = Math.min(330, W * 0.21), bx0 = W * 0.2, by0 = H * 0.5, bh2 = floorY - by0 - 52;
+  { const bw2 = Math.min(340, W * 0.2), bx0 = W * 0.16, by0 = H * 0.14, bh2 = H * 0.34;
     px(c, bx0 - 8, by0 - 8, bw2 + 16, bh2 + 16, "#54422a"); px(c, bx0 - 8, by0 - 8, bw2 + 16, 3, "#6b5636");
     px(c, bx0, by0, bw2, bh2, "#10141c");
     c.font = "bold 12px 'IBM Plex Mono',monospace"; c.textAlign = "left"; c.fillStyle = "#8a97a8";
     c.fillText("PROBE LOG", bx0 + 10, by0 + 20);
     c.font = "13px 'IBM Plex Mono',monospace";
-    workshopPairs.slice(-9).forEach((ln, i) => {
+    const reserve = workshopLegend ? 26 : 0;
+    const maxLines = Math.max(3, Math.floor((bh2 - 34 - reserve - 8) / 19));
+    workshopPairs.slice(-maxLines).forEach((ln, i) => {
       c.fillStyle = ln.includes("HUNT") ? "#ff6b6b" : ln.includes("->") ? "#9fd9ff" : "#ffd43b";
       c.fillText(ln, bx0 + 10, by0 + 42 + i * 19);
     });
-    if (workshopLegend) { c.fillStyle = "#ffd43b"; c.font = "bold 12px 'IBM Plex Mono',monospace"; c.fillText("1 = WAIT   2 = MOVE   4 = HUNT", bx0 + 10, by0 + bh2 - 12); } }
+    if (workshopLegend) {
+      px(c, bx0, by0 + bh2 - reserve - 2, bw2, 2, "#2a3140");
+      c.fillStyle = "#ffd43b"; c.font = "bold 12px 'IBM Plex Mono',monospace"; c.fillText("1 = WAIT   2 = MOVE   4 = HUNT", bx0 + 10, by0 + bh2 - 9);
+    } }
   // ---- the bench: vice + implant, fed by the switchboard ----
   const bY = floorY - 64, bX = W * 0.5, bW = W * 0.3;
   px(c, bX, bY, bW, 10, "#a9844a"); px(c, bX, bY + 10, bW, 28, "#6b4f2a");
